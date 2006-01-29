@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Check for important files
+for f in META.yml Makefile.PL LICENSE NOTICE README Changes ChangeLog INSTALL MANIFEST TODO lib t
+do
+	if ! [ -e $f ]; then
+		echo "Missing $f"
+		exit
+	fi
+done
+
+# Build an automatic ChangeLog
+cvs2cl.pl -r -t -T -P --fsf --no-times && rm ChangeLog.bak
+
+# Sort the MANIFEST
+sort MANIFEST | uniq > MANIFEST.$$ && mv MANIFEST.$$ MANIFEST
+if [ -f MANIFEST.$$ ]; then
+	rm MANIFEST.$$
+fi
+
+# Clean
+make veryclean
+
+# Remove temporary files and build, test and install
+rm -rf *.gz pm_to_blib blib Makefile Makefile.old && \
+	echo n | /usr/bin/perl Makefile.PL && \
+	make && \
+	make test && \
+	sudo make install && \
+	make dist && \
+	echo n | perl Makefile.PL && \
+	make && \
+	make install
+
+# Commit META.yml to cvs
+cvs commit -m "" META.yml
+
+# Remove temporary files
+rm -rf pm_to_blib blib Makefile Makefile.old *.ts
+mv *.tar.gz ~
+
+# Compare the MANIFEST to what is on disk
+echo;echo
+(find . -type f | grep -v CVS | grep -v doit | sort | cut -b3-) | diff -w MANIFEST -
+

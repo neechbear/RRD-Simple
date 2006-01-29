@@ -1,0 +1,194 @@
+Version 1.32 - 23rd January 2006
+    + No longer set alt-autoscale and alt-y-grid to
+      on by default when creating graphs.
+
+
+Version 1.31 - 19th January 2006
+    + Fixed POD unit tests to run the right tests
+
+    + Added more unit tests.
+
+    + Added retention_period() to exports and documented
+      in the POD
+
+    + Bug fix whereby the add_source() wasn't finding
+      the best heartbeat (it was returning a source
+      name in some internal code instead of the correct
+      integer value).
+
+    + Added functionality for the graph() method to check
+      what RRA CFs are available before blindly graphing
+      the AVERAGE CF type. It will select best of the CFs
+      available, in order of preference, AVERAGE, MAX,
+      MIN, LAST.
+
+    + Added (undocumented) "cf" parameter inside the
+      new() method to specify which CFs to use when creating
+      RRAs in a new RRD file. This may be documented later
+      if it's considered useful, and if the paramrter
+      name is correct (ie, shouldn't be named something
+      else), or implemented in another way.
+
+    + Fixed a bug which (until this release) would not
+      and should not have been noticed since it only
+      effected the passing of default values to the
+      RRD::Simple $self object when used with indirect
+      method calls requiring the new "cf" paramater.
+
+
+Version 1.30 - 15th January 2006
+    + Removed notice about add_source() not working with
+      latest versions of RRD from the POD.
+
+    + Added Test::Pod and Test::Pod::Coverage unit tests
+
+    + The graph() method now allows arrays to be passed
+      as key value options, thus allowing many --colour
+      values to be set
+
+    + Added the "source_colors" parameter to the graph()
+      method to specify the plotted data source line colours
+
+    + Added the "source_labels" parameter to the graph()
+      method to specify data source labels in the legend/key
+
+    + Changed the add_source() method to try and use
+      the RRDs module for all the needed rrdtool
+      functionality, instead of having to spawn an external
+      copy of the rrdtool binary. A patch submitted to
+      Tobi on 2006/01/08 which should be available in the
+      1.2.13 release of rrdtool will allow RRDs::dump to
+      dump to a filename instead of STDOUT, this removing
+      the need for RRD::Simple to use the rrdtool binary
+      at all.
+
+    + Tweaked POD a little
+
+    + Fixed some typos in the code where "3year" and "3years"
+      were being mixed up. They have all been changed to be
+      "3years" now, as per the POD.
+
+    + Added the retention_period() method to return (in 
+      seconds) how long the RRD will store data for.
+
+    + The graph() method will now only generate graphs which
+      the RRD file has enough data for. (ie, a 1 week long
+      RRD file will not try and generate a 3 year graph etc)
+
+    + Fixed a bug whereby the create() method and the graph()
+      method were both getting the same values back from the
+      _seconds_in() function, which should not be the case.
+      This was resulting in blocky graphs because there was
+      not enough margin between RRA boundies to ensure that
+      each graph was getting the highest resolution data that
+      you would expect. Also, _seconds_in() was returning
+      slightly too high values, which indirectly caused the
+      X asis labels to overlap eachother in some instances.
+
+
+Version 1.29 - 6th January 2006
+    + Improved makefile version extraction.
+
+    + Changed license to Apache 2.0
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    + Changed escaping on date in graph() to only happen
+      with RRDs version 1.2 or greater (escaping should not
+      be used with version 1.0)
+
+    + Changed how the last values are pulled from the RRA
+      in the last_values() method so it's more reliable
+      now.
+
+    + Fixed add_source() to work with rrdtool 1.2x and RRD
+      version 0003 files.
+
+    + Added /usr/local/rrdtool*/bin/ to the search path
+      when looking for the rrdtool binary.
+
+    + Tweaked Makefile.PL
+
+
+Version 1.25 - 28th December 2005
+    + Added Changes file.
+
+    + Changed cluck warnings to only be output when perl
+      warnings are enabled ($^W is set true).
+
+    + t/04lazy_create_by_update.t
+      t/07correct_spelling.t
+      -- Disabled warnings being output for some unit tests
+         so as not to alarm people. (The warnings are
+         intentional when $^W is true, so it is deliberately
+         set to false for those tests).
+
+    + Modified Makefile.PL to send anonymous information to
+      http://perlgirl.org.uk/lib/usage.cgi if the user
+      agrees. This is so I can track which of my modules
+      are most heavily used and on what platforms, so I can
+      concentrate on maintaning the most popular ones in
+      my limited spare time.
+
+
+Version 1.24 - 26th December 2005
+    + Added explicit specification of a data retention
+      period (internally to RRD::Simple called a scheme).
+
+    + Added checking of RRD file versions before
+      attempting to add a new data source to an existing
+      RRD file. add_source() can only be used on RRD
+      version 001 files at the moment (rrdtool version
+      1.0.x). Unit tests have been updated to take this
+      in to account and skip if necessary.
+
+    + Tidied and improved some of the error messages that
+      are returned if the addition of a new data source
+      to an existing RRD file fails.
+
+    + Fixed escaping of the time date stamp that is added
+      to the graphs so that it is compatible with rrdtool
+      version 1.2.x.
+
+    + Altered parsing of arguments to the graph() method
+      so that _ characters are converted to - characters
+      before passing to the RRDs module. This negated the
+      need to quote a number or arguments that are passed
+      in to the graph() method.
+
+    + Added some more comments in the code.
+
+    + Added some more POD.
+
+
+Version 1.21 - 14th December 2005
+    + Added examples/ApacheAccessLogActivity.pl
+      -- Example script to import apache access log
+         files in to a simple RRD file for graphing
+
+    + Fixed a bug in the update() method to allow explicit
+      specification of data insertion time. Previously if no
+      RRD file was specified, the explicitly specified
+      insertion time would have incorrectly been used as the
+      RRD filename.
+
+    + Added an experimental last_values() method to return
+      the last values stored in the LAST CF RRA. This is not
+      currently documented because it does not function as
+      you would logically expect.
+
+    + Added t/09last_value.t
+      -- This test is essentially skipped because the output
+         is not as you might expect. It will be enabled once
+         the last_values() method is working better.
+
+    + Added the 'basename' argument to the graph() method.
+
+    + Added the 'sources' argument to the graph() method.
+
+    + Fixed a few minor typos in warning messages.
+
+    + Added more POD.
+
+    + Improved unit tests.
+
+

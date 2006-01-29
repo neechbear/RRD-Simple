@@ -1,0 +1,16 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         RRD-Simple
+version:      1.31
+version_from: lib/RRD/Simple.pm
+installdirs:  site
+requires:
+    Carp:                          0
+    File::Basename:                0
+    File::Copy:                    0
+    File::Spec:                    0
+    File::Temp:                    0
+    RRDs:                          0
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17

@@ -10,7 +10,7 @@ do
 done
 
 # Build an automatic ChangeLog
-cvs2cl.pl -r -t -T -P --fsf --no-times && rm ChangeLog.bak
+#cvs2cl.pl -r -t -T -P --fsf --no-times && rm ChangeLog.bak
 
 # Sort the MANIFEST
 sort MANIFEST | uniq > MANIFEST.$$ && mv MANIFEST.$$ MANIFEST
@@ -33,7 +33,7 @@ rm -rf *.gz pm_to_blib blib Makefile Makefile.old && \
 	make install
 
 # Commit META.yml to cvs
-cvs commit -m "" META.yml
+#cvs commit -m "" META.yml
 
 # Remove temporary files
 rm -rf pm_to_blib blib Makefile Makefile.old *.ts

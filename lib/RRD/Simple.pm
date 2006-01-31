@@ -535,7 +535,7 @@ sub _create_graph {
 	}
 
 	# Specify some default values
-	$param{'end'} ||= time();
+	$param{'end'} ||= $self->last($rrdfile) || time();
 	$param{'imgformat'} ||= 'PNG';
 #	$param{'alt-autoscale'} ||= '';
 #	$param{'alt-y-grid'} ||= '';

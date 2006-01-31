@@ -1,6 +1,10 @@
-Version 1.32 - 23rd January 2006
+Version 1.32 - 31rd January 2006
     + No longer set alt-autoscale and alt-y-grid to
       on by default when creating graphs.
+
+    + Changed the graph() method to default the end
+      time for the graph to the last time the RRD
+      was updated, instead of the current time.
 
 
 Version 1.31 - 19th January 2006

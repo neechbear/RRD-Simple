@@ -29,22 +29,22 @@ __END__
 echo -n "fd:fd:TotalAllocated="
 cat /proc/sys/fs/file-nr | sed -e's/\s\s*/,TotalFreeAllocated=/; s/\s\s*/,MaximumOpen=/;'
 
-# $Id: remote_inetd.pl,v 1.1 2006/01/28 13:16:13 nicolaw Exp $
+# $Id$
 
 echo -n "loadavg:loadavg:1MinAvg=" && \
 	cat /proc/loadavg | cut -d' ' -f1-3 | sed -e's/ /,5MinAvg=/; s/ /,15MinAvg=/;'
 
-# $Id: remote_inetd.pl,v 1.1 2006/01/28 13:16:13 nicolaw Exp $
+# $Id$
 
 echo -n "meminfo:meminfo:"
 #cat /proc/meminfo | sed -e's/^/,/; s/:\(.*\)\(kB\)/_\2=\1/; s/:/=/; s/\s\s*//;'
 cat /proc/meminfo | sed -e's/^/,/; s/:\(.*\)\(kB\)/=\1/; s/:/=/; s/\s\s*//g;' | tr -d '\n' | cut -b2-;
 
-# $Id: remote_inetd.pl,v 1.1 2006/01/28 13:16:13 nicolaw Exp $
+# $Id$
 
 cat /proc/net/dev | grep ':' | sed -e's/^\s*/network:/g; s/:\s*/:/g; s/\s\s*/,/g'
 
-# $Id: remote_inetd.pl,v 1.1 2006/01/28 13:16:13 nicolaw Exp $
+# $Id$
 
 echo -n "processes:allusers:"
 /bin/ps --no-heading -A -o "state,user" | sort > /tmp/proc.$$

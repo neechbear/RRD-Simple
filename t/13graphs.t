@@ -47,7 +47,7 @@ for my $p (keys %periods) {
 		ok((stat($file))[7] > 1024,"./13graphs/foo-$f.png over 1024 bytes");
 		ok(unlink($file),"unlink ./13graphs/foo-$f.png");
 	}
-	unlink '13graphs';
+	rmdir '13graphs' || unlink '13graphs';
 
 	unlink $rrdfile if -f $rrdfile;
 }

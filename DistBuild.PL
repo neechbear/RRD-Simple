@@ -35,7 +35,7 @@ $build->dispatch('install');
 
 stage('Building distribution tarball');
 my @tarballs = ();
-if ($build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|_build|Build|MANIFEST)" > /dev/null 2>&1')) {;
+if ($build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|_build|Build|MANIFEST|tarballs/)" > /dev/null 2>&1')) {;
 	print "Uncommited files; skipping ...\n";
 } else {
 	$build->dispatch('distcheck');
@@ -60,7 +60,9 @@ BEGIN {
 	unlink 'MANIFEST.bak' if -e 'MANIFEST.bak';
 	unlink $_ for glob('*.tar.gz'); 
 	unlink $_ for glob('*.tar'); 
+	unlink $_ for glob('*.ppd'); 
 	system('find . -name "*.rrd" -maxdepth 3 -type f | xargs rm -fv');
+	$ENV{AUTOMATED_TESTING} = 1;
 }
 
 sub stage {
@@ -73,6 +75,7 @@ sub stage {
 
 sub move_dist_tarballs {
 	my @file = glob('*.tar.gz');
+	push @file, glob('*.ppd');
 	my @tarballs = ();
 	for (@file) {
 		print "Moving $_ to tarballs/$_\n";

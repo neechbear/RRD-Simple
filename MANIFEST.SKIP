@@ -7,6 +7,7 @@
 \.sw[op]$
 \.bak$
 \.rrd$
+\.ppd$
 ^MANIFEST\.SKIP$
 CVS
 .svn

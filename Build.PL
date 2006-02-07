@@ -53,7 +53,7 @@ my $url = $ENV{AUTOMATED_TESTING} ? undef : may_send_version_information();
 if ($url) {
 	my @resp = ();
 	eval {
-		local $SIG{ALRM} = sub { exit; };
+		local $SIG{ALRM} = sub { die; };
 		alarm 10;
 		for (split(/\s*\n+\s*/, LWP::Simple::get($url))) {
 			push @resp, $_ if $_;
@@ -89,7 +89,7 @@ sub may_send_version_information {
 
 	my $send = 0;
 	eval {
-		local $SIG{ALRM} = sub { exit; };
+		local $SIG{ALRM} = sub { die; };
 		alarm 20;
 		$send = $build->y_n('Send this anonymous information?','n');
 		alarm 0;
@@ -98,4 +98,5 @@ sub may_send_version_information {
 	return $send ? $str : undef;
 }
 
+1;
 

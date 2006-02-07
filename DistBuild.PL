@@ -9,11 +9,14 @@ $build = undef;
 do 'Build.PL';
 
 stage('Checking file statuses in SVN');
-$build->do_system('svn status');
+$build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|_build|Build|MANIFEST)"');
 
 #stage('Updating ChangeLog');
 #$build->do_system('cvs2cl.pl', qw(-r -t -T -P --fsf --no-times))
 #	&& unlink 'ChangeLog.bak';
+
+stage('Updating META.yml');
+$build->dispatch('distmeta');
 
 stage('Updating MANIFEST');
 $build->dispatch('manifest');
@@ -21,8 +24,8 @@ $build->dispatch('manifest');
 stage('Building');
 $build->dispatch('build');
 
-stage('Checking for essential files');
-check_essential_files();
+#stage('Checking for essential files');
+#check_essential_files();
 
 stage('Testing');
 $build->dispatch('test', verbose => 0);
@@ -32,7 +35,7 @@ $build->dispatch('install');
 
 stage('Building distribution tarball');
 my @tarballs = ();
-if ($build->do_system('svn status')) {;
+if ($build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|_build|Build|MANIFEST)" > /dev/null 2>&1')) {;
 	print "Uncommited files; skipping ...\n";
 } else {
 	$build->dispatch('distcheck');
@@ -47,12 +50,17 @@ $build->dispatch('distclean');
 unlink 'MANIFEST.bak' if -e 'MANIFEST.bak';
 
 stage('Checking file statuses in SVN');
-$build->do_system('svn status');
+$build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|_build|Build|MANIFEST)"');
 
 print "\n";
 exit;
 
-
+BEGIN {
+	unlink 'MANIFEST.bak' if -e 'MANIFEST.bak';
+	unlink $_ for glob('*.tar.gz'); 
+	unlink $_ for glob('*.tar'); 
+	system('find . -name "*.rrd" -maxdepth 3 -type f | xargs rm -fv');
+}
 
 sub stage {
 	local $_ = shift;

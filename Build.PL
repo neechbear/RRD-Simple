@@ -10,6 +10,8 @@ $build = Module::Build->new(
 		license            => 'open_source',
 		create_makefile_pl => 'passthrough',
 		create_readme      => 1,
+		create_packlist    => 1,
+		sign               => 0,
 
 		requires => {
 			'File::Spec'     => 0, # 3.15
@@ -32,6 +34,12 @@ $build = Module::Build->new(
 		conflicts => {
 			'RRDTool::Managed' => 0,
 		},
+
+		add_to_cleanup => [ qw(
+			t/01test.rrd t/02lazy_example_test.rrd t/03add_source.rrd
+			t/04lazy_create_by_update.rrd t/05test.rrd t/06test.rrd
+			t/07test.rrd t/08test.rrd t/09test.rrd t/12test.rrd t/13test.rrd
+		) ],
 	);
 
 $build->create_build_script;

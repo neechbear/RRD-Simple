@@ -1401,7 +1401,7 @@ L<http://www.rrdtool.org>, examples/*.pl
 
 =head1 VERSION
 
-$Id: Simple.pm,v 1.32 2006/01/28 13:17:06 nicolaw Exp $
+$Id$
 
 =head1 AUTHOR
 

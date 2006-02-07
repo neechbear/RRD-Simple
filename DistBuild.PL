@@ -40,6 +40,7 @@ if ($build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|
 } else {
 	$build->dispatch('distcheck');
 	$build->dispatch('dist');
+	$build->dispatch('ppmdist');
 
 	stage('Moving distribution tarball');
 	@tarballs = move_dist_tarballs();

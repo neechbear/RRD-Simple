@@ -1,4 +1,4 @@
-perl Makefile.pl
-make
-make test
-make install
+perl Build.PL
+perl Build
+perl Build test
+perl Build install

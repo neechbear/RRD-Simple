@@ -11,5 +11,6 @@
 CVS
 .svn
 ^DistBuild\.PL$
-^RRD-Simple-[0-9]+\.[0-9]+/
 ^RRD-Simple-[0-9]+\.[0-9]+\.tar\.gz
+^RRD-Simple-[0-9]+\.[0-9]+\.tar
+^RRD-Simple-[0-9]+\.[0-9]+/

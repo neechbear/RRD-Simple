@@ -32,7 +32,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = sprintf('%d.%02d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.32' || sprintf('%d.%02d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check for important files
-for f in META.yml Makefile.PL LICENSE NOTICE README Changes ChangeLog INSTALL MANIFEST TODO lib t
+for f in META.yml Makefile.PL LICENSE NOTICE README Changes INSTALL MANIFEST TODO lib t
 do
 	if ! [ -e $f ]; then
 		echo "Missing $f"
@@ -41,5 +41,5 @@ mv *.tar.gz ~
 
 # Compare the MANIFEST to what is on disk
 echo;echo
-(find . -type f | grep -v CVS | grep -v doit | sort | cut -b3-) | diff -w MANIFEST -
+(find . -type f | grep -v .svn | grep -v doit | sort | cut -b3-) | diff -w MANIFEST -
 

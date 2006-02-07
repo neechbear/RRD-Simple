@@ -605,7 +605,7 @@ sub _create_graph {
 	delete $param{'sources'};
 
 	# Specify a default start time
-	$param{'start'} ||= time - _seconds_in($type,110);
+	$param{'start'} ||= $param{'end'} - _seconds_in($type,108);
 
 	# Suffix the title with the period information
 	$param{'title'} ||= basename($rrdfile);

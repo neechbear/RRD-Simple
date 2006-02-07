@@ -15,11 +15,11 @@ $build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|_bui
 #$build->do_system('cvs2cl.pl', qw(-r -t -T -P --fsf --no-times))
 #	&& unlink 'ChangeLog.bak';
 
-stage('Updating META.yml');
-$build->dispatch('distmeta');
-
 stage('Updating MANIFEST');
 $build->dispatch('manifest');
+
+stage('Updating META.yml');
+$build->dispatch('distmeta');
 
 stage('Building');
 $build->dispatch('build');

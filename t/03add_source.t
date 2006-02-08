@@ -37,3 +37,5 @@ SKIP: {
 
 unlink $rrdfile if -f $rrdfile;
 
+1;
+

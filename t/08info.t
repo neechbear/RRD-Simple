@@ -22,3 +22,5 @@ ok($info->{ds}->{foo}->{type} eq 'GAUGE','check info');
 
 unlink $rrdfile if -f $rrdfile;
 
+1;
+

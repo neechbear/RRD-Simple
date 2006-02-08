@@ -28,7 +28,7 @@ ok(join(',',sort(sources($rrdfile))) eq 'bytesIn,bytesOut,faultsPerSec',
 	'sources');
 
 ok(my $period = retention_period($rrdfile),'retention_period');
-ok($period > 54440000 && $period < 54450000,'retention_period result');
+ok($period > 39398000 && $period < 39399000,'retention_period result');
 
 SKIP: {
 	my $deep = 0;
@@ -52,130 +52,77 @@ SKIP: {
 (my $imgbasename = $rrdfile) =~ s/\.rrd$//;
 
 ok(graph($rrdfile,destination => './'),'graph');
+#for (qw(daily weekly monthly annual 3years)) {
 for (qw(daily weekly monthly annual)) {
 	my $img = "$imgbasename-$_.png";
 	ok(-f $img,"$img");
 	unlink $img if -f $img;
 }
 
+unlink $_ for glob('*.png');
 unlink $rrdfile if -f $rrdfile;
 
 BEGIN {
 	use vars qw($rra);
 	$rra = [
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 1,
-            'cdp_prep' => undef,
-            'cf' => 'AVERAGE',
-            'rows' => 599
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 6,
-            'cdp_prep' => undef,
-            'cf' => 'AVERAGE',
-            'rows' => 700
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 24,
-            'cdp_prep' => undef,
-            'cf' => 'AVERAGE',
-            'rows' => 775
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 228,
-            'cdp_prep' => undef,
-            'cf' => 'AVERAGE',
-            'rows' => 796
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 1,
-            'cdp_prep' => undef,
-            'cf' => 'LAST',
-            'rows' => 599
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 6,
-            'cdp_prep' => undef,
-            'cf' => 'LAST',
-            'rows' => 700
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 24,
-            'cdp_prep' => undef,
-            'cf' => 'LAST',
-            'rows' => 775
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 228,
-            'cdp_prep' => undef,
-            'cf' => 'LAST',
-            'rows' => 796
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 1,
-            'cdp_prep' => undef,
-            'cf' => 'MAX',
-            'rows' => 599
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 6,
-            'cdp_prep' => undef,
-            'cf' => 'MAX',
-            'rows' => 700
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 24,
-            'cdp_prep' => undef,
-            'cf' => 'MAX',
-            'rows' => 775
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 228,
-            'cdp_prep' => undef,
-            'cf' => 'MAX',
-            'rows' => 796
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 1,
-            'cdp_prep' => undef,
-            'cf' => 'MIN',
-            'rows' => 599
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 6,
-            'cdp_prep' => undef,
-            'cf' => 'MIN',
-            'rows' => 700
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 24,
-            'cdp_prep' => undef,
-            'cf' => 'MIN',
-            'rows' => 775
-          },
-          {
-            'xff' => '0.5',
-            'pdp_per_row' => 228,
-            'cdp_prep' => undef,
-            'cf' => 'MIN',
-            'rows' => 796
-          }
-        ];
+                     {
+                       'xff' => '0.5',
+                       'pdp_per_row' => 1,
+                       'cdp_prep' => undef,
+                       'cf' => 'AVERAGE',
+                       'rows' => 1800
+                     },
+                     {
+                       'xff' => '0.5',
+                       'pdp_per_row' => 30,
+                       'cdp_prep' => undef,
+                       'cf' => 'AVERAGE',
+                       'rows' => 420
+                     },
+                     {
+                       'xff' => '0.5',
+                       'pdp_per_row' => 120,
+                       'cdp_prep' => undef,
+                       'cf' => 'AVERAGE',
+                       'rows' => 465
+                     },
+                     {
+                       'xff' => '0.5',
+                       'pdp_per_row' => 1440,
+                       'cdp_prep' => undef,
+                       'cf' => 'AVERAGE',
+                       'rows' => 456
+                     },
+                     {
+                       'xff' => '0.5',
+                       'pdp_per_row' => 1,
+                       'cdp_prep' => undef,
+                       'cf' => 'MAX',
+                       'rows' => 1800
+                     },
+                     {
+                       'xff' => '0.5',
+                       'pdp_per_row' => 30,
+                       'cdp_prep' => undef,
+                       'cf' => 'MAX',
+                       'rows' => 420
+                     },
+                     {
+                       'xff' => '0.5',
+                       'pdp_per_row' => 120,
+                       'cdp_prep' => undef,
+                       'cf' => 'MAX',
+                       'rows' => 465
+                     },
+                     {
+                       'xff' => '0.5',
+                       'pdp_per_row' => 1440,
+                       'cdp_prep' => undef,
+                       'cf' => 'MAX',
+                       'rows' => 456
+                     }
+                   ];
 }
 
+1;
 

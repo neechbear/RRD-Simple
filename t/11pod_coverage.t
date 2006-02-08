@@ -5,3 +5,6 @@ all_pod_coverage_ok({
 		also_private => [ qr/^[A-Z_]+$/ ],
 		trustme => [ qw(last_values|fetch|last_update) ],
 	}); #Ignore all caps
+
+1;
+

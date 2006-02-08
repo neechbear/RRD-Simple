@@ -27,3 +27,5 @@ ok(join(',',sort RRD::Simple->sources()) eq 'bytesIn,bytesOut,faultsPerSec',
 
 unlink $rrdfile if -f $rrdfile;
 
+1;
+

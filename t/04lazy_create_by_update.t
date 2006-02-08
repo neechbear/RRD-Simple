@@ -54,3 +54,5 @@ ok(join(',',sort RRD::Simple->sources()) eq 'ds3,ds4,ds5',
 
 unlink $rrdfile if -f $rrdfile;
 
+1;
+

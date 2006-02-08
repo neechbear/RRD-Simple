@@ -2,22 +2,22 @@ my $rrdfile = -d 't' ? 't/09test.rrd' : '09test.rrd';
 unlink $rrdfile if -f $rrdfile;
 
 use strict;
-use Test::More tests => 7 + 2017;
+use Test::More tests => 1448;
 use lib qw(./lib ../lib);
 use RRD::Simple ();
 
-ok(my $rrd = RRD::Simple->new(),'new');
+ok(my $rrd = RRD::Simple->new(cf => [ qw(AVERAGE LAST) ]),'new');
 
 my $end = time();
-my $start = $end - (60 * 60 * 24 * 7);
+my $start = $end - (60 * 60 * 24);
 
-ok($rrd->create($rrdfile,
+ok($rrd->create($rrdfile,'day',
 		foo => 'GAUGE',
 		bar => 'GAUGE'
 	),'create');
 
 my $lastValue = 0;
-for (my $t = $start; $t <= $end; $t += 300) {
+for (my $t = $start; $t <= $end; $t += 60) {
 	$lastValue = int(rand(999));
 	ok($rrd->update($rrdfile,$t,
 			foo => $lastValue,
@@ -43,4 +43,6 @@ SKIP: {
 }
 
 unlink $rrdfile if -f $rrdfile;
+
+1;
 

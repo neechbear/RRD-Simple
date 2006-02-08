@@ -43,3 +43,5 @@ ok(join(',',sort $rrd->sources($rrdfile)) eq 'bytesIn,bytesOut,faultsPerSec',
 
 unlink $rrdfile if -f $rrdfile;
 
+1;
+

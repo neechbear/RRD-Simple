@@ -10,11 +10,11 @@ use RRD::Simple ();
 ok(my $rrd = RRD::Simple->new(),'new');
 
 my %periods = (
-		'3years' => [ qw(3years annual monthly weekly daily) ],
-		year     => [ qw(annual monthly weekly daily) ],
-		month    => [ qw(monthly weekly daily) ],
-		week     => [ qw(weekly daily) ],
-		day      => [ qw(daily) ],
+		'3years' => [ qw(daily weekly monthly annual 3years) ],
+		'year'   => [ qw(daily weekly monthly annual) ],
+		'month'  => [ qw(daily weekly monthly) ],
+		'week'   => [ qw(daily weekly) ],
+		'day'    => [ qw(daily) ],
 	);
 
 for my $p (keys %periods) {
@@ -43,14 +43,20 @@ for my $p (keys %periods) {
 
 	for my $f (@{$periods{$p}}) {
 		my $file = "./13graphs/foo-$f.png";
-		ok(-f $file,"./13graphs/foo-$f.png exists");
-		ok((stat($file))[7] > 1024,"./13graphs/foo-$f.png over 1024 bytes");
-		ok(unlink($file),"unlink ./13graphs/foo-$f.png");
+		ok(-f $file,"create ./13graphs/foo-$f.png");
+		SKIP: {
+			skip("./13graphs/foo-$f.png wasn't created",2) unless -f $file;
+			ok((stat($file))[7] > 1024,"./13graphs/foo-$f.png is at least 1024 bytes");
+			ok(unlink($file),"unlink ./13graphs/foo-$f.png");
+		}
 	}
-	rmdir '13graphs' || unlink '13graphs';
 
+	unlink $_ for glob('./13graphs/*');
+	rmdir '13graphs' || unlink '13graphs';
 	unlink $rrdfile if -f $rrdfile;
 }
 
 unlink $rrdfile if -f $rrdfile;
+
+1;
 

@@ -1,10 +1,25 @@
-Version 1.32 - 31rd January 2006
+Version 1.32 - 8th February 2006
     + No longer set alt-autoscale and alt-y-grid to
       on by default when creating graphs.
 
     + Changed the graph() method to default the end
       time for the graph to the last time the RRD
       was updated, instead of the current time.
+
+    + Added a new data retention scheme of 'mrtg' to
+      be the same as MRTG's default retention scheme.
+
+    + Changed the default RRAs that are created in
+      RRD files to be only AVERAGE and MAX. This is to
+      reduce the file size and update times. To create
+      RRD files with MIN and LAST CFs you can still use
+      the "cf" parameter in the new() method.
+
+    + Changed the retention schemes to be more uniform
+      and added an "mrtg" scheme that mimics the MRTG
+      retention priod.
+
+    + Updated unit tests to cope with code changes.
 
 
 Version 1.31 - 19th January 2006

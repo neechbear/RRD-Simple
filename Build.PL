@@ -27,7 +27,7 @@ $build = Module::Build->new(
 			'Test::More'          => 0, # 0.60
 			'Test::Pod'           => 0, # 1.20
 			'Test::Pod::Coverage' => 0, # 1.06
-			'Test::Distribution'  => 0, # 1.23
+#			'Test::Distribution'  => 0, # 1.23
 			'Test::Deep'          => 0, # 0.093
 		},
 

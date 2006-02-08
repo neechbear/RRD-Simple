@@ -64,7 +64,11 @@ sub new {
 	$self->{rrdtool} = _find_binary(exists $self->{rrdtool} ?
 						$self->{rrdtool} : 'rrdtool');
 
-	$self->{cf} ||= [ qw(AVERAGE MIN MAX LAST) ];
+	#$self->{cf} ||= [ qw(AVERAGE MIN MAX LAST) ];
+	# By default, now only create RRAs for AVERAGE and MAX, like
+	# mrtg v2.13.2. This is to save disk space and processing time
+	# during updates etc.
+	$self->{cf} ||= [ qw(AVERAGE MAX) ]; 
 	$self->{cf} = [ $self->{cf} ] if !ref($self->{cf});
 
 	bless($self,$class);
@@ -137,6 +141,7 @@ sub create {
 	DUMP('RRDs::info',RRDs::info($rrdfile));
 	return @rtn;
 }
+
 
 # Update an RRD file with some data values
 sub update {
@@ -430,8 +435,15 @@ sub last_values {
 	# When was the RRD last updated?
 	my $lastUpdated = $self->last($rrdfile);
 
-	# What's the largest heartbeat in the RRD file data sources?
+	# Is there a LAST RRA?
 	my $info = $self->info($rrdfile);
+	my $hasLastRRA = 0;
+	for my $rra (@{$info->{rra}}) {
+		$hasLastRRA++ if $rra->{cf} eq 'LAST';
+	}
+	return () if !$hasLastRRA;
+
+	# What's the largest heartbeat in the RRD file data sources?
 	my $largestHeartbeat = 1;
 	for (map { $info->{ds}->{$_}->{'minimal_heartbeat'} } keys(%{$info->{ds}})) {
 		$largestHeartbeat = $_ if $_ > $largestHeartbeat;
@@ -448,7 +460,7 @@ sub last_values {
 	croak($error) if $error;
 
 	# Put it in to a nice easy format
-	my %rtn;
+	my %rtn = ();
 	for my $rec (reverse @{$data}) {
 		for (my $i = 0; $i < @{$rec}; $i++) {
 			if (defined $rec->[$i] && !exists($rtn{$ds->[$i]})) {
@@ -605,7 +617,7 @@ sub _create_graph {
 	delete $param{'sources'};
 
 	# Specify a default start time
-	$param{'start'} ||= $param{'end'} - _seconds_in($type,108);
+	$param{'start'} ||= $param{'end'} - _seconds_in($type,115);
 
 	# Suffix the title with the period information
 	$param{'title'} ||= basename($rrdfile);
@@ -676,46 +688,97 @@ sub _rrd_def {
 	croak('Pardon?!') if ref $_[0];
 	my $type = _valid_scheme(shift);
 
-	my $rtn = {
-			step => 300, heartbeat => 600,
+	# This is calculated the same way as mrtg v2.13.2
+	if ($type eq 'mrtg') {
+		my $step = 5; # 5 minutes
+		return {
+				step => $step * 60, heartbeat => $step * 60 * 2,
+				rra => [(
+					{ step => 1, rows => int(4000 / $step) }, # 800
+					{ step => int(  30 / $step), rows => 800 }, # if $step < 30
+					{ step => int( 120 / $step), rows => 800 },
+					{ step => int(1440 / $step), rows => 800 },
+				)],
+			};
+	}
+
+	my $step = 1; # 1 minute highest resolution
+	my $rra = {
+			step => $step * 60, heartbeat => $step * 60 * 2,
 			rra => [(
-				{ step => 1, rows => 599 },
-				{ step => 6, rows => 700 },
-				{ step => 24, rows => 775 },
-				{ step => 228, rows => 796 },
+				# Actual $step resolution (for 1.25 days retention)
+				{ step => 1, rows => int( _minutes_in('day',125) / $step) },
 			)],
 		};
 
-	if ($type eq 'day') {
-		@{$rtn->{qw(step heartbeat)}} = qw(60 120);
-		$rtn->{rra} = [
-				{ step => 1, rows => 600 },
-				{ step => 5, rows => 600 },
-			];
+	if ($type =~ /^(week|month|year|3years)$/i) {
+		push @{$rra->{rra}}, {
+				step => int(  30 / $step),
+				rows => int( _minutes_in('week',125) / int(30/$step) )
+			}; # 30 minute average
 
-	} elsif ($type eq 'week') {
-		@{$rtn->{qw(step heartbeat)}} = qw(60 120);
-		$rtn->{rra} = [
-				{ step => 1, rows => 600 },
-				{ step => 5, rows => 600 },
-				{ step => 30, rows => 600 },
-			];
-
-	} elsif ($type eq 'month') {
-		@{$rtn->{qw(step heartbeat)}} = qw(60 120);
-		$rtn->{rra} = [
-				{ step => 1, rows => 600 },
-				{ step => 5, rows => 500 },
-				{ step => 30, rows => 600 },
-				{ step => 60, rows => 1000 },
-			];
-
-	} elsif ($type eq '3years') {
-		$rtn->{rra}->[3]->{rows} = 2400;
+		push @{$rra->{rra}}, {
+				step => int( 120 / $step),
+				rows => int( _minutes_in($type eq 'week' ? 'week' : 'month',125)
+						/ int(120/$step) )
+			}; # 2 hour average
 	}
 
+	if ($type =~ /^(year|3years)$/i) {
+		push @{$rra->{rra}}, {
+				step => int(1440 / $step),
+				rows => int( _minutes_in($type,125) / int(1440/$step) )
+			}; # 1 day average
+	}
+
+	return $rra;
+}
+
+
+sub _valid_scheme {
+	croak('Pardon?!') if ref $_[0];
+	TRACE(@_);
+	if ($_[0] =~ /^(day|week|month|year|3years|mrtg)$/i) {
+		return lc($1);
+	}
+	return undef;
+}
+
+
+sub _hours_in { return int((_seconds_in(@_)/60)/60); }
+sub _minutes_in { return int(_seconds_in(@_)/60); }
+sub _seconds_in {
+	croak('Pardon?!') if ref $_[0];
+	my $str = lc(shift);
+	my $scale = shift || 100;
+
+	return undef if !defined(_valid_scheme($str));
+
+	my %time = (
+			'day'    => 60 * 60 * 24,
+			'week'   => 60 * 60 * 24 * 7,
+			'month'  => 60 * 60 * 24 * 31,
+			'year'   => 60 * 60 * 24 * 365,
+			'3years' => 60 * 60 * 24 * 365 * 3,
+			'mrtg'   => ( int(( 1440 / 5 )) * 800 ) * 60, # mrtg v2.13.2
+		);
+
+	my $rtn = $time{$str} * ($scale / 100);
 	return $rtn;
 }
+
+
+sub _alt_graph_name {
+	croak('Pardon?!') if ref $_[0];
+	my $type = _valid_scheme(shift);
+	return 'daily'   if $type eq 'day';
+	return 'weekly'  if $type eq 'week';
+	return 'monthly' if $type eq 'month';
+	return 'annual'  if $type eq 'year';
+	return '3years'  if $type eq '3years';
+	return $type;
+}
+
 
 sub _add_source {
 	croak('Pardon?!') if ref $_[0];
@@ -879,59 +942,6 @@ EndDS
 
 	# Return the new RRD filename
 	return $new_rrdfile;
-}
-
-
-sub _alt_graph_name {
-	croak('Pardon?!') if ref $_[0];
-	my $type = _valid_scheme(shift);
-	return 'daily'   if $type eq 'day';
-	return 'weekly'  if $type eq 'week';
-	return 'monthly' if $type eq 'month';
-	return 'annual'  if $type eq 'year';
-	return '3years'  if $type eq '3years';
-	return $type;
-}
-
-
-sub _valid_scheme {
-	croak('Pardon?!') if ref $_[0];
-	TRACE(@_);
-	if ($_[0] =~ /^(day|week|month|year|3years)$/i) {
-		return lc($1);
-	}
-	return undef;
-}
-
-
-sub _seconds_in {
-	croak('Pardon?!') if ref $_[0];
-	my $str = lc(shift);
-	my $scale = shift || 100;
-
-	return undef if !defined(_valid_scheme($str));
-
-	my %time = (
-			day   => 86400,    # 60 * 60 * 24
-			week  => 604800,   # 60 * 60 * 24 * 7
-			month => 2678400,  # 60 * 60 * 24 * 31
-			year  => 31536000, # 60 * 60 * 24 * 365
-		);
-	$time{'3years'} = $time{'year'} * 3;
-
-#	if ($str eq 'day') {
-#		return $time{day} * 2;
-#	} elsif ($str eq 'week') {
-#		return $time{week} + $time{day};
-#	} elsif ($str eq 'month') {
-#		return $time{month} + $time{week};
-#	} elsif ($str eq '3years') {
-#		return ($time{year} * 3) + $time{month};
-#	}
-#	return $time{year} + $time{month};
-
-	my $rtn = $time{$str} * ($scale / 100);
-	return $rtn;
 }
 
 
@@ -1146,8 +1156,10 @@ C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
 the file extension of .rrd).
 
 C<$period> is optional and will default to C<year>. Valid options are C<day>,
-C<week>, C<month>, C<year> and C<3years>. Specifying a retention period value
-will change how long data will be retained for within the RRD file.
+C<week>, C<month>, C<year>, C<3years> and C<mrtg>. Specifying a retention
+period value will change how long data will be retained for within the RRD
+file. The C<mrtg> scheme will try and mimic the retention period used by
+MRTG (L<http://people.ee.ethz.ch/~oetiker/webtools/mrtg/>.
 
 RRD::Simple will croak and die if you try to create an RRD file that already
 exists.

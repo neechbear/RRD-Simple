@@ -6,9 +6,6 @@ Version 1.32 - 8th February 2006
       time for the graph to the last time the RRD
       was updated, instead of the current time.
 
-    + Added a new data retention scheme of 'mrtg' to
-      be the same as MRTG's default retention scheme.
-
     + Changed the default RRAs that are created in
       RRD files to be only AVERAGE and MAX. This is to
       reduce the file size and update times. To create

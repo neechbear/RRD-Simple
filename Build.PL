@@ -55,19 +55,28 @@ if ($url) {
 	eval {
 		local $SIG{ALRM} = sub { die; };
 		alarm 10;
-		for (split(/\s*\n+\s*/, LWP::Simple::get($url))) {
-			push @resp, $_ if $_;
+		my $ua = LWP::UserAgent->new(
+				agent => 'Build.PL $Revision$',
+				timeout => 9,
+				max_size => 500,
+			);
+		$ua->env_proxy;
+		my $response = $ua->get($url);
+		if ($response->is_success()) {
+			for (split(/\s*\n+\s*/, $response->content())) {
+				push @resp, $_ if $_;
+			}
 		}
 		alarm 0;
 	};
-	print substr($resp[0],200) || "Thank you for sending this information.";
+	print substr($resp[0],0,79) || "Thank you for sending this information.";
 	print "\n\n";
 }
 
 sub may_send_version_information {
 	eval {
 		require Config;
-		require LWP::Simple;
+		require LWP::UserAgent;
 	};
 	return undef if $@;
 

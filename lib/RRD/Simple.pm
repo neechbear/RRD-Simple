@@ -32,7 +32,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.32' || sprintf('%d.%02d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.33' || sprintf('%d.%02d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -93,7 +93,10 @@ sub create {
 	TRACE("Using filename: $rrdfile");
 
 	# We've been given a scheme specifier
-	my $scheme = 'year';
+	# Until v1.32 'year' was the default. As of v1.33 'mrtg'
+	# is the new default scheme.
+	#my $scheme = 'year';
+	my $scheme = 'mrtg';
 	if (@_ % 2 && _valid_scheme($_[0])) {
 		$scheme = _valid_scheme($_[0]);
 		shift @_;

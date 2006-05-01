@@ -5,7 +5,7 @@ my $rrdfile = -d 't' ? 't/23test.rrd' : '23test.rrd';
 unlink $rrdfile if -f $rrdfile;
 
 use strict;
-use Test::More tests => 66;
+use Test::More tests => 66+245;
 use lib qw(./lib ../lib);
 use RRD::Simple ();
 
@@ -20,10 +20,12 @@ for my $p (keys %scheme_graphs) {
 			bytesOut => 'GAUGE',
 		),"$p create");
 
-	ok($rrd->update($rrdfile,
-			bytesIn => 100,
-			bytesOut => 100,
-		),"$p update");
+	for (my $t = 50; $t >= 1; $t--) {
+		ok($rrd->update($rrdfile,time-(110*$t),
+				bytesIn => 100,
+				bytesOut => 50,
+			),"$p update");
+	}
 
 	ok(join(',',sort $rrd->sources($rrdfile)) eq 'bytesIn,bytesOut',
 		"$p sources");
@@ -32,9 +34,10 @@ for my $p (keys %scheme_graphs) {
 	ok($rrd->graph($rrdfile,
 			destination => './13graphs/',
 			basename => 'foo',
-			sources => [ qw(bytesOut) ],
+			sources => [ qw(bytesIn bytesOut) ],
 			source_labels => { bytesOut => 'Kbps Out' },
-			source_colors => [ qw(4499ff) ],
+			source_colors => [ qw(4499ff e33f00) ],
+			source_drawtypes => [ qw(AREA LINE) ],
 			line_thickness => 2,
 		),"$p graph");
 

@@ -7,17 +7,12 @@ use Test::More tests => 66;
 use lib qw(./lib ../lib);
 use RRD::Simple ();
 
+use vars qw($rra %retention_periods %scheme_graphs @schemes);
+require 'answers.pl';
+
 ok(my $rrd = RRD::Simple->new(),'new');
 
-my %periods = (
-		'3years' => [ qw(daily weekly monthly annual 3years) ],
-		'year'   => [ qw(daily weekly monthly annual) ],
-		'month'  => [ qw(daily weekly monthly) ],
-		'week'   => [ qw(daily weekly) ],
-		'day'    => [ qw(daily) ],
-	);
-
-for my $p (keys %periods) {
+for my $p (keys %scheme_graphs) {
 	ok($rrd->create($rrdfile, $p,
 			bytesIn => 'GAUGE',
 			bytesOut => 'GAUGE',
@@ -41,7 +36,7 @@ for my $p (keys %periods) {
 			line_thickness => 2,
 		),"$p graph");
 
-	for my $f (@{$periods{$p}}) {
+	for my $f (@{$scheme_graphs{$p}}) {
 		my $file = "./13graphs/foo-$f.png";
 		ok(-f $file,"create ./13graphs/foo-$f.png");
 		SKIP: {

@@ -6,7 +6,9 @@ use strict;
 use Test::More tests => 12;
 use lib qw(./lib ../lib);
 use RRD::Simple qw(:all);
-use vars qw($rra);
+
+use vars qw($rra %retention_periods %scheme_graphs @schemes);
+require 'answers.pl';
 
 ok(create($rrdfile,
 		bytesIn => 'GAUGE',
@@ -28,7 +30,9 @@ ok(join(',',sort(sources($rrdfile))) eq 'bytesIn,bytesOut,faultsPerSec',
 	'sources');
 
 ok(my $period = retention_period($rrdfile),'retention_period');
-ok($period > 39398000 && $period < 39399000,'retention_period result');
+
+my $default_period = $RRD::Simple::VERSION >= 1.33 ? 'mrtg' : 'year';
+ok(abs($retention_periods{$default_period} - $period) < 1000,'retention_period result');
 
 SKIP: {
 	my $deep = 0;
@@ -52,7 +56,11 @@ SKIP: {
 (my $imgbasename = $rrdfile) =~ s/\.rrd$//;
 
 ok(graph($rrdfile,destination => './'),'graph');
-#for (qw(daily weekly monthly annual 3years)) {
+
+# By default we only have up to a year to graph
+# for unless we specify the 3 year scheme, so
+# dont bother checking for a 3years graph image.
+
 for (qw(daily weekly monthly annual)) {
 	my $img = "$imgbasename-$_.png";
 	ok(-f $img,"$img");
@@ -61,68 +69,6 @@ for (qw(daily weekly monthly annual)) {
 
 unlink $_ for glob('*.png');
 unlink $rrdfile if -f $rrdfile;
-
-BEGIN {
-	use vars qw($rra);
-	$rra = [
-                     {
-                       'xff' => '0.5',
-                       'pdp_per_row' => 1,
-                       'cdp_prep' => undef,
-                       'cf' => 'AVERAGE',
-                       'rows' => 1800
-                     },
-                     {
-                       'xff' => '0.5',
-                       'pdp_per_row' => 30,
-                       'cdp_prep' => undef,
-                       'cf' => 'AVERAGE',
-                       'rows' => 420
-                     },
-                     {
-                       'xff' => '0.5',
-                       'pdp_per_row' => 120,
-                       'cdp_prep' => undef,
-                       'cf' => 'AVERAGE',
-                       'rows' => 465
-                     },
-                     {
-                       'xff' => '0.5',
-                       'pdp_per_row' => 1440,
-                       'cdp_prep' => undef,
-                       'cf' => 'AVERAGE',
-                       'rows' => 456
-                     },
-                     {
-                       'xff' => '0.5',
-                       'pdp_per_row' => 1,
-                       'cdp_prep' => undef,
-                       'cf' => 'MAX',
-                       'rows' => 1800
-                     },
-                     {
-                       'xff' => '0.5',
-                       'pdp_per_row' => 30,
-                       'cdp_prep' => undef,
-                       'cf' => 'MAX',
-                       'rows' => 420
-                     },
-                     {
-                       'xff' => '0.5',
-                       'pdp_per_row' => 120,
-                       'cdp_prep' => undef,
-                       'cf' => 'MAX',
-                       'rows' => 465
-                     },
-                     {
-                       'xff' => '0.5',
-                       'pdp_per_row' => 1440,
-                       'cdp_prep' => undef,
-                       'cf' => 'MAX',
-                       'rows' => 456
-                     }
-                   ];
-}
 
 1;
 

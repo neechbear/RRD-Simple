@@ -1,5 +1,7 @@
+# $Id$
+
 chdir('t') if -d 't';
-my $rrdfile = -d 't' ? 't/13test.rrd' : '13test.rrd';
+my $rrdfile = -d 't' ? 't/23test.rrd' : '23test.rrd';
 unlink $rrdfile if -f $rrdfile;
 
 use strict;

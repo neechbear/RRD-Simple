@@ -619,6 +619,10 @@ sub _create_graph {
 	delete $param{'source-labels'};
 
 	# Allow source legend source_drawtypes to be set
+	#   ... "oops" ... yes, this is quite obviously
+	#   copy and paste code from the chunk above. I'm
+	#   sorry. I'll rationalise it some other day if
+	#   it's necessary.
 	my %source_drawtypes = ();
 	if (defined $param{'source-drawtypes'}) {
 		if (ref($param{'source-drawtypes'}) eq 'HASH') {
@@ -1355,9 +1359,11 @@ C<source_labels> parameter is specified.
                             source_name3 => "LINE", },
      );
 
-The C<source_drawtypes> parameter is optional. 
-
-...
+The C<source_drawtypes> parameter is optional. This parameter should be an
+array or hash of drawing/plotting types to be used for the plotted data source
+lines. By default all data sources are drawn as lines (LINE), but data sources
+may also be drawn as filled areas (AREA). Valid values are, LINE, LINEI<n>
+(where I<n> represents the thickness of the line in pixels), or AREA.
 
 =item line_thickness
 

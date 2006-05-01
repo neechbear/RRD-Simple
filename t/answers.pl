@@ -1,3 +1,4 @@
+# $Id$
 
 %scheme_graphs = (
 		'3years' => [ qw(daily weekly monthly annual 3years) ],

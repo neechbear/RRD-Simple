@@ -6,6 +6,10 @@ Version 1.33 - 1st May 2006
       method, so that AREA as well as LINE types can
       be plotted.
 
+    + Renamed the t/*.t unit test files and did a little
+      bit of refactoring of them. It's planned to
+      improve upon them in the future.
+
 
 Version 1.32 - 8th February 2006
     + No longer set alt-autoscale and alt-y-grid to

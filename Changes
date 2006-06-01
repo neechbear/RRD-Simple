@@ -1,3 +1,11 @@
+Version 1.34 - 1st Jun 2006
+    + Fixed a small gotcha whereby _ and - characters
+      were not allowed in the "basename" paramater
+      passed to the graph() method.
+
+    + Fixed a typo in the code setting $VERSION.
+
+
 Version 1.33 - 1st May 2006
     + Changed the default scheme from being 'year' to
       'mrtg' instead.

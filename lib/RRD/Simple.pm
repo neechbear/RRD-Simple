@@ -32,7 +32,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.33' || sprintf('%d.%02d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.34' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -557,7 +557,7 @@ sub _create_graph {
 
 	# Define what to call the image
 	my $basename = defined $param{'basename'} &&
-						$param{'basename'} =~ /^\w+$/i ?
+						$param{'basename'} =~ /^[\w\-_]+$/i ?
 						$param{'basename'} :
 						(fileparse($rrdfile,'\.[^\.]+'))[0];
 	delete $param{'basename'};

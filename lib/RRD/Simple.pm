@@ -557,7 +557,7 @@ sub _create_graph {
 
 	# Define what to call the image
 	my $basename = defined $param{'basename'} &&
-						$param{'basename'} =~ /^[\w\-_]+$/i ?
+						$param{'basename'} =~ /^[0-9a-z_\.-]+$/i ?
 						$param{'basename'} :
 						(fileparse($rrdfile,'\.[^\.]+'))[0];
 	delete $param{'basename'};

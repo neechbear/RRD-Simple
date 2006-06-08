@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-############################################################
+###########################################################
 #
 #   $Id$
-#   iostat_foo.pl - Example script bundled as part of RRD::Simple
+#   statlogs.pl - Example script bundled as part of RRD::Simple
 #
-#   Copyright 2005,2006 Nicola Worthington
+#   Copyright 2006 Nicola Worthington
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -20,19 +20,12 @@
 #
 ############################################################
 
-use strict;
-use RRD::Simple;
+use CGI qw(header);
+print header(-content_type => 'text/html');
 
-our $cmd = '/usr/bin/iostat -x 1';
-our $ok = -1;
-
-open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!";
-while (local $_ = <PH>) {
-	$ok++ if $ok < 1 && /^avg-cpu:/;
-	next unless $ok > 0;
-	next unless /^[hsm]d[a-z0-9]\s+/;
-	my @x = split(/\s+/,$_);
-	printf("%-10s %10s %10s\n",$x[0],$x[7],$x[8]);
+if (opendir(DH,'/var/logs/httpd')) {
+	for (sort grep(/(combined|access|error)[_-]\d+/,readdir(DH))) {
+		printf("%s %s %s <br>\n", $_, (stat("/var/logs/httpd/$_"))[7,9]);
+	}
 }
-close(PH) || die "Unable to close file handle PH for command '$cmd': $!";
 

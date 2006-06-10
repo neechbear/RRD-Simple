@@ -1,8 +1,8 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 ############################################################
 #
 #   $Id$
-#   iostat_foo.pl - Example script bundled as part of RRD::Simple
+#   iostat.pl - Example script bundled as part of RRD::Simple
 #
 #   Copyright 2005,2006 Nicola Worthington
 #
@@ -21,18 +21,37 @@
 ############################################################
 
 use strict;
-use RRD::Simple;
+use RRD::Simple 1.34;
+use RRDs;
 
-our $cmd = '/usr/bin/iostat -x 1';
-our $ok = -1;
+my $cmd = '/usr/bin/iostat -k';
+my $rrd = new RRD::Simple;
 
+my %update = ();
 open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!";
 while (local $_ = <PH>) {
-	$ok++ if $ok < 1 && /^avg-cpu:/;
-	next unless $ok > 0;
-	next unless /^[hsm]d[a-z0-9]\s+/;
-	my @x = split(/\s+/,$_);
-	printf("%-10s %10s %10s\n",$x[0],$x[7],$x[8]);
+	if (my ($dev,$r,$w) = $_ =~ /^([\w\d]+)\s+\S+\s+\S+\s+\S+\s+(\d+)\s+(\d+)$/) {
+		$update{$dev} = { 'read' => $r, 'write' => $w };
+	}
 }
 close(PH) || die "Unable to close file handle PH for command '$cmd': $!";
+
+for my $dev (keys %update) {
+	my $rrdfile = "iostat-$dev.rrd";
+	unless (-f $rrdfile) {
+		$rrd->create($rrdfile, map { ($_ => 'DERIVE') }
+				sort keys %{$update{$dev}} );
+		RRDs::tune($rrdfile,'-i',"$_:0") for keys %{$update{$dev}};
+	}
+
+	$rrd->update($rrdfile, %{$update{$dev}});
+	$rrd->graph($rrdfile,
+			sources => [ qw(read write) ],
+			source_drawtypes => [ qw(AREA LINE2) ],
+			source_colors => [ qw(00ee00 dd0000) ],
+			vertical_label => 'kilobytes/sec',
+		);
+}
+
+
 

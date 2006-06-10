@@ -38,3 +38,4 @@ my $rrd = new RRD::Simple;
 $rrd->update(%update);
 $rrd->graph(vertical_label => 'Celsius', line_thickness => 2);
 
+

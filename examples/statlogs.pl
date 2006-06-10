@@ -24,7 +24,7 @@ use CGI qw(header);
 print header(-content_type => 'text/html');
 
 if (opendir(DH,'/var/logs/httpd')) {
-	for (sort grep(/(combined|access|error)[_-]\d+/,readdir(DH))) {
+	for (sort grep(/(combined|access|error)/,readdir(DH))) {
 		printf("%s %s %s <br>\n", $_, (stat("/var/logs/httpd/$_"))[7,9]);
 	}
 }

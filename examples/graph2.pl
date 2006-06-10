@@ -21,7 +21,8 @@
 ############################################################
 
 use strict;
-use RRD::Simple ();
+use lib qw(../lib/ ./lib/);
+use RRD::Simple 1.35;
 
 my $rrdfile = 'graph2.rrd';
 my $end = time();
@@ -50,9 +51,10 @@ unless (-f $rrdfile) {
 
 # Graph the data
 $rrd->graph($rrdfile,
-		title => 'Random Graph of Some People',
+		'title' => 'Random Graph of Some People',
 		'vertical-label' => 'Weirdness',
-		'line-thickness' => 2
+		'line-thickness' => 2,
+		'extended-legend' => 1,
 	);
 
 

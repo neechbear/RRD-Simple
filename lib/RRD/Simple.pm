@@ -32,7 +32,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.34' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.35' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -570,6 +570,11 @@ sub _create_graph {
 	}
 	delete $param{'destination'};
 
+	# Specify extended legend - new for version 1.35
+	my $extended_legend = defined $param{'extended-legend'} &&
+						$param{'extended-legend'} ? 1 : 0;
+	delete $param{'extended-legend'};
+
 	# Define how thick the graph lines should be
 	my $line_thickness = defined $param{'line-thickness'} &&
 						$param{'line-thickness'} =~ /^[123]$/ ?
@@ -680,24 +685,53 @@ sub _create_graph {
 
 	# Populate a cycling tied scalar for line colors
 	@source_colors = qw(
-			FF0000 00FF00 0000FF FFFF00 00FFFF FF00FF 000000
-			550000 005500 000055 555500 005555 550055 555555
-			AA0000 00AA00 0000AA AAAA00 00AAAA AA00AA AAAAAA
+			FF0000 00FF00 0000FF 00FFFF FF00FF FFFF00 000000
+			990000 009900 000099 009999 990099 999900 999999
+			552222 225522 222255 225555 552255 555522 555555
 		) unless @source_colors > 0;
+# Pre 1.35 colours
+#			FF0000 00FF00 0000FF FFFF00 00FFFF FF00FF 000000
+#			550000 005500 000055 555500 005555 550055 555555
+#			AA0000 00AA00 0000AA AAAA00 00AAAA AA00AA AAAAAA
 	tie my $colour, 'RRD::Simple::_Colour', \@source_colors;
+
+	my $fmt = '%s:%s#%s:%s';
+	my $longest_label = 1;
+	if ($extended_legend) {
+		for my $ds (@ds) {
+			my $len = length( defined $source_labels{$ds} ?
+					$source_labels{$ds} : $ds );
+			$longest_label = $len if $len > $longest_label;
+		}
+		$fmt = "%s:%s#%s:%-${longest_label}s";
+	}
 
 	# Add the data sources to the graph
 	my @cmd = ($image,@def);
 	for my $ds (@ds) {
 		push @cmd, sprintf('DEF:%s=%s:%s:%s',$ds,$rrdfile,$ds,$cf);
-		#push @cmd, sprintf('%s:%s#%s:%-22s',
-		push @cmd, sprintf('%s:%s#%s:%s',
-				#"LINE$line_thickness",
+		push @cmd, sprintf($fmt,
 				(defined $source_drawtypes{$ds} ? $source_drawtypes{$ds} : "LINE$line_thickness"),
 				$ds,
 				(defined $source_colors{$ds} ? $source_colors{$ds} : $colour),
 				(defined $source_labels{$ds} ? $source_labels{$ds} : $ds),
 			);
+
+		# New for version 1.35
+		if ($extended_legend) {
+			if ($RRDs::VERSION >= 1.2) {
+				push @cmd, sprintf('VDEF:%sMIN=%s,MINIMUM',$ds,$ds);
+				push @cmd, sprintf('VDEF:%sMAX=%s,MAXIMUM',$ds,$ds);
+				push @cmd, sprintf('VDEF:%sLAST=%s,LAST',$ds,$ds);
+				push @cmd, sprintf('GPRINT:%sMIN:   min\:%%10.2lf\g',$ds);
+				push @cmd, sprintf('GPRINT:%sMAX:   max\:%%10.2lf\g',$ds);
+				push @cmd, sprintf('GPRINT:%sLAST:   last\:%%10.2lf\l',$ds);
+			} else {
+				push @cmd, sprintf('GPRINT:%s:MIN:%%9.2lf\g',$ds);
+				push @cmd, sprintf('GPRINT:%s:MAX:%%9.2lf\g',$ds);
+				push @cmd, sprintf('GPRINT:%s:LAST:%%9.2lf\l',$ds);
+			}
+		}
 	}
 
 	# Add a comment stating when the graph was last updated
@@ -1267,6 +1301,7 @@ add missing data sources.
          source_labels => [ ("My Source 1","My Source Two","Source 3") ],
          source_drawtypes => [ qw(LINE1 AREA LINE) ],
          line_thickness => 2,
+         extended_legend => 1,
          rrd_graph_option => "value",
          rrd_graph_option => "value",
          rrd_graph_option => "value"
@@ -1371,6 +1406,12 @@ Specifies the thickness of the data lines drawn on the graphs for
 any data sources that have not had a specific line thinkness already
 specified using the C<source_drawtypes> option.
 Valid values are 1, 2 and 3 (pixels).
+
+=item extended_legend
+
+Prints more detailed information in the graph legend by adding the
+minimum, maximum and last values recorded on the graph for each data
+source.
 
 =back
 

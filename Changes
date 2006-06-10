@@ -1,4 +1,20 @@
-Version 1.34 - 1st Jun 2006
+Version 1.35 - 10th June 2006
+    + Added some more example images and scripts in
+      the examples/ directory, and finished off
+      examples/iostat.pl and examples/df.pl.
+
+    + Added the "extended_legend" option to the graph()
+      method, to include recent values to be printed
+      next to the labels.
+
+    + Changed the order of the default set of colours
+      used to draw data sources in the graph() method,
+      and altered the second and third shade cycles to
+      make the colours slights more easily
+      distingustable from one another.
+
+
+Version 1.34 - 1st June 2006
     + Fixed a small gotcha whereby _ and - characters
       were not allowed in the "basename" paramater
       passed to the graph() method.

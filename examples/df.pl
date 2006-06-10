@@ -30,7 +30,7 @@ my $rrdfile = 'disk-capacity.rrd';
 my %capacity;
 my %labels;
 
-my @data = split(/\n/, ($^O =~ /linux/ ? `df -P` : `df`));
+my @data = split(/\n/, ($^O =~ /linux/ ? `df -P -x iso9660` : `df -P`));
 shift @data;
 
 for (@data) {
@@ -45,12 +45,10 @@ for (@data) {
 }
 
 $rrd->create($rrdfile,
-		map { $_ => 'GAUGE' } sort keys %capacity
+		map { ( $_ => 'GAUGE' ) } sort keys %capacity
 	) unless -f $rrdfile;
 
-$rrd->update($rrdfile,
-		map { $_ => $capacity{$_} } sort keys %capacity
-	);
+$rrd->update($rrdfile, %capacity);
 
 $rrd->graph($rrdfile,
 		title          => 'Disk Capacity',
@@ -60,8 +58,8 @@ $rrd->graph($rrdfile,
 		upper_limit    => 100,
 		sources        => [ sort keys %capacity ],
 		source_labels  => [ map { $labels{$_} } sort keys %labels ],
-		color          => [ qw(BACK#F5F5FF SHADEA#C8C8FF SHADEB#9696BE
-					           ARROW#61B51B GRID#404852 MGRID#67C6DE) ],
+		color          => [ ('BACK#F5F5FF','SHADEA#C8C8FF','SHADEB#9696BE',
+		                     'ARROW#61B51B','GRID#404852','MGRID#67C6DE') ],
 	);
 
 

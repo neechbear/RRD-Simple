@@ -35,11 +35,13 @@ use Time::HiRes qw();
 use constant TIMEOUT => 5;
 use constant RRDDIR  => '/var/tmp';
 use constant IMGDIR  => '/var/tmp';
-use constant HOSTS => {
-		'mod_perl1' => [ qw(8001 8002 8003) ],
-		'mod_perl2' => [ qw(8001 8003) ],
-		'mod_perl1'  => [ qw(8002 8003 8004 8005) ],
-	};
+use constant HOSTS => qw(
+				mod_perl1.london.company.com
+				mod_perl2.london.company.com
+				mod_perl3.london.company.com
+				mod_perl1.paris.company.com
+				mod_perl2.paris.company.com
+			);
 
 use vars qw($VERSION $DEBUG $VERBOSE);
 $VERSION = '0.02' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
@@ -54,84 +56,80 @@ our $rrd = new RRD::Simple;
 
 
 
-for my $host (sort loc_server_port keys(%{HOSTS})) {
+for my $host (sort loc_server HOSTS) {
 	my $logs = {};
 
-	for my $port (sort @{HOSTS->{$host}}) {
-		TRACE("Processing $host:$port ...");
-		my $start_time = Time::HiRes::time();
-		my $msg = "Processing $host:$port";
-		$VERBOSE && printf('%s %s ', $msg, '.' x (79 - length($msg) - 10));
+	TRACE("Processing $host ...");
+	my $start_time = Time::HiRes::time();
+	my $msg = "Processing $host";
+	$VERBOSE && printf('%s %s ', $msg, '.' x (79 - length($msg) - 10));
 
-		my ($status,$scoreboard) = parse_apache_status($ua,
-				"http://$host:$port/server-status?auto");
-		my ($modules) = parse_perl_status($ua,
-				"http://$host:$port/perl-status?inc");
-		$logs = parse_statlogs($ua, "http://$host:$port/perl/statlogs.pl")
-				unless keys(%{$logs});
+	my ($status,$scoreboard) = parse_apache_status($ua,
+			"http://$host:80/server-status?auto");
+	my ($modules) = parse_perl_status($ua,
+			"http://$host:80/perl-status?inc");
+	$logs = parse_statlogs($ua, "http://$host:80/perl/statlogs.pl")
+			unless keys(%{$logs});
 
-		my %rrdfile = (
-				status     => catdir(RRDDIR,"$host-$port-status.rrd"),
-				scoreboard => catdir(RRDDIR,"$host-$port-scoreboard.rrd"),
-				modules    => catdir(RRDDIR,"$host-$port-modules.rrd"),
-				logs       => catdir(RRDDIR,"$host-$port-logs.rrd"),
-			);
+	my %rrdfile = (
+			status     => catdir(RRDDIR,"$host-status.rrd"),
+			scoreboard => catdir(RRDDIR,"$host-scoreboard.rrd"),
+			modules    => catdir(RRDDIR,"$host-modules.rrd"),
+			logs       => catdir(RRDDIR,"$host-logs.rrd"),
+		);
 
-		if (keys %{$status}) {
-			$status->{ReqPerSec} = $status->{TotalAccesses};
-			$status->{KBPerSec} = $status->{TotalkBytes};
+	if (keys %{$status}) {
+		$status->{ReqPerSec} = $status->{TotalAccesses};
+		$status->{KBPerSec} = $status->{TotalkBytes};
 
-			if (!-f $rrdfile{status}) {
-				my %def = %{$status};
-				for (keys %def) {
-					$def{$_} = $_ =~ /^ReqPerSec|KBPerSec$/i ?
-							'DERIVE' : 'GAUGE';
-				}
-
-				eval {
-					$rrd->create($rrdfile{status}, %def);
-					RRDs::tune($rrdfile{status},'-i','ReqPerSec:0','-d','ReqPerSec:DERIVE');
-					RRDs::tune($rrdfile{status},'-i','KBPerSec:0','-d','KBPerSec:DERIVE');
-				};
-				warn $@ if $@;
+		if (!-f $rrdfile{status}) {
+			my %def = %{$status};
+			for (keys %def) {
+				$def{$_} = $_ =~ /^ReqPerSec|KBPerSec$/i ?
+						'DERIVE' : 'GAUGE';
 			}
 
-			eval { $rrd->update($rrdfile{status}, %{$status}); };
+			eval {
+				$rrd->create($rrdfile{status}, %def);
+				RRDs::tune($rrdfile{status},'-i','ReqPerSec:0','-d','ReqPerSec:DERIVE');
+				RRDs::tune($rrdfile{status},'-i','KBPerSec:0','-d','KBPerSec:DERIVE');
+			};
 			warn $@ if $@;
-			generate_graphs($rrdfile{status},$host,$port) unless $@;
 		}
 
-		if (keys %{$scoreboard}) {
-			eval { $rrd->update($rrdfile{scoreboard}, %{$scoreboard}); };
-			warn $@ if $@;
-			generate_graphs($rrdfile{scoreboard},$host,$port) unless $@;
-		}
-
-		if (keys %{$logs}) {
-			if (!-f $rrdfile{logs}) {
-				eval {
-					$rrd->create($rrdfile{logs}, map {($_=>'DERIVE')}
-							grep(/_$port$/,keys %{$logs}) );
-					RRDs::tune($rrdfile{logs},'-i',"$_:0") for
-							$rrd->sources($rrdfile{logs});
-				};
-				warn $@ if $@;
-			}
-
-			eval { $rrd->update($rrdfile{logs}, map {($_=>$logs->{$_})}
-					grep(/_$port$/,keys %{$logs})); };
-			warn $@ if $@;
-			generate_graphs($rrdfile{logs},$host,$port) unless $@;
-		}
-
-		if (keys %{$modules}) {
-			eval { $rrd->update($rrdfile{modules}, %{$modules}); };
-			warn $@ if $@;
-			generate_graphs($rrdfile{modules},$host,$port) unless $@;
-		}
-
-		$VERBOSE && printf("[%6.2f]\n", Time::HiRes::time() - $start_time);
+		eval { $rrd->update($rrdfile{status}, %{$status}); };
+		warn $@ if $@;
+		generate_graphs($rrdfile{status},$host) unless $@;
 	}
+
+	if (keys %{$scoreboard}) {
+		eval { $rrd->update($rrdfile{scoreboard}, %{$scoreboard}); };
+		warn $@ if $@;
+		generate_graphs($rrdfile{scoreboard},$host) unless $@;
+	}
+
+	if (keys %{$logs}) {
+		if (!-f $rrdfile{logs}) {
+			eval {
+				$rrd->create($rrdfile{logs}, map {($_=>'DERIVE')} keys %{$logs}));
+				RRDs::tune($rrdfile{logs},'-i',"$_:0") for
+						$rrd->sources($rrdfile{logs});
+			};
+			warn $@ if $@;
+		}
+
+		eval { $rrd->update($rrdfile{logs}, map {($_=>$logs->{$_})} keys %{$logs})); };
+		warn $@ if $@;
+		generate_graphs($rrdfile{logs},$host) unless $@;
+	}
+
+	if (keys %{$modules}) {
+		eval { $rrd->update($rrdfile{modules}, %{$modules}); };
+		warn $@ if $@;
+		generate_graphs($rrdfile{modules},$host) unless $@;
+	}
+
+	$VERBOSE && printf("[%6.2f]\n", Time::HiRes::time() - $start_time);
 }
 
 
@@ -143,47 +141,45 @@ exit;
 #####################################
 # Subs init
 
-sub loc_server_port {
+sub loc_server {
 	(split(/\./,$a))[1] cmp (split(/\./,$b))[1]
 		||
 	($a =~ /^mod_perl(\d+)/)[0] <=> ($b =~ /^mod_perl(\d+)/)[0]
-		||
-	($a =~ /(\d+)$/)[0] <=> ($b =~ /(\d+)$/)[0]
 }
 
 sub generate_graphs {
-	my ($rrdfile,$host,$port) = @_;
+	my ($rrdfile,$host) = @_;
 
 	eval {
 		if ($rrdfile =~ /status/) {
 			$rrd->graph($rrdfile,
-					basename => "$host-$port-status-total",
+					basename => "$host-status-total",
 					destination => IMGDIR,
-					title => "$host:$port Total x",
+					title => "$host Total x",
 					vertical_label => 'Total x',
 					sources => [ grep(/Total|Uptime/i,$rrd->sources($rrdfile)) ],
 					line_thickness => 2,
 				);
 			$rrd->graph($rrdfile,
-					basename => "$host-$port-status-bytes2",
+					basename => "$host-status-bytes2",
 					destination => IMGDIR,
-					title => "$host:$port x/Sec",
+					title => "$host x/Sec",
 					vertical_label => 'x/Sec',
 					sources => [ grep(/KBPerSec|ReqPerSec/i,$rrd->sources($rrdfile)) ],
 					line_thickness => 2,
 				);
 			$rrd->graph($rrdfile,
-					basename => "$host-$port-status-bytes",
+					basename => "$host-status-bytes",
 					destination => IMGDIR,
-					title => "$host:$port Bytes/x",
+					title => "$host Bytes/x",
 					vertical_label => 'Bytes/x',
 					sources => [ grep(/BytesPerSec|BytesPerReq/i,$rrd->sources($rrdfile)) ],
 					line_thickness => 2,
 				);
 			$rrd->graph($rrdfile,
-					basename => "$host-$port-status-servers",
+					basename => "$host-status-servers",
 					destination => IMGDIR,
-					title => "$host:$port Servers",
+					title => "$host Servers",
 					vertical_label => 'Children + Load',
 					sources => [ grep(/Servers|CPULoad/i,$rrd->sources($rrdfile)) ],
 					line_thickness => 2,
@@ -192,7 +188,7 @@ sub generate_graphs {
 		} elsif ($rrdfile =~ /scoreboard/) {
 			$rrd->graph($rrdfile,
 					destination => IMGDIR,
-					title => "$host:$port Scoreboard",
+					title => "$host Scoreboard",
 					line_thickness => 2,
 					vertical_label => 'Apache Children',
 					source_colors => [ qw(
@@ -204,18 +200,18 @@ sub generate_graphs {
 
 		} elsif ($rrdfile =~ /modules/) {
 			$rrd->graph($rrdfile,
-					basename => "$host-$port-modules",
+					basename => "$host-modules",
 					destination => IMGDIR,
 					vertical_label => 'Resident Modules',
-					title => "$host:$port Modules",
+					title => "$host Modules",
 					line_thickness => 2,
 				);
 
 		} elsif ($rrdfile =~ /logs/) {
 			$rrd->graph($rrdfile,
-					basename => "$host-$port-logs",
+					basename => "$host-logs",
 					destination => IMGDIR,
-					title => "$host:$port Logging/Sec",
+					title => "$host Logging/Sec",
 					line_thickness => 2,
 					vertical_label => 'bytes/sec',
 					sources => [ sort($rrd->sources($rrdfile)) ],

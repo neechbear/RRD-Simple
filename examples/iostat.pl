@@ -51,7 +51,6 @@ for my $dev (keys %update) {
 
 	$rrd->update($rrdfile, %{$update{$dev}});
 	$rrd->graph($rrdfile,
-			base => 1024,
 			sources => [ qw(read write) ],
 			source_drawtypes => [ qw(AREA LINE2) ],
 			source_colors => [ qw(00ee00 dd0000) ],

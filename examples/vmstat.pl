@@ -1,8 +1,8 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 ############################################################
 #
-#   $Id$
-#   iostat.pl - Example script bundled as part of RRD::Simple
+#   $Id: vmstat.pl 582 2006-06-10 18:17:26Z nicolaw $
+#   vmstat.pl - Example script bundled as part of RRD::Simple
 #
 #   Copyright 2005,2006 Nicola Worthington
 #
@@ -21,7 +21,7 @@
 ############################################################
 
 use strict;
-use RRD::Simple 1.34;
+use RRD::Simple 1.35;
 use RRDs;
 
 BEGIN {
@@ -29,35 +29,33 @@ BEGIN {
 		unless `uname -s` =~ /Linux/i && `uname -r` =~ /^2\.6\./;
 }
 
-my $cmd = '/usr/bin/iostat -k';
+my $cmd = '/usr/bin/vmstat';
 my $rrd = new RRD::Simple;
 
+my @keys = ();
 my %update = ();
 open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!";
 while (local $_ = <PH>) {
-	if (my ($dev,$r,$w) = $_ =~ /^([\w\d]+)\s+\S+\s+\S+\s+\S+\s+(\d+)\s+(\d+)$/) {
-		$update{$dev} = { 'read' => $r, 'write' => $w };
-	}
+	next if /---/;
+	s/^\s+|\s+$//g;
+	if (/\d+/ && @keys) {
+		@update{@keys} = split(/\s+/,$_);
+	} else { @keys = split(/\s+/,$_); }
 }
 close(PH) || die "Unable to close file handle PH for command '$cmd': $!";
 
-for my $dev (keys %update) {
-	my $rrdfile = "iostat-$dev.rrd";
-	unless (-f $rrdfile) {
-		$rrd->create($rrdfile, map { ($_ => 'DERIVE') }
-				sort keys %{$update{$dev}} );
-		RRDs::tune($rrdfile,'-i',"$_:0") for keys %{$update{$dev}};
-	}
+my @cpukeys = splice(@keys,-4,4);
+my %labels = (wa => 'IO wait', id => 'Idle', sy => 'System', us => 'User');
 
-	$rrd->update($rrdfile, %{$update{$dev}});
-	$rrd->graph($rrdfile,
-			base => 1024,
-			sources => [ qw(read write) ],
-			source_drawtypes => [ qw(AREA LINE2) ],
-			source_colors => [ qw(00ee00 dd0000) ],
-			vertical_label => 'kilobytes/sec',
-		);
-}
+my $rrdfile = "vmstat-cpu.rrd";
+$rrd->create($rrdfile, map { ($_ => 'GAUGE') } @cpukeys )
+	unless -f $rrdfile;
 
+$rrd->update($rrdfile, map {( $_ => $update{$_} )} @cpukeys );
+$rrd->graph($rrdfile,
+		line_thickness => 2,
+		vertical_label => '% percent',
+		source_labels => \%labels
+	);
 
 

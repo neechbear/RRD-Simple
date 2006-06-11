@@ -1,10 +1,10 @@
-#!/usr/bin/perl -U
+#!/usr/bin/perl
 ############################################################
 #
 #   $Id$
-#   hddtemp.pl - Example script bundled as part of RRD::Simple
+#   iostat.pl - Example script bundled as part of RRD::Simple
 #
-#   Copyright 2006 Nicola Worthington
+#   Copyright 2005,2006 Nicola Worthington
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -21,7 +21,12 @@
 ############################################################
 
 use strict;
-use RRD::Simple 1.34;
+use RRD::Simple 1.35;
+
+BEGIN {
+	warn "This may only run on Linux 2.4 or higher kernel systems"
+		unless `uname -s` =~ /Linux/i && `uname -r` =~ /^2\.[4-9]\./;
+}
 
 use constant HDDTEMP => '/usr/sbin/hddtemp -q /dev/hd? /dev/sd?';
 
@@ -36,6 +41,10 @@ close(PH) || warn $!;
 
 my $rrd = new RRD::Simple;
 $rrd->update(%update);
-$rrd->graph(vertical_label => 'Celsius', line_thickness => 2);
-
+$rrd->graph(
+	vertical_label => 'Celsius',
+	line_thickness => 2,
+	sources => [ sort $rrd->sources ],
+	extended_legend => 1,
+);
 

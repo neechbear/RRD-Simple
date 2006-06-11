@@ -29,7 +29,7 @@ BEGIN {
 		unless `uname -s` =~ /Linux/i && `uname -r` =~ /^2\.6\./;
 }
 
-my $cmd = '/usr/bin/vmstat 1 1';
+my $cmd = '/usr/bin/vmstat 1 2';
 my $rrd = new RRD::Simple;
 
 my @keys = ();

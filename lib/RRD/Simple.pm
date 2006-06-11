@@ -727,9 +727,9 @@ sub _create_graph {
 				push @cmd, sprintf('GPRINT:%sMAX:   max\:%%10.2lf\g',$ds);
 				push @cmd, sprintf('GPRINT:%sLAST:   last\:%%10.2lf\l',$ds);
 			} else {
-				push @cmd, sprintf('GPRINT:%s:MIN:%%9.2lf\g',$ds);
-				push @cmd, sprintf('GPRINT:%s:MAX:%%9.2lf\g',$ds);
-				push @cmd, sprintf('GPRINT:%s:LAST:%%9.2lf\l',$ds);
+				push @cmd, sprintf('GPRINT:%s:MIN:   min\:%%9.2lf\g',$ds);
+				push @cmd, sprintf('GPRINT:%s:MAX:   max\:%%9.2lf\g',$ds);
+				push @cmd, sprintf('GPRINT:%s:LAST:   last\:%%9.2lf\l',$ds);
 			}
 		}
 	}

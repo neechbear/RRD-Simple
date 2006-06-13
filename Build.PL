@@ -6,7 +6,7 @@ use Module::Build;
 use vars qw($build);
 
 BEGIN {
-	eval "use RRDds";
+	eval "use RRDs";
 	if ($@) {
 		warn qq{
 +-----------------------------------------------------------------------------+
@@ -17,7 +17,7 @@ BEGIN {
 | document for more details.                                                  |
 +-----------------------------------------------------------------------------+
 
-};
+} unless $ENV{AUTOMATED_TESTING};
 	}
 }
 

@@ -1,3 +1,35 @@
+Version 1.36 - 13th June 2006
+    + Changed unit tests to skip tests if they find
+      that RRDs is not actually installed. RRDs is
+      clearly marked as a prerequisite for RRD::Simple
+      to work. The module should not even build if
+      RRDs is not installed. Submitting failed CPAN
+      tester reports because you failed to install
+      the prerequisite modules is stupid.
+
+    + Added some brief instructions to INSTALL for
+      installing RRDtool and RRDs.
+
+    + Added a README in the examples directory to
+      help briefly describe what each script does.
+
+    + Changed the following three modules used in
+      unit tests to be reccomended instead of required
+      for building, since the unit tests will quite
+      happily skip if they are not installed:
+            'Test::Pod'           => 1.20,
+            'Test::Pod::Coverage' => 1.06,
+            'Test::Deep'          => 0.093,
+
+    + Build.PL now makes an extra special point of
+      warning about missing RRDs.pm, stating where a
+      copy of RRDtool can be downloaded from, and
+      that more details can be found in INSTALL.
+
+    + Corrected a typo in examples/vmstat.pl in the
+      command line for vmstat.
+
+
 Version 1.35 - 10th June 2006
     + Added some more example images and scripts in
       the examples/ directory, and finished off

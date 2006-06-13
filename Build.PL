@@ -10,7 +10,7 @@ BEGIN {
 	if ($@) {
 		warn qq{
 +-----------------------------------------------------------------------------+
-| WARNING! -- Could not load RRDs.pm                                          |
+| ERROR! -- Could not load RRDs.pm                                            |
 |                                                                             |
 | RRD::Simple requires RRDs.pm (a part of RRDtool) in order to function. You  |
 | can download a copy of RRDtool from http://www.rrdtool.org. See the INSTALL |

@@ -25,10 +25,12 @@ $build = Module::Build->new(
 		build_requires => {
 			'Test'                => 0, # 1.25
 			'Test::More'          => 0, # 0.60
-			'Test::Pod'           => 0, # 1.20
-			'Test::Pod::Coverage' => 0, # 1.06
-#			'Test::Distribution'  => 0, # 1.23
-			'Test::Deep'          => 0, # 0.093
+		},
+
+		recommends => {
+			'Test::Pod'           => 1.20,
+			'Test::Pod::Coverage' => 1.06,
+			'Test::Deep'          => 0.093,
 		},
 
 		conflicts => {
@@ -36,9 +38,9 @@ $build = Module::Build->new(
 		},
 
 		add_to_cleanup => [ qw(
-			t/01test.rrd t/02lazy_example_test.rrd t/03add_source.rrd
-			t/04lazy_create_by_update.rrd t/05test.rrd t/06test.rrd
-			t/07test.rrd t/08test.rrd t/09test.rrd t/12test.rrd t/13test.rrd
+			t/21test.rrd t/22test.rrd t/23test.rrd t/24test.rrd t/25test.rrd
+			t/26add_source.rrd t/30assume_rrd_filename.rrd t/34test.rrd
+			t/31create_assume_rrd_filename.rrd t/32test.rrd t/33test.rrd
 		) ],
 	);
 

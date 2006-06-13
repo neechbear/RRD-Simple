@@ -4,9 +4,16 @@ my $rrdfile = -d 't' ? 't/22test.rrd' : '22test.rrd';
 unlink $rrdfile if -f $rrdfile;
 
 use strict;
-use Test::More tests => 368;
+
+BEGIN {
+	use Test::More;
+	eval "use RRDs";
+	plan skip_all => "RRDs *MUST* be installed!" if $@;
+	plan tests => 368 if !$@;
+}
+
 use lib qw(./lib ../lib);
-use RRD::Simple ();
+use RRD::Simple 1.35 ();
 
 ok(my $rrd = RRD::Simple->new(cf => [ qw(AVERAGE LAST) ]),'new');
 

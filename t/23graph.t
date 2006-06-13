@@ -5,9 +5,16 @@ my $rrdfile = -d 't' ? 't/23test.rrd' : '23test.rrd';
 unlink $rrdfile if -f $rrdfile;
 
 use strict;
-use Test::More tests => 66+245;
+
+BEGIN {
+	use Test::More;
+	eval "use RRDs";
+	plan skip_all => "RRDs *MUST* be installed!" if $@;
+	plan tests => 311 if !$@;
+}
+
 use lib qw(./lib ../lib);
-use RRD::Simple ();
+use RRD::Simple 1.35 ();
 
 use vars qw($rra %retention_periods %scheme_graphs @schemes);
 require 'answers.pl';

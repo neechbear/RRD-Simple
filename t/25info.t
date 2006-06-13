@@ -4,9 +4,16 @@ my $rrdfile = -d 't' ? 't/25test.rrd' : '25test.rrd';
 unlink $rrdfile if -f $rrdfile;
 
 use strict;
-use Test::More tests => 4;
+
+BEGIN {
+	use Test::More;
+	eval "use RRDs";
+	plan skip_all => "RRDs *MUST* be installed!" if $@;
+	plan tests => 4 if !$@;
+}
+
 use lib qw(./lib ../lib);
-use RRD::Simple ();
+use RRD::Simple 1.35 ();
 
 ok(RRD::Simple->create($rrdfile,
 		foo => 'GAUGE',

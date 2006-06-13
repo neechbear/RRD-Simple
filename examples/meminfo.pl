@@ -51,6 +51,7 @@ $rrd->create($rrdfile,
 $rrd->update($rrdfile, %memory);
 
 $rrd->graph($rrdfile,
+		base => 1024,
 		title => 'Memory Usage',
 		line_thickness => 2,
 		vertical_label => 'bytes',

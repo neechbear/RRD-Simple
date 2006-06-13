@@ -2,9 +2,9 @@
 ############################################################
 #
 #   $Id$
-#   iostat.pl - Example script bundled as part of RRD::Simple
+#   network.pl - Example script bundled as part of RRD::Simple
 #
-#   Copyright 2005,2006 Nicola Worthington
+#   Copyright 2006 Nicola Worthington
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -29,34 +29,41 @@ BEGIN {
 		unless `uname -s` =~ /Linux/i && `uname -r` =~ /^2\.6\./;
 }
 
-my $cmd = '/usr/bin/iostat -k';
 my $rrd = new RRD::Simple;
 
+my @keys = ();
 my %update = ();
-open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!";
-while (local $_ = <PH>) {
-	if (my ($dev,$r,$w) = $_ =~ /^([\w\d]+)\s+\S+\s+\S+\s+\S+\s+(\d+)\s+(\d+)$/) {
-		$update{$dev} = { 'read' => $r, 'write' => $w };
+open(FH,'<','/proc/net/dev') || die "Unable to open '/proc/net/dev': $!";
+while (local $_ = <FH>) {
+	s/^\s+|\s+$//g;
+	if ((my ($dev,$data) = $_ =~ /^(.+?):\s*(\d+.+)\s*$/) && @keys) {
+		$update{$dev} = [ split(/\s+/,$data) ];
+	} else {
+		my ($rx,$tx) = (split(/\s*\|\s*/,$_))[1,2];
+		@keys = (map({"RX$_"} split(/\s+/,$rx)), map{"TX$_"} split(/\s+/,$tx));
 	}
 }
-close(PH) || die "Unable to close file handle PH for command '$cmd': $!";
+close(FH) || die "Unable to close '/proc/net/dev': $!";
 
 for my $dev (keys %update) {
-	my $rrdfile = "iostat-$dev.rrd";
+	my $rrdfile = "network-$dev.rrd";
 	unless (-f $rrdfile) {
-		$rrd->create($rrdfile, map { ($_ => 'DERIVE') }
-				sort keys %{$update{$dev}} );
-		RRDs::tune($rrdfile,'-i',"$_:0") for keys %{$update{$dev}};
+		$rrd->create($rrdfile, map { ($_ => 'DERIVE') } @keys);
+		RRDs::tune($rrdfile,'-i',"$_:0") for @keys;
 	}
 
-	$rrd->update($rrdfile, %{$update{$dev}});
+	my %tmp;
+	for (my $i = 0; $i < @keys; $i++) {
+		$tmp{$keys[$i]} = $update{$dev}->[$i];
+	}
+
+	$rrd->update($rrdfile, %tmp);
 	$rrd->graph($rrdfile,
-			sources => [ qw(read write) ],
-			source_drawtypes => [ qw(AREA LINE2) ],
-			source_colors => [ qw(00ee00 dd0000) ],
-			vertical_label => 'kilobytes/sec',
+			line_thickness => 2,
+			vertical_label => 'bytes/sec',
+			sources => [ sort grep(/.X(bytes|packets|errs)/,@keys) ],
+			extended_legend => 1,
 		);
 }
-
 
 

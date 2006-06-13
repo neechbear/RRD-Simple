@@ -5,6 +5,22 @@ use strict;
 use Module::Build;
 use vars qw($build);
 
+BEGIN {
+	eval "use RRDds";
+	if ($@) {
+		warn qq{
++-----------------------------------------------------------------------------+
+| WARNING! -- Could not load RRDs.pm                                          |
+|                                                                             |
+| RRD::Simple requires RRDs.pm (a part of RRDtool) in order to function. You  |
+| can download a copy of RRDtool from http://www.rrdtool.org. See the INSTALL |
+| document for more details.                                                  |
++-----------------------------------------------------------------------------+
+
+};
+	}
+}
+
 $build = Module::Build->new(
 		module_name        => 'RRD::Simple',
 		license            => 'open_source',

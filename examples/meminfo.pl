@@ -55,7 +55,7 @@ $rrd->graph($rrdfile,
 		title => 'Memory Usage',
 		line_thickness => 2,
 		vertical_label => 'bytes',
-		sources => grep(/^(mem)?(total|free|swap)$/i, keys %memory),
+		sources => [ grep(/^(mem)?(total|free|swap)$/i, keys %memory) ],
 	);
 
 

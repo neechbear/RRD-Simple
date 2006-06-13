@@ -14,6 +14,11 @@ graph.pl
 graph2.pl, graph2-daily.png
     + Generate a meaningless but attractive graph
 
+meminfo.pl
+    + Graph memory usage using the Sys::MemInfo module, or by
+      reading /proc/meminfo on Linux if Sys::MemInfo isn't
+      available
+
 df.pl, disk-capacity-daily.png
     + Graph hard disk capacity using the df command
 

@@ -8,7 +8,7 @@ use strict;
 BEGIN {
 	use Test::More;
 	eval "use RRDs";
-	plan skip_all => "RRDs *MUST* be installed!" if $@;
+	plan skip_all => "RRDs.pm *MUST* be installed!" if $@;
 	plan tests => 6 if !$@;
 }
 

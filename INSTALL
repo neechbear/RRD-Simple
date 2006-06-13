@@ -1,4 +1,32 @@
+Installing RRD::Simple
+======================
+
 perl Build.PL
 perl Build
 perl Build test
 perl Build install
+
+
+
+Installing RRDtool
+==================
+
+RRD::Simple requires the RRDs module (a part of RRDtool) to
+be available in the Perl @INC path. RRDtool can be downloaded
+from http://www.rrdtool.org or http://oss.oetiker.ch/rrdtool/.
+
+In RRDTool version 1.0.x, the RRDs module is located in the
+"rrdtool-1.0.xx/perl-shared/" directory. In version 1.2.x, it
+is located in "rrdtool-1.2.xx/bindings/perl-shared/".
+
+	tar -zxf rrdtool-1.x.xx.tar.gz
+	cd rrdtool-1.x.xx
+	./configure && make && make install
+	# cd perl-shared        # Version 1.0.x
+	cd bindings/perl-shared # Version 1.2.x
+	make clean
+	perl Makefile.PL && make && make install
+
+Debian users may need to explicitly install the RRDs package
+as well as the RRDtool and librrd package.
+

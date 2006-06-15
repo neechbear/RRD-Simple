@@ -1,3 +1,15 @@
+Version 1.37 - 16th June 2006
+    + Changed the add_source() method so that new
+      data sources will be appended to the existing
+      data sources, instead of prepended as was done
+      before. This is useful if you are updating
+      your RRD file directly with RRDs.pm and are
+      assuming the order of the data source names
+      in the RRD file.
+
+    + Added a couple more tests to t/26add_source.t
+
+
 Version 1.36 - 13th June 2006
     + Changed unit tests to skip tests if they find
       that RRDs is not actually installed. RRDs is

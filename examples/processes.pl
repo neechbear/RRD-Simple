@@ -21,7 +21,7 @@
 ############################################################
 
 use strict;
-use RRD::Simple 1.35;
+use RRD::Simple 1.37;
 
 my %update = ();
 if (-f '/bin/ps' && -x '/bin/ps') {
@@ -52,8 +52,17 @@ $rrd->update($rrdfile, %update);
 my %legend = (qw(D iowait R run S sleep
 	T stopped W paging X dead Z zombie));
 
+my @sources = sort $rrd->sources($rrdfile);
+my @types = ('AREA');
+for (my $i = 2; $i <= @sources; $i++) {
+	push @types, 'STACK';
+}
+
 $rrd->graph($rrdfile,
+		sources => \@sources,
+		source_drawtypes => \@types,
 		source_labels => \%legend,
+		extended_legend => 1.
 	);
 
 

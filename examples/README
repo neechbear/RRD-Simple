@@ -35,6 +35,10 @@ vmstat.pl, vmstat-cpu-daily.png
     + Graph CPU activity using the vmstat command (an example
       of using the STACK draw type)
 
+processes.pl
+    + Graph running processes and what state they're in by
+      using /bin/ps or Proc::ProcessTable
+
 mod_perl.pl, example_apache_monitoring.png
     + Graph various metrics from the Apache /server-status
       and mod_perl /perl-status scoreboards

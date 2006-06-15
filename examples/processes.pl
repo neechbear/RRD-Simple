@@ -47,18 +47,20 @@ my $rrd = new RRD::Simple;
 $rrd->create($rrdfile, map { ($_ => 'GAUGE') } sort keys %update )
 	unless -f $rrdfile;
 
+my @sources = sort $rrd->sources($rrdfile);
+$update{$_} ||= 0 for @sources;
 $rrd->update($rrdfile, %update);
 
 my %legend = (qw(D iowait R run S sleep
 	T stopped W paging X dead Z zombie));
 
-my @sources = sort $rrd->sources($rrdfile);
 my @types = ('AREA');
 for (my $i = 2; $i <= @sources; $i++) {
 	push @types, 'STACK';
 }
 
 $rrd->graph($rrdfile,
+		vertical_label => 'Processes',
 		sources => \@sources,
 		source_drawtypes => \@types,
 		source_labels => \%legend,

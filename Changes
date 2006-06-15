@@ -1,4 +1,4 @@
-Version 1.37 - 16th June 2006
+Version 1.37 - 15th June 2006
     + Changed the add_source() method so that new
       data sources will be appended to the existing
       data sources, instead of prepended as was done
@@ -23,6 +23,8 @@ Version 1.37 - 16th June 2006
       as expected, assuming you do not explicitly
       set the variable before loading RRD::Simple.
       This behaviour is intented to reduce confusion.
+
+    + Added examples/processes.pl
 
 
 Version 1.36 - 13th June 2006

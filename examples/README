@@ -31,8 +31,9 @@ hddtemp.pl, hddtemp-daily.png
 iostat.pl, iostat-hda-daily.png
     + Graph disk activity using the iostat command
 
-vmstat.pl
-    + Graph CPU activity using the vmstat command
+vmstat.pl, vmstat-cpu-daily.png
+    + Graph CPU activity using the vmstat command (an example
+      of using the STACK draw type)
 
 mod_perl.pl, example_apache_monitoring.png
     + Graph various metrics from the Apache /server-status

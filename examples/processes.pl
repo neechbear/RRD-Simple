@@ -64,7 +64,7 @@ $rrd->graph($rrdfile,
 		sources => \@sources,
 		source_drawtypes => \@types,
 		source_labels => \%legend,
-		extended_legend => 1.
+		extended_legend => 1,
 	);
 
 

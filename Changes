@@ -1,3 +1,11 @@
+Version 1.38 - 20th June 2006
+    + Added examples/loadavg.pl
+
+    + Modified examples/meminfo.pl to create
+      swap-*.png graphs if /proc/meminfo is
+      available.
+
+
 Version 1.37 - 15th June 2006
     + Changed the add_source() method so that new
       data sources will be appended to the existing

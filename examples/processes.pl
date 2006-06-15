@@ -24,13 +24,7 @@ use strict;
 use RRD::Simple 1.35;
 
 my %update = ();
-eval "use Proc::ProcessTable";
-unless ($@) {
-	my $p = new Proc::ProcessTable("cache_ttys" => 1 );
-	for (@{$p->table}) {
-		$update{$_->{state}}++;
-	}
-} elsif (-f '/bin/ps' && -x '/bin/ps') {
+if (-f '/bin/ps' && -x '/bin/ps') {
 	open(PH,'-|','/bin/ps -eo pid,s') || die $!;
 	while (local $_ = <PH>) {
 		if (/^\d+\s+(\w+)\s*$/) {
@@ -38,23 +32,28 @@ unless ($@) {
 		}
 	}
 	close(PH) || warn $!;
+} else {
+	eval "use Proc::ProcessTable";
+	die "Please install /bin/ps or Proc::ProcessTable\n" if $@;
+	my $p = new Proc::ProcessTable("cache_ttys" => 1 );
+	for (@{$p->table}) {
+		$update{$_->{state}}++;
+	}
 }
 
-use Data::Dumper;
-print Dumper(\%update);
+my $rrdfile = 'processes.rrd';
+my $rrd = new RRD::Simple;
 
-__END__
+$rrd->create($rrdfile, map { ($_ => 'GAUGE') } sort keys %update )
+	unless -f $rrdfile;
 
-PROCESS STATE CODES
-Here are the different values that the s, stat and state output specifiers
-(header "STAT" or "S") will display to describe the state of a process.
-D    Uninterruptible sleep (usually IO)
-R    Running or runnable (on run queue)
-S    Interruptible sleep (waiting for an event to complete)
-T    Stopped, either by a job control signal or because it is being traced.
-W    paging (not valid since the 2.6.xx kernel)
-X    dead (should never be seen)
-Z    Defunct ("zombie") process, terminated but not reaped by its parent.
+$rrd->update($rrdfile, %update);
 
+my %legend = (qw(D iowait R run S sleep
+	T stopped W paging X dead Z zombie));
+
+$rrd->graph($rrdfile,
+		source_labels => \%legend,
+	);
 
 

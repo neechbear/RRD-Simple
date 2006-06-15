@@ -29,7 +29,7 @@ BEGIN {
 		unless `uname -s` =~ /Linux/i && `uname -r` =~ /^2\.6\./;
 }
 
-my $cmd = '/usr/bin/vmstat 1 2';
+my $cmd = '/usr/bin/vmstat 2 3';
 my $rrd = new RRD::Simple;
 
 my @keys = ();
@@ -53,9 +53,15 @@ $rrd->create($rrdfile, map { ($_ => 'GAUGE') } @cpukeys )
 
 $rrd->update($rrdfile, map {( $_ => $update{$_} )} @cpukeys );
 $rrd->graph($rrdfile,
+		sources => [ qw(sy us wa id) ],
+		source_drawtypes => [ qw(AREA STACK STACK STACK) ],
 		line_thickness => 2,
 		vertical_label => '% percent',
-		source_labels => \%labels
+		source_labels => \%labels,
+		extended_legend => 1,
+		upper_limit => 100,
+		lower_limit => 0,
+		rigid => "",
 	);
 
 

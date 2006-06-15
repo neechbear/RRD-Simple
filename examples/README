@@ -17,7 +17,7 @@ graph2.pl, graph2-daily.png
 network.pl
     + Graph network device throughput by reading /proc/net/dev
 
-meminfo.pl
+meminfo.pl, meminfo-daily.png
     + Graph memory usage using the Sys::MemInfo module, or by
       reading /proc/meminfo on Linux if Sys::MemInfo isn't
       available

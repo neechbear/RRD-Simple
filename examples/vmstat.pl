@@ -54,7 +54,7 @@ $rrd->update($rrdfile, map {( $_ => $update{$_} )} @cpukeys );
 $rrd->graph($rrdfile,
 		sources => [ qw(sy us wa id) ],
 		source_drawtypes => [ qw(AREA STACK STACK STACK) ],
-		source_colors => [ qw(ff0000 00ff00 0000ff eeeeee) ],
+		source_colors => [ qw(ff0000 00ff00 0000ff ffffff) ],
 		vertical_label => '% percent',
 		source_labels => \%labels,
 		extended_legend => 1,

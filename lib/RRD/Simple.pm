@@ -32,7 +32,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.36' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.37' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -40,9 +40,9 @@ $VERSION = '1.36' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 				add_source sources retention_period);
 %EXPORT_TAGS = (all => \@EXPORT_OK);
 
-$DEBUG = $ENV{DEBUG} ? 1 : 0;
-$DEFAULT_DSTYPE = exists $ENV{DEFAULT_DSTYPE}
-					? $ENV{DEFAULT_DSTYPE} : 'GAUGE';
+$DEBUG ||= $ENV{DEBUG} ? 1 : 0;
+$DEFAULT_DSTYPE ||= exists $ENV{DEFAULT_DSTYPE}
+				? $ENV{DEFAULT_DSTYPE} : 'GAUGE';
 
 
 
@@ -646,10 +646,10 @@ sub _create_graph {
 
 		# Validate the values we have and set default thickness
 		while (my ($k,$v) = each %source_drawtypes) {
-			if ($v !~ /^(LINE[1-9]?|AREA)$/) {
+			if ($v !~ /^(LINE[1-9]?|STACK|AREA)$/) {
 				delete $source_drawtypes{$k};
-				carp "source_drawtypes may be LINE, LINEn or AREA only; ".
-					"value '$v' is not valid" if $^W;
+				carp "source_drawtypes may be LINE, LINEn, AREA or STACK ".
+					"only; value '$v' is not valid" if $^W;
 			}
 			$source_drawtypes{$k} = uc($v);
 			$source_drawtypes{$k} .= $line_thickness if $v eq 'LINE';
@@ -695,7 +695,7 @@ sub _create_graph {
 #			AA0000 00AA00 0000AA AAAA00 00AAAA AA00AA AAAAAA
 	tie my $colour, 'RRD::Simple::_Colour', \@source_colors;
 
-	my $fmt = '%s:%s#%s:%s';
+	my $fmt = '%s:%s#%s:%s%s';
 	my $longest_label = 1;
 	if ($extended_legend) {
 		for my $ds (@ds) {
@@ -703,18 +703,32 @@ sub _create_graph {
 					$source_labels{$ds} : $ds );
 			$longest_label = $len if $len > $longest_label;
 		}
-		$fmt = "%s:%s#%s:%-${longest_label}s";
+		$fmt = "%s:%s#%s:%-${longest_label}s%s";
 	}
 
 	# Add the data sources to the graph
 	my @cmd = ($image,@def);
 	for my $ds (@ds) {
+
+		# Stack operates differently in RRD 1.2 or higher
+		my $drawtype = defined $source_drawtypes{$ds} ? $source_drawtypes{$ds}
+						: "LINE$line_thickness";
+		my $stack = '';
+		if ($RRDs::VERSION >= 1.2 && $drawtype eq 'STACK') {
+			$drawtype = 'AREA';
+			$stack = ':STACK';
+		}
+
+		# Add the data source definition
 		push @cmd, sprintf('DEF:%s=%s:%s:%s',$ds,$rrdfile,$ds,$cf);
+
+		# Draw the line (and add to the legend)
 		push @cmd, sprintf($fmt,
-				(defined $source_drawtypes{$ds} ? $source_drawtypes{$ds} : "LINE$line_thickness"),
+				$drawtype,
 				$ds,
 				(defined $source_colors{$ds} ? $source_colors{$ds} : $colour),
 				(defined $source_labels{$ds} ? $source_labels{$ds} : $ds),
+				$stack
 			);
 
 		# New for version 1.35
@@ -861,6 +875,7 @@ sub _add_source {
 
 	# Generate an XML dump of the RRD file
 	my $tempXmlFile = File::Temp::tmpnam();
+	TRACE("_add_source(): \$tempXmlFile = $tempXmlFile");
 
 	# Try the internal perl way first (portable)
 	eval {
@@ -890,7 +905,7 @@ sub _add_source {
 
 	# Create a marker hash ref to store temporary state
 	my $marker = {
-				insertDS => 0,
+				addedNewDS => 0,
 				insertCDP_PREP => 0,
 				parse => 0,
 				version => 1,
@@ -901,9 +916,8 @@ sub _add_source {
 		chomp;
 
 		# Add the DS definition
-		if ($marker->{insertDS} == 1) {
+		if (!$marker->{addedNewDS} && /<rra>/) {
 			print OUT <<EndDS;
-
 	<ds>
 		<name> $ds </name>
 		<type> $dstype </type>
@@ -916,8 +930,9 @@ sub _add_source {
 		<value> 0.0000000000e+00 </value>
 		<unknown_sec> 0 </unknown_sec>
 	</ds>
+
 EndDS
-			$marker->{insertDS} = 0;
+			$marker->{addedNewDS} = 1;
 		}
 
 		# Insert DS under CDP_PREP entity
@@ -938,12 +953,8 @@ EndDS
 			$marker->{insertCDP_PREP} = 0;
 		}
 
-		# Look for end of the <lastupdate> entity
-		if (/<\/lastupdate>/) {
-			$marker->{insertDS} = 1;
-	
 		# Look for start of the <cdp_prep> entity
-		} elsif (/<cdp_prep>/) {
+		if (/<cdp_prep>/) {
 			$marker->{insertCDP_PREP} = 1;
 
 		# Look for the end of an RRA
@@ -979,6 +990,7 @@ EndDS
 
 	# Import the new output file in to the old RRD filename
 	my $new_rrdfile = File::Temp::tmpnam();
+	TRACE("_add_source(): \$new_rrdfile = $new_rrdfile");
 
 	# Try the internal perl way first (portable)
 	eval {
@@ -1393,12 +1405,17 @@ C<source_labels> parameter is specified.
                             source_name2 => "AREA",
                             source_name3 => "LINE", },
      );
+ 
+ $rrd->graph($rrdfile,
+         sources => [ qw(system user iowait idle) ]
+         source_colors => [ qw(AREA STACK STACK STACK) ],
+     );
 
 The C<source_drawtypes> parameter is optional. This parameter should be an
 array or hash of drawing/plotting types to be used for the plotted data source
 lines. By default all data sources are drawn as lines (LINE), but data sources
 may also be drawn as filled areas (AREA). Valid values are, LINE, LINEI<n>
-(where I<n> represents the thickness of the line in pixels), or AREA.
+(where I<n> represents the thickness of the line in pixels), AREA or STACK.
 
 =item line_thickness
 

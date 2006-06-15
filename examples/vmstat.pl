@@ -21,8 +21,7 @@
 ############################################################
 
 use strict;
-use RRD::Simple 1.35;
-use RRDs;
+use RRD::Simple 1.37;
 
 BEGIN {
 	warn "This may only run on Linux 2.6 kernel systems"
@@ -55,7 +54,7 @@ $rrd->update($rrdfile, map {( $_ => $update{$_} )} @cpukeys );
 $rrd->graph($rrdfile,
 		sources => [ qw(sy us wa id) ],
 		source_drawtypes => [ qw(AREA STACK STACK STACK) ],
-		line_thickness => 2,
+		source_colors => [ qw(ff0000 00ff00 0000ff eeeeee) ],
 		vertical_label => '% percent',
 		source_labels => \%labels,
 		extended_legend => 1,

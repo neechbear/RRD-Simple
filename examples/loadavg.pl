@@ -37,6 +37,7 @@ $rrd->update($rrdfile,
 		'15min' => $avg[2],
 	);
 
-$rrd->graph($rrdfile, line_thickness => 2, vertical_label => 'Load');
+$rrd->graph($rrdfile, sources => [ qw(1min 5min 15min) ],
+	line_thickness => 2, vertical_label => 'Load');
 
 

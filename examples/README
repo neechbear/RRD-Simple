@@ -22,6 +22,9 @@ meminfo.pl, meminfo-daily.png
       reading /proc/meminfo on Linux if Sys::MemInfo isn't
       available
 
+loadavg.pl
+    + Graph load average using the uptime command
+
 df.pl, disk-capacity-daily.png
     + Graph hard disk capacity using the df command
 

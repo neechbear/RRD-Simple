@@ -1,4 +1,11 @@
-Version 1.38 - 20th June 2006
+Version 1.38 - 15th June 2006
+    + Fixed a major bug introduced in v1.37 where
+      add_source() method appends new data sources
+      instead of prepends. This would have swapped
+      historical RRA data with different data source
+      names if a new source was added during use
+      of version 1.37.
+
     + Added examples/loadavg.pl
 
     + Modified examples/meminfo.pl to create

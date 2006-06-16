@@ -59,9 +59,12 @@ for my $dev (keys %update) {
 
 	$rrd->update($rrdfile, %tmp);
 	$rrd->graph($rrdfile,
-			line_thickness => 2,
 			vertical_label => 'bytes/sec',
-			sources => [ sort grep(/.X(bytes|packets|errs)/,@keys) ],
+			#sources => [ sort grep(/.X(bytes|packets|errs)/,@keys) ],
+			sources => [ qw(TXbytes RXbytes) ],
+			source_labels => [ qw(transmit recieve) ],
+			source_drawtypes => [ qw(AREA LINE) ],
+			source_colors => [ qw(00dd00 0000dd) ],
 			extended_legend => 1,
 		);
 }

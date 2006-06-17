@@ -10,13 +10,13 @@ BEGIN {
 	use Test::More;
 	eval "use RRDs";
 	plan skip_all => "RRDs.pm *MUST* be installed!" if $@;
-	plan tests => 311 if !$@;
+	plan tests => 326 if !$@;
 }
 
 use lib qw(./lib ../lib);
 use RRD::Simple 1.35 ();
 
-use vars qw($rra %retention_periods %scheme_graphs @schemes);
+use vars qw($rra %retention_periods %scheme_graphs @schemes %graph_return);
 require 'answers.pl';
 
 ok(my $rrd = RRD::Simple->new(),'new');
@@ -38,7 +38,8 @@ for my $p (keys %scheme_graphs) {
 		"$p sources");
 
 	mkdir '13graphs';
-	ok($rrd->graph($rrdfile,
+	my %rtn = ();
+	ok(%rtn = $rrd->graph($rrdfile,
 			destination => './13graphs/',
 			basename => 'foo',
 			sources => [ qw(bytesIn bytesOut) ],
@@ -46,7 +47,28 @@ for my $p (keys %scheme_graphs) {
 			source_colors => [ qw(4499ff e33f00) ],
 			source_drawtypes => [ qw(AREA LINE) ],
 			line_thickness => 2,
+			extended_legend => 1,
 		),"$p graph");
+
+	SKIP: {
+		my $deep = 0;
+		eval {
+			require Test::Deep;
+			Test::Deep->import();
+			$deep = 1;
+		};
+		if (!$deep || $@) {
+			skip 'Test::Deep not available', 1;
+		}
+
+		for my $period (keys %rtn) {
+			cmp_deeply(
+				$rtn{$period}->[1],
+				$graph_return{$period},
+				"graph() return hash ($period)",
+			);
+		}
+	}
 
 	for my $f (@{$scheme_graphs{$p}}) {
 		my $file = "./13graphs/foo-$f.png";

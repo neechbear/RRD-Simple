@@ -16,7 +16,7 @@ BEGIN {
 use lib qw(./lib ../lib);
 use RRD::Simple 1.35 ();
 
-use vars qw($rra %retention_periods %scheme_graphs @schemes);
+use vars qw($rra %retention_periods %scheme_graphs @schemes %graph_return);
 require 'answers.pl';
 
 ok(my $rrd = RRD::Simple->new(),'new');

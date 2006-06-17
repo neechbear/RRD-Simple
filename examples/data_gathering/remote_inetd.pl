@@ -25,6 +25,37 @@ if (open(FH,"</proc/sys/fs/file-nr")) {
 
 }
 
+memory usage			memory.usage
+swap usage				swap.usage
+
+network connections		network.connections.<protocol>
+						network.connections.<state>
+
+file descriptors		filesystem.descriptiors
+
+network traffic			network.throughput.<interface>.<tx|rx>.bytes
+						network.throughput.<interface>.<tx|rx>.packets
+						network.throughput.<interface>.<tx|rx>.errors
+
+processes
+
+load average
+cpu utilisation
+
+hdd temperature
+cpu temperature
+
+disk io
+disk capacity
+
+apache scoreboard
+apache req/sec
+apache bytes/sec
+apache log bytes/sec
+
+
+
+
 __END__
 echo -n "fd:fd:TotalAllocated="
 cat /proc/sys/fs/file-nr | sed -e's/\s\s*/,TotalFreeAllocated=/; s/\s\s*/,MaximumOpen=/;'

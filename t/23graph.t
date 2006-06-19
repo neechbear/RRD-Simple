@@ -57,8 +57,10 @@ for my $p (keys %scheme_graphs) {
 			Test::Deep->import();
 			$deep = 1;
 		};
+
+		my $tests_to_skip = keys %rtn;
 		if (!$deep || $@) {
-			skip 'Test::Deep not available', 1;
+			skip 'Test::Deep not available', $tests_to_skip;
 		}
 
 		for my $period (keys %rtn) {

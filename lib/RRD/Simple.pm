@@ -32,7 +32,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.38' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.39' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -399,14 +399,18 @@ sub graph {
 	TRACE("graph() - \$cf = $cf");
 
 	# Create graphs which we have enough data to populate
-	my @rtn;
+	# Version 1.39 - Change the return from an array to a hash (semi backward compatible)
+#	my @rtn;
+	my %rtn;
 	for my $type (qw(day week month year 3years)) {
 		next if $period < _seconds_in($type);
 		TRACE("graph() - \$type = $type");
-		push @rtn, [ ($self->_create_graph($rrdfile, $type, $cf, @_)) ];
+#		push @rtn, [ ($self->_create_graph($rrdfile, $type, $cf, @_)) ];
+		$rtn{_alt_graph_name($type)} = [ ($self->_create_graph($rrdfile, $type, $cf, @_)) ];
 	}
 
-	return @rtn;
+#	return @rtn;
+	return %rtn;
 }
 
 
@@ -731,19 +735,33 @@ sub _create_graph {
 				$stack
 			);
 
+		# New for version 1.39
+		# Return the min,max,last information in the graph() return @rtn
+		if ($RRDs::VERSION >= 1.2) {
+			push @cmd, sprintf('VDEF:%sMIN=%s,MINIMUM',$ds,$ds);
+			push @cmd, sprintf('VDEF:%sMAX=%s,MAXIMUM',$ds,$ds);
+			push @cmd, sprintf('VDEF:%sLAST=%s,LAST',$ds,$ds);
+			push @cmd, sprintf('PRINT:%sMIN:%s min %%1.2lf',$ds,$ds);
+			push @cmd, sprintf('PRINT:%sMAX:%s max %%1.2lf',$ds,$ds);
+			push @cmd, sprintf('PRINT:%sLAST:%s last %%1.2lf',$ds,$ds);
+		} else {
+			push @cmd, sprintf('PRINT:%s:MIN:%s min %%1.2lf',$ds,$ds);
+			push @cmd, sprintf('PRINT:%s:MAX:%s max %%1.2lf',$ds,$ds);
+			push @cmd, sprintf('PRINT:%s:LAST:%s last %%1.2lf',$ds,$ds);
+		}
+
 		# New for version 1.35
 		if ($extended_legend) {
 			if ($RRDs::VERSION >= 1.2) {
-				push @cmd, sprintf('VDEF:%sMIN=%s,MINIMUM',$ds,$ds);
-				push @cmd, sprintf('VDEF:%sMAX=%s,MAXIMUM',$ds,$ds);
-				push @cmd, sprintf('VDEF:%sLAST=%s,LAST',$ds,$ds);
+				# Moved the VDEFs to the block of code above which is
+				# always run, regardless of the extended legend
 				push @cmd, sprintf('GPRINT:%sMIN:   min\:%%10.2lf\g',$ds);
 				push @cmd, sprintf('GPRINT:%sMAX:   max\:%%10.2lf\g',$ds);
 				push @cmd, sprintf('GPRINT:%sLAST:   last\:%%10.2lf\l',$ds);
 			} else {
-				push @cmd, sprintf('GPRINT:%s:MIN:   min\:%%9.2lf\g',$ds);
-				push @cmd, sprintf('GPRINT:%s:MAX:   max\:%%9.2lf\g',$ds);
-				push @cmd, sprintf('GPRINT:%s:LAST:   last\:%%9.2lf\l',$ds);
+				push @cmd, sprintf('GPRINT:%s:MIN:   min\:%%10.2lf\g',$ds);
+				push @cmd, sprintf('GPRINT:%s:MAX:   max\:%%10.2lf\g',$ds);
+				push @cmd, sprintf('GPRINT:%s:LAST:   last\:%%10.2lf\l',$ds);
 			}
 		}
 	}
@@ -760,7 +778,7 @@ sub _create_graph {
 	my @rtn = RRDs::graph(@cmd);
 	my $error = RRDs::error;
 	croak($error) if $error;
-	return @rtn;
+	return ($image,@rtn);
 }
 
 
@@ -1165,12 +1183,13 @@ RRD::Simple - Simple interface to create and store data in RRD files
  # Generate graphs:
  # /var/tmp/myfile-daily.png, /var/tmp/myfile-weekly.png
  # /var/tmp/myfile-monthly.png, /var/tmp/myfile-annual.png
- my @rtn = $rrd->graph("myfile.rrd",
+ my %rtn = $rrd->graph("myfile.rrd",
              destination => "/var/tmp",
              title => "Network Interface eth0",
              vertical_label => "Bytes/Faults",
              interlaced => ""
          );
+ printf("Created %s\n",join(", ",map { $rtn{$_}->[0] } keys %rtn));
 
  # Return information about an RRD file
  my $info = $rrd->info("myfile.rrd");
@@ -1299,7 +1318,7 @@ add missing data sources.
 
 =head2 graph
 
- $rrd->graph($rrdfile,
+ my %rtn = $rrd->graph($rrdfile,
          destination => "/path/to/write/graph/images",
          basename => "graph_basename",
          sources => [ qw(source_name1 source_name2 source_name3) ],
@@ -1352,11 +1371,11 @@ plotted by default.
 
 =item source_colors
 
- $rrd->graph($rrdfile,
+ my %rtn = $rrd->graph($rrdfile,
          source_colors => [ qw(ff3333 ff00ff ffcc99) ],
      );
  
- $rrd->graph($rrdfile,
+ %rtn = $rrd->graph($rrdfile,
          source_colors => { source_name1 => "ff3333",
                             source_name2 => "ff00ff",
                             source_name3 => "ffcc99", },
@@ -1368,12 +1387,12 @@ lines. A selection of vivid primary colors will be set by default.
 
 =item source_labels
 
- $rrd->graph($rrdfile,
+ my %rtn = $rrd->graph($rrdfile,
          sources => [ qw(source_name1 source_name2 source_name3) ],
          source_labels => [ ("My Source 1","My Source Two","Source 3") ],
      );
  
- $rrd->graph($rrdfile,
+ %rtn = $rrd->graph($rrdfile,
          source_labels => { source_name1 => "My Source 1",
                             source_name2 => "My Source Two",
                             source_name3 => "Source 3", },
@@ -1390,17 +1409,17 @@ C<source_labels> parameter is specified.
 
 =item source_drawtypes
 
- $rrd->graph($rrdfile,
+ my %rtn = $rrd->graph($rrdfile,
          source_drawtypes => [ qw(LINE1 AREA LINE) ],
      );
  
- $rrd->graph($rrdfile,
+ %rtn = $rrd->graph($rrdfile,
          source_colors => { source_name1 => "LINE1",
                             source_name2 => "AREA",
                             source_name3 => "LINE", },
      );
  
- $rrd->graph($rrdfile,
+ %rtn = $rrd->graph($rrdfile,
          sources => [ qw(system user iowait idle) ]
          source_colors => [ qw(AREA STACK STACK STACK) ],
      );

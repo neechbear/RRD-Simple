@@ -57,6 +57,8 @@ $build = Module::Build->new(
 			t/21test.rrd t/22test.rrd t/23test.rrd t/24test.rrd t/25test.rrd
 			t/26add_source.rrd t/30assume_rrd_filename.rrd t/34test.rrd
 			t/31create_assume_rrd_filename.rrd t/32test.rrd t/33test.rrd
+			t/21test-daily.png t/21test-weekly.png t/21test-monthly.png
+			t/21test-annual.png
 		) ],
 	);
 

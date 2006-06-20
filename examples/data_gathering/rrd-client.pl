@@ -126,12 +126,12 @@ sub apache_status {
 				$update{$k} = $v;
 			}
 		}
+		$update{ReqPerSec} = $update{TotalAccesses};
+		$update{BytesPerSec} = $update{TotalkBytes} * 1024;
+
 	} else {
 		warn "failed to get $url; ". $response->status_line ."\n";
 	}
-
-	$update{ReqPerSec} = $update{TotalAccesses};
-	$update{BytesPerSec} = $update{TotalkBytes} * 1024;
 
 	return %update;
 }

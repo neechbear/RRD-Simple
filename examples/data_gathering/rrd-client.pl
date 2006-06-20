@@ -1,7 +1,7 @@
 #!/home/system/rrd/bin/perl -w
 ############################################################
 #
-#   $Id: rrd-client.pl 627 2006-06-15 17:22:45Z nicolaw $
+#   $Id$
 #   rrd-client.pl - Data gathering script for RRD::Simple
 #
 #   Copyright 2006 Nicola Worthington
@@ -26,7 +26,7 @@ use strict;
 use warnings;
 use vars qw($VERSION);
 
-$VERSION = '0.01' || sprintf('%d', q$Revision: 429 $ =~ /(\d+)/g);
+$VERSION = '0.01' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 warn "This may only run on Linux 2.4 or higher kernel systems"
 	unless `uname -s` =~ /Linux/i && `uname -r` =~ /^2\.[4-9]\./;

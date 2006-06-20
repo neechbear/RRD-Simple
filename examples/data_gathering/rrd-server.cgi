@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 ############################################################
 #
-#   $Id: rrd-server.cgi 627 2006-06-15 17:22:45Z nicolaw $
+#   $Id$
 #   rrd-server.cgi - Data gathering CGI script for RRD::Simple
 #
 #   Copyright 2006 Nicola Worthington

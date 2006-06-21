@@ -1,0 +1,20 @@
+<TMPL_INCLUDE header.tmpl>
+<h1><TMPL_VAR HOST></h1>
+
+<TMPL_LOOP hosts>
+  <TMPL_IF EXPR="HOST eq host">
+    <TMPL_LOOP graphs>
+      <TMPL_IF GRAPH>
+        <TMPL_IF EXPR="GRAPH eq graph">
+<a href="<TMPL_VAR src>"><img src="<TMPL_VAR src>" /></a><br />
+        </TMPL_IF>
+      <TMPL_ELSE>
+        <TMPL_IF EXPR="PERIOD eq period">
+<a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a><br />
+        </TMPL_IF>
+      </TMPL_IF>
+    </TMPL_LOOP>
+  </TMPL_IF>
+</TMPL_LOOP>
+
+<TMPL_INCLUDE footer.tmpl>

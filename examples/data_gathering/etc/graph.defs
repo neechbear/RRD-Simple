@@ -1,0 +1,105 @@
+<graph cpu_utilisation>
+	extended_legend	Yes
+	title		"CPU Utilisation"
+	vertical_label	"% percent"
+	upper_limit	100
+	lower_limit	0
+	rigid
+	sources		System User IO_Wait Idle
+	source_drawtypes AREA STACK STACK STACK
+	source_colors	ff0000 00ff00 0000ff ffffff
+</graph>
+
+<graph mem_swap>
+	title		"Swap Usage"
+	base            1024
+	vertical_label  "bytes"
+	sources		SwapTotal SwapUsed
+	source_drawtypes LINE2 AREA
+</graph>
+
+<graph hdd_temp>
+	extended_legend	Yes
+	title		"Hard Disk Temperature"
+	vertical_label	"Celsius"
+</graph>
+
+<graph hdd_capacity>
+	extended_legend	Yes
+	title		"Disk Capacity"
+	line_thickness	2
+	vertical_label	"% used"
+	units_exponent	0
+	upper_limit	100
+</graph>
+
+<graph cpu_loadavg>
+	extended_legend	Yes
+	title		"Load Average"
+	vertical_label	"Load"
+	sources		"1min 5min 15min"
+	source_colors	"ffbb00 cc0000 0000cc"
+	source_drawtypes "AREA LINE1 LINE1"
+</graph>
+
+<graph proc_filehandles>
+	extended_legend	Yes
+	title		"File Handles"
+	vertical_label	"Handles"
+	sources		"Maximum Allocated Used Free"
+	source_drawtypes "LINE2 AREA LINE1 LINE1"
+</graph>
+
+<graph proc_state>
+	extended_legend	Yes
+	title		"Processes"
+	vertical_label	"Processes"
+	sources		"Run Sleep IO_Wait Paging Stopped Zombie Dead"
+	source_drawtypes "AREA STACK STACK STACK STACK STACK STACK"
+</graph>
+
+#		basename => "hdd-io-$dev",
+#		title => "Hard Disk I/O: $dev",
+#		sources => [ qw(read write) ],
+#		source_labels => [ qw(Read Write) ],
+#		source_drawtypes => [ qw(AREA LINE1) ],
+#		source_colors => [ qw(00ee00 dd0000) ],
+#		vertical_label => 'bytes/sec',
+
+#		basename => 'mem-usage',
+#		title => 'Memory Usage',
+#		base => 1024,
+#		vertical_label => 'bytes',
+#		sources => [ ('MemTotal',grep(/^(Buffers|Cached)$/i, keys %update),'MemFree') ],
+#		source_drawtypes => {
+#				MemTotal => 'LINE2',
+#				Cached   => 'AREA',
+#				Buffers  => 'STACK',
+#				MemFree  => 'LINE1',
+#			},
+#		source_colors => {
+#				MemTotal => 'ff0000',
+#				MemFree  => '00ff00',
+#				Cached   => '0000ff',
+#				Buffers  => '00ffff',
+#			},
+
+#		basename => "net-traffic-$dev",
+#		extended_legend => 1,
+#		title => "Network Traffic: $dev",
+#		vertical_label => 'bytes/sec',
+#		sources => [ qw(TXbytes RXbytes) ],
+#		source_labels => [ qw(Transmit Recieve) ],
+#		source_drawtypes => [ qw(AREA LINE) ],
+#		source_colors => [ qw(00dd00 0000dd) ],
+
+#		basename => "net-connections",
+#		extended_legend => 1,
+#		title => 'Network Connections',
+#		sources => [ ('ESTABLISHED',
+#				grep(!/^(LISTEN|ESTABLISHED)$/,@sources),
+#				'LISTEN') ], 
+#		source_drawtypes => \@types,
+#		source_colors => { LISTEN => 'ffffff' },
+#		vertical_label => 'Connections',
+

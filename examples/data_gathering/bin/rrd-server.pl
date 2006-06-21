@@ -41,6 +41,7 @@ use Memoize;
 use Getopt::Std qw();
 use File::Basename qw(basename);
 use File::Path qw();
+use Config::General qw();
 use vars qw($VERSION);
 
 $VERSION = '0.01' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
@@ -55,35 +56,73 @@ Getopt::Std::getopts('u:gth', \%opt);
 
 # cd to the righr location and define directories
 chdir BASEDIR || die sprintf("Unable to chdir to '%s': %s", BASEDIR, $!);
-my %dir = map { ( $_ => BASEDIR."/$_" ) } qw(bin spool data etc graphs cgi-bin);
+my %dir = map { ( $_ => BASEDIR."/$_" ) } qw(bin spool data etc graphs cgi-bin thumbnails);
 
 # Create an RRD::Simple object
 my $rrd = RRD::Simple->new(rrdtool => "$dir{bin}/rrdtool");
 
 # Cache results from read_create_data()
 memoize('read_create_data');
+memoize('read_graph_data');
 memoize('basename');
 
 # Go and do some work
-update_rrd($rrd,\%dir,$opt{u}) if defined $opt{u};
-create_thumbnails($rrd,\%dir) if defined $opt{t};
-create_graphs($rrd,\%dir) if defined $opt{g};
+my $hostname = defined $opt{u} ? update_rrd($rrd,\%dir,$opt{u}) : undef;
+create_thumbnails($rrd,\%dir,$hostname) if defined $opt{t};
+create_graphs($rrd,\%dir,$hostname) if defined $opt{g};
 
 exit;
 
 
 
-sub create_thumbnails {
-	my ($rrd,$dir) = @_;
-	my @thumbnail_theme = (only_graph => "", width => 100, height => 25);
-}
 
 sub create_graphs {
-	my ($rrd,$dir) = @_;
+	my ($rrd,$dir,$hostname,@options) = @_;
+
+	my ($caller) = ((caller(1))[3] || '') =~ /.*::(.+)$/;
+	my $destdir = defined $caller && $caller eq 'create_thumbnails'
+			? $dir->{thumbnails} : $dir->{graphs};
+
 	my @colour_theme = (color => [ (
 			'BACK#F5F5FF','SHADEA#C8C8FF','SHADEB#9696BE',
 			'ARROW#61B51B','GRID#404852','MGRID#67C6DE',
 		) ] );
+
+	my $defs = read_graph_data("$dir->{etc}/graph.defs");
+	my @hosts = defined $hostname ? ($hostname) : list_dir("$dir->{data}");
+
+	# For each hostname
+	for my $hostname (sort @hosts) {
+		# Create the graph directory for this hostname
+		my $destination = "$destdir/$hostname";
+		File::Path::mkpath($destination) unless -d $destination;
+
+		# For each RRD
+		for my $file (list_dir("$dir->{data}/$hostname")) {
+			my $rrdfile = "$dir->{data}/$hostname/$file";
+			eval {
+				$rrd->graph($rrdfile, @colour_theme, @options,
+						destination => $destination,
+					);
+			};
+			warn "$rrdfile => $@" if $@;
+		}
+	}
+}
+
+sub list_dir {
+	my $dir = shift;
+	my @items = ();
+	opendir(DH,$dir) || die "Unable to open file handle for directory '$dir': $!";
+	@items = grep(!/^\./,readdir(DH));
+	closedir(DH) || die "Unable to close file handle for directory '$dir': $!";
+	return @items;
+}
+
+sub create_thumbnails {
+	my ($rrd,$dir,$hostname) = @_;
+	my @thumbnail_options = (only_graph => "", width => 100, height => 25);
+	create_graphs($rrd,$dir,$hostname,@thumbnail_options);
 }
 
 sub update_rrd {
@@ -132,9 +171,12 @@ sub update_rrd {
 	# Process the data
 	for my $rrdfile (sort keys %data) {
 		for my $time (sort keys %{$data{$rrdfile}}) {
-			create_rrd($rrd,$dir,$rrdfile,$data{$rrdfile}->{$time})
-				unless -f $rrdfile;
-			$rrd->update($rrdfile, %{$data{$rrdfile}->{$time}});
+			eval {
+				create_rrd($rrd,$dir,$rrdfile,$data{$rrdfile}->{$time})
+					unless -f $rrdfile;
+				$rrd->update($rrdfile, $time, %{$data{$rrdfile}->{$time}});
+			};
+			warn $@ if $@;
 		}
 	}
 
@@ -143,6 +185,8 @@ sub update_rrd {
 		select STDOUT;
 		close(FH) || warn "Unable to close file handle for file '$filename': $!";
 	}
+
+	return $hostname;
 }
 
 sub create_rrd {
@@ -189,6 +233,29 @@ sub key_ready {
 	my ($rin, $nfd) = ('','');
 	vec($rin, fileno(STDIN), 1) = 1;
 	return $nfd = select($rin,undef,undef,3);
+}
+
+sub read_graph_data {
+	my $filename = shift || undef;
+
+	my %config = ();
+	eval {
+		my $conf = new Config::General(
+			-ConfigFile		=> $filename,
+			-LowerCaseNames		=> 1,
+			-UseApacheInclude	=> 1,
+			-IncludeRelative	=> 1,
+#			-DefaultConfig		=> \%default,
+			-MergeDuplicateBlocks	=> 1,
+			-AllowMultiOptions	=> 1,
+			-MergeDuplicateOptions	=> 1,
+			-AutoTrue		=> 1,
+		);
+		%config = $conf->getall;
+	};
+	warn $@ if $@;
+
+	return \%config;
 }
 
 sub read_create_data {
@@ -264,7 +331,6 @@ sub write_txt {
 1;
 
 
-
 __DATA__
 
 #	* means all
@@ -281,134 +347,8 @@ __DATA__
 ^apache_status$	BytesPerSec	DERIVE	0	-
 ^apache_logs$	*	DERIVE	0	-
 
-
-
-
 __END__
 
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename => "cpu-utilisation",
-		extended_legend => 1,
-		title => 'CPU Utilisation',
-		sources => [ qw(sy us wa id) ],
-		source_drawtypes => [ qw(AREA STACK STACK STACK) ],
-		source_colors => [ qw(ff0000 00ff00 0000ff ffffff) ],
-		vertical_label => '% percent',
-		source_labels => \%labels,
-		upper_limit => 100,
-		lower_limit => 0,
-		rigid => "",
-	));
 
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename => "hdd-io-$dev",
-		title => "Hard Disk I/O: $dev",
-		sources => [ qw(read write) ],
-		source_labels => [ qw(Read Write) ],
-		source_drawtypes => [ qw(AREA LINE1) ],
-		source_colors => [ qw(00ee00 dd0000) ],
-		vertical_label => 'bytes/sec',
-	));
 
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename => 'mem-usage',
-		title => 'Memory Usage',
-		base => 1024,
-		vertical_label => 'bytes',
-		sources => [ ('MemTotal',grep(/^(Buffers|Cached)$/i, keys %update),'MemFree') ],
-		source_drawtypes => {
-				MemTotal => 'LINE2',
-				Cached   => 'AREA',
-				Buffers  => 'STACK',
-				MemFree  => 'LINE1',
-			},
-		source_colors => {
-				MemTotal => 'ff0000',
-				MemFree  => '00ff00',
-				Cached   => '0000ff',
-				Buffers  => '00ffff',
-			},
-	));
-
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename         => 'mem-swap',
-		title            => 'Swap Usage',
-		base             => 1024,
-		vertical_label   => 'bytes',
-		sources          => [ qw(SwapTotal SwapUsed) ],
-		source_drawtypes => [ qw(LINE2 AREA) ],
-	)) if grep(/^SwapUsed$/, $rrd->sources($rrdfile));
-
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename => 'hdd-temp',
-		extended_legend => 1,
-		title => 'Hard Disk Temperature',
-		vertical_label => 'Celsius',
-		sources => [ sort $rrd->sources($rrdfile) ],
-	));
-
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename       => 'hdd-capacity',
-		extended_legend => 1,
-		title          => 'Disk Capacity',
-		line_thickness => 2,
-		vertical_label => '% used',
-		units_exponent => 0,
-		upper_limit    => 100,
-		sources        => [ sort keys %update ],
-		source_labels  => [ map { $labels{$_} } sort keys %labels ],
-	));
-
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename => "net-traffic-$dev",
-		extended_legend => 1,
-		title => "Network Traffic: $dev",
-		vertical_label => 'bytes/sec',
-		sources => [ qw(TXbytes RXbytes) ],
-		source_labels => [ qw(Transmit Recieve) ],
-		source_drawtypes => [ qw(AREA LINE) ],
-		source_colors => [ qw(00dd00 0000dd) ],
-	));
-
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename => "proc-state",
-		extended_legend => 1,
-		title => 'Processes',
-		vertical_label => 'Processes',
-		sources => \@sources,
-		source_drawtypes => \@types,
-		source_labels => \%labels,
-	));
-
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename => "cpu-loadavg",
-		extended_legend => 1,
-		title => 'Load Average',
-		sources => [ qw(1min 5min 15min) ], 
-		source_colors => [ qw(ffbb00 cc0000 0000cc) ],
-		source_drawtypes => [ qw(AREA LINE1 LINE1) ],
-		vertical_label => 'Load',
-	));
-
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename => "net-connections",
-		extended_legend => 1,
-		title => 'Network Connections',
-		sources => [ ('ESTABLISHED',
-				grep(!/^(LISTEN|ESTABLISHED)$/,@sources),
-				'LISTEN') ], 
-		source_drawtypes => \@types,
-		source_colors => { LISTEN => 'ffffff' },
-		vertical_label => 'Connections',
-	));
-
-write_txt($rrd->graph($rrdfile, @colour_theme,
-		basename => "proc-filehandles",
-		extended_legend => 1,
-		title => 'File Handles',
-		sources => [ qw(maximum allocated used free) ],
-		source_labels => [ qw(Maximum Allocated Used Free) ],
-		source_drawtypes => [ qw(LINE2 AREA LINE1 LINE1) ],
-		vertical_label => 'Handles',
-	));
 

@@ -1,0 +1,13 @@
+<TMPL_INCLUDE header.tmpl>
+<h1><TMPL_VAR title></h1>
+
+<TMPL_LOOP hosts>
+<h2><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>"><TMPL_VAR host></a></h2>
+  <TMPL_LOOP thumbnails>
+    <TMPL_IF EXPR="period eq 'daily'">
+<a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a>
+    </TMPL_IF>
+  </TMPL_LOOP>
+</TMPL_LOOP>
+
+<TMPL_INCLUDE footer.tmpl>

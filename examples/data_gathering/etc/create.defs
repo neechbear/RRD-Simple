@@ -1,0 +1,15 @@
+
+#       * means all
+#       - means undef/na
+
+# rrdfile       ds      type    min     max
+
+^net_traffic_.+ Transmit        DERIVE  0       -
+^net_traffic_.+ Receive DERIVE  0       -
+
+^hdd_io_.+      *       DERIVE  0       -
+
+^apache_status$ ReqPerSec       DERIVE  0       -
+^apache_status$ BytesPerSec     DERIVE  0       -
+^apache_logs$   *       DERIVE  0       -
+

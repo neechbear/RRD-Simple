@@ -31,6 +31,21 @@ URI-1.35.tar.gz
 
 
 
+Directories:
+============
+
+/home/system/rrd/bin        - perl, rrdtool, rrd-server.pl rrd-client.pl
+/home/system/rrd/cgi-bin    - rrd-server.cgi rrd-browse.cgi
+/home/system/rrd/data       - .rrd files
+/home/system/rrd/etc        - graph.defs, create.defs, rrd-httpd.conf
+/home/system/rrd/graphs     - .png and .txt files
+/home/system/rrd/include    - rrd.h
+/home/system/rrd/lib        - perl modules
+/home/system/rrd/share      - rrdtool resources
+/home/system/rrd/thumbnails - .png thumbnails
+
+
+
 Notes:
 ======
 

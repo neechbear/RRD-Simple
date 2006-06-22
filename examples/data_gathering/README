@@ -1,6 +1,39 @@
 The examples in this directory are not finished.
 Sorry.
 
+
+rrd-client.pl does NOT have any special Perl requirements and does not
+need rrdtool or RRD::Simple to be installed.
+
+rrd-server.pl DOES require rrdtool and RRD::Simple to be installed.
+
+rrd-browse.cgi DOES require a number of modules (see list below).
+
+
+Software required:
+==================
+perl-5.8.8.tar.gz
+rrdtool-1.2.13.tar.gz
+
+Modules required:
+=================
+libwww-perl-5.805.tar.gz
+Compress-Zlib-1.41.tar.gz
+Config-General-2.31.tar.gz
+HTML-Parser-3.54.tar.gz
+HTML-Tagset-3.10.tar.gz
+HTML-Template-2.8.tar.gz
+HTML-Template-Expr-0.07.tar.gz
+Module-Build-0.2801.tar.gz
+Parse-RecDescent-1.94.tar.gz
+RRD-Simple-1.39.tar.gz
+URI-1.35.tar.gz
+
+
+
+Notes:
+======
+
 # Send from the client to a remote server
 */4 * * * * sleep 20; /usr/bin/perl /home/nicolaw/svn/RRD-Simple/examples/data_gathering/rrd-client.pl 2>/dev/null | /usr/bin/POST http://merry.ntl.tfb.net/rrd-cgi-bin/rrd-server.cgi >/dev/null
 
@@ -10,5 +43,4 @@ Sorry.
 # Send over the network using netcat
 /home/system/rrd/bin/rrd-client.pl | nc -p 4444 merry.tfb.net
 nc -l -p 4444 | /home/system/rrd/bin/rrd-server.pl -u arwen.tfb.net
-
 

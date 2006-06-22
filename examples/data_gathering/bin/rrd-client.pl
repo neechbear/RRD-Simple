@@ -190,13 +190,14 @@ sub cpu_utilisation {
 	}
 	close(PH) || warn "Unable to close file handle PH for command '$cmd': $!\n";
 
-	my @cpukeys = splice(@keys,-4,4);
-	return ( map {( $labels{$_} || $_ => $update{$_} )} @cpukeys );
+	$update{$_} ||= 0 for keys %labels;
+	return ( map {( $labels{$_} || $_ => $update{$_} )} keys %labels );
 }
 
 sub hdd_io {
-	my $cmd = '/usr/bin/iostat';
+	my $cmd = -f '/usr/bin/iostat' ? '/usr/bin/iostat' : '/usr/sbin/iostat';
 	return () unless -f $cmd;
+	return () unless $^O eq 'linux';
 	$cmd .= ' -k';
 
 	my %update = ();
@@ -360,7 +361,7 @@ sub cpu_loadavg {
 }
 
 sub net_connections {
-	my $cmd = '/bin/netstat';
+	my $cmd = -f '/bin/netstat' ? '/bin/netstat' : '/usr/bin/netstat';
 	return () unless -f $cmd;
 	$cmd .= ' -na';
 

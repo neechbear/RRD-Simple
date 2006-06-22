@@ -106,7 +106,10 @@ sub create_graphs {
 						grep(!/^source(s|_)/,keys %{$graph_opts});
 				push @graph_opts, map { ($_ => [ split(/\s+/,$graph_opts->{$_}) ]) }
 						grep(/^source(s|_)/,keys %{$graph_opts});
+
 				push @options, ('lazy','') unless exists $opt{f};
+				push @options, ('sources', [ sort $rrd->sources($rrdfile) ])
+					unless grep(/^sources$/,keys %{$graph_opts});
 
 				write_txt($rrd->graph($rrdfile, @colour_theme, @options,
 						destination => $destination,

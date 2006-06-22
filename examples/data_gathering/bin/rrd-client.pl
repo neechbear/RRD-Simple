@@ -328,7 +328,7 @@ sub proc_state {
 		while (local $_ = <PH>) {
 			if (my ($pid,$state) = $_ =~ /^\s*(\d+)\s+(\S+)\s*$/) {
 				$state =~ s/[^$known_keys]//g;
-				$update{$keys{$state}||$state}++;
+				$update{$keys{$state}||$state}++ if $state;
 			}
 		}
 		close(PH) || warn "Unable to close file handle for command '$cmd': $!\n";

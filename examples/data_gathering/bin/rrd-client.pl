@@ -28,9 +28,6 @@ use vars qw($VERSION);
 
 $VERSION = '0.01' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
-warn "This may only run on Linux 2.4 or higher kernel systems"
-	unless `uname -s` =~ /Linux/i && `uname -r` =~ /^2\.[4-9]\./;
-
 my @probes = qw(
 		cpu_utilisation cpu_loadavg cpu_temp
 		hdd_io mem_usage hdd_temp hdd_capacity
@@ -182,9 +179,8 @@ sub cpu_utilisation {
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
 	while (local $_ = <PH>) {
-		next if /---/;
 		s/^\s+|\s+$//g;
-		if (/\d+/ && @keys) {
+		if (/\s+\d+\s+\d+\s+\d+\s+/ && @keys) {
 			@update{@keys} = split(/\s+/,$_);
 		} else { @keys = split(/\s+/,$_); }
 	}
@@ -310,16 +306,29 @@ sub net_traffic {
 }
 
 sub proc_state {
-	my $cmd = '/bin/ps -eo pid,s';
+	my $cmd = -f '/bin/ps' ? '/bin/ps' : '/usr/bin/ps';
 	my %update = ();
-	my %keys = (D => 'IO_Wait', R => 'Run', S => 'Sleep', T => 'Stopped',
-			W => 'Paging', X => 'Dead', Z => 'Zombie');
+	my %keys = ();
 
-	if (-f '/bin/ps' && -x '/bin/ps') {
+	if (-f $cmd && -x $cmd) {
+		if ($^O eq 'freebsd') {
+			$cmd .= ' axo pid,state';
+		#	%keys = (D => 'IO_Wait', R => 'Run', S => 'Sleep', T => 'Stopped',
+		#			I => 'Idle', L => 'Lock_Wait', Z => 'Zombie', W => 'Idle_Thread');
+			%keys = (D => 'IO_Wait', R => 'Run', S => 'Sleep', T => 'Stopped',
+					W => 'Paging', Z => 'Zombie', I => 'Sleep');
+		} else {#} elsif ($^O =~ /^(linux|solaris)$/)
+			$cmd .= ' -eo pid,s';
+			%keys = (D => 'IO_Wait', R => 'Run', S => 'Sleep', T => 'Stopped',
+					W => 'Paging', X => 'Dead', Z => 'Zombie');
+		}
+
+		my $known_keys = join('',keys %keys);
 		open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
 		while (local $_ = <PH>) {
-			if (/^\d+\s+(\w+)\s*$/) {
-				$update{$keys{$1}||$1}++;
+			if (my ($pid,$state) = $_ =~ /^\s*(\d+)\s+(\S+)\s*$/) {
+				$state =~ s/[^$known_keys]//g;
+				$update{$keys{$state}||$state}++;
 			}
 		}
 		close(PH) || warn "Unable to close file handle for command '$cmd': $!\n";
@@ -341,14 +350,15 @@ sub cpu_loadavg {
 	my %update = ();
 	my @data = ();
 
-	unless (-f '/proc/loadavg') {
+	if (-f '/proc/loadavg') {
 		open(FH,'<','/proc/loadavg') || die "Unable to open '/proc/loadavg': $!\n";
 		my $str = <FH>;
 		close(FH) || warn "Unable to close '/proc/loadavg': $!\n";
 		@data = split(/\s+/,$str);
 
 	} else {
-		@data = `uptime` =~ /([\d\.]+)[,\s]+([\d\.]+)[,\s]+([\d\.]+)\s*$/;
+		my $cmd = -f '/usr/bin/uptime' ? '/usr/bin/uptime' : '/bin/uptime';
+		@data = `$cmd` =~ /[\s:]+([\d\.]+)[,\s]+([\d\.]+)[,\s]+([\d\.]+)\s*$/;
 	}
 
 	%update = (
@@ -369,7 +379,7 @@ sub net_connections {
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle for command '$cmd': $!\n";
 	while (local $_ = <PH>) {
-		if (my ($proto,$state) = $_ =~ /^(tcp|udp|raw)\s+.+\s+([A-Z_]+)\s*$/) {
+		if (my ($proto,$state) = $_ =~ /^(tcp[46]|udp[46]|raw)\s+.+\s+([A-Z_]+)\s*$/) {
 			$update{$state}++;
 		}
 	}

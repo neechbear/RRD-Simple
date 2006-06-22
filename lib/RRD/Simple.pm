@@ -620,7 +620,8 @@ sub _create_graph {
 					"also an specified and valid array" if $^W;
 			} else {
 				for (my $i = 0; $i < @{$param{'source-labels'}}; $i++) {
-					$source_labels{$ds[$i]} = $param{'source-labels'}->[$i];
+					$source_labels{$ds[$i]} = $param{'source-labels'}->[$i]
+						if defined $ds[$i];
 				}
 			}
 		}
@@ -643,7 +644,8 @@ sub _create_graph {
 					"also an specified and valid array" if $^W;
 			} else {
 				for (my $i = 0; $i < @{$param{'source-drawtypes'}}; $i++) {
-					$source_drawtypes{$ds[$i]} = $param{'source-drawtypes'}->[$i];
+					$source_drawtypes{$ds[$i]} = $param{'source-drawtypes'}->[$i]
+						if defined $ds[$i];
 				}
 			}
 		}

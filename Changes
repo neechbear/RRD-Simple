@@ -17,6 +17,16 @@ Version 1.39 - 20th June 2006
     + Updated POD to reflect change in the return
       value from the graph() method.
 
+    + Fixed an uninitialised value warning that
+      occured if the graph() method was passed too
+      few items in the 'sources' paramater compared
+      to the number of items passed in the
+      'source_drawtypes' or 'source_labels'
+      paramaters.
+
+    + Added client/server server monitoring scripts
+      in examples/data_gathering.
+
 
 Version 1.38 - 15th June 2006
     + Fixed a major bug introduced in v1.37 where

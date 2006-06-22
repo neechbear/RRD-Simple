@@ -1,20 +1,38 @@
 <TMPL_INCLUDE header.tmpl>
-<h1><TMPL_VAR HOST></h1>
+<h1><a href="<TMPL_VAR self_url>">Index</a> &gt; 
+    <a href="<TMPL_VAR self_url>?template=by_host.tmpl">By host</a> &gt; 
+<TMPL_IF GRAPH>
+    <a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>"><TMPL_VAR HOST></a> &gt;
+    <TMPL_VAR GRAPH>
+<TMPL_ELSE>
+    <TMPL_VAR HOST>
+</TMPL_IF>
+</h1>
 
+<div class="contents">
+  <table border="0">
 <TMPL_LOOP hosts>
   <TMPL_IF EXPR="HOST eq host">
     <TMPL_LOOP graphs>
       <TMPL_IF GRAPH>
         <TMPL_IF EXPR="GRAPH eq graph">
-<a href="<TMPL_VAR src>"><img src="<TMPL_VAR src>" /></a><br />
+    <tr>
+      <td><a href="<TMPL_VAR src>"><img src="<TMPL_VAR src>" /></a></td>
+      <td valign="top" class="graph_detail"><pre><TMPL_VAR EXPR="slurp(txt)"></pre></td>
+    </tr>
         </TMPL_IF>
       <TMPL_ELSE>
         <TMPL_IF EXPR="PERIOD eq period">
-<a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a><br />
+    <tr>
+      <td<a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a></td>
+      <td valign="top" class="graph_detail"><pre><TMPL_VAR EXPR="slurp(txt)"></pre></td>
+    </tr>
         </TMPL_IF>
       </TMPL_IF>
     </TMPL_LOOP>
   </TMPL_IF>
 </TMPL_LOOP>
+  </table>
+</div>
 
 <TMPL_INCLUDE footer.tmpl>

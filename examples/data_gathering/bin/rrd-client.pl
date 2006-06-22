@@ -265,7 +265,7 @@ sub net_traffic {
 sub proc_state {
 	my $cmd = '/bin/ps -eo pid,s';
 	my %update = ();
-	my %keys = (D => 'IO wait', R => 'Run', S => 'Sleep', T => 'Stopped',
+	my %keys = (D => 'IO_Wait', R => 'Run', S => 'Sleep', T => 'Stopped',
 			W => 'Paging', X => 'Dead', Z => 'Zombie');
 
 	if (-f '/bin/ps' && -x '/bin/ps') {

@@ -101,9 +101,16 @@ sub create_graphs {
 		for my $file (list_dir("$dir->{data}/$hostname")) {
 			my $rrdfile = "$dir->{data}/$hostname/$file";
 			eval {
-				$rrd->graph($rrdfile, @colour_theme, @options,
+				my $graph_opts = $defs->{graph}->{basename($file,'.rrd')} || {};
+				my @graph_opts = map { ($_ => $graph_opts->{$_}) }
+						grep(!/^source(s|_)/,keys %{$graph_opts});
+				push @graph_opts, map { ($_ => [ split(/\s+/,$graph_opts->{$_}) ]) }
+						grep(/^source(s|_)/,keys %{$graph_opts});
+				write_txt($rrd->graph($rrdfile, @colour_theme, @options,
 						destination => $destination,
-					);
+						lazy => '',
+						@graph_opts,
+					));
 			};
 			warn "$rrdfile => $@" if $@;
 		}
@@ -121,7 +128,7 @@ sub list_dir {
 
 sub create_thumbnails {
 	my ($rrd,$dir,$hostname) = @_;
-	my @thumbnail_options = (only_graph => "", width => 100, height => 25);
+	my @thumbnail_options = (only_graph => "", width => 125, height => 32);
 	create_graphs($rrd,$dir,$hostname,@thumbnail_options);
 }
 
@@ -308,6 +315,7 @@ sub write_txt {
 	my %rtn = @_;
 	while (my ($period,$data) = each %rtn) {
 		my $filename = shift @{$data};
+		last if $filename =~ m,/thumbnails/,;
 		my %values = ();
 		my $max_len = 0;
 		for (@{$data->[0]}) {
@@ -316,7 +324,7 @@ sub write_txt {
 			$max_len = length($ds) if length($ds) > $max_len;
 		}
 		if (open(FH,'>',"$filename.txt")) {
-			printf FH "%s (%dx%d) %dK\n\n", $filename,
+			printf FH "%s (%dx%d) %dK\n\n", basename($filename),
 			$data->[1], $data->[2], (stat($filename))[7]/1024;
 			for (sort keys %values) {
 				printf FH "%-${max_len}s     min: %s, max: %s, last: %s\n", $_,
@@ -348,7 +356,4 @@ __DATA__
 ^apache_logs$	*	DERIVE	0	-
 
 __END__
-
-
-
 

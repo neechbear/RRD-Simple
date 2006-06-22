@@ -62,11 +62,13 @@ for my $host (sort(list_dir($dir{data}))) {
 		for (qw(thumbnails graphs)) {
 			my @ary = ();
 			for my $img (sort alpha_period list_dir("$dir{$_}/$host")) {
-				push @ary, {
+				my %hash = (
 					src => "$tmpl{rrd_url}/$_/$host/$img",
 					period => ($img =~ /.*-(\w+)\.\w+$/),
 					graph => ($img =~ /^(.+)\-\w+\.\w+$/),
-				};
+				);
+				$hash{txt} = "$dir{graphs}/$host/$img.txt" if $_ eq 'graphs';
+				push @ary, \%hash;
 			}
 			$host{$_} = \@ary;
 		}
@@ -84,11 +86,24 @@ my $template = HTML::Template::Expr->new(
 	        max_includes => 5,
 	        global_vars => 1,
 	        die_on_bad_params => 0,
+		functions => {
+			slurp => \&slurp,
+		},
         );
 $template->param(\%tmpl);
 print $cgi->header(-content => 'text/html'), $template->output();
 
 exit;
+
+sub slurp {
+	my $rtn = $_[0];
+	if (open(FH,'<',$_[0])) {
+		local $/ = undef;
+		$rtn = <FH>;
+		close(FH);
+	}
+	return $rtn;
+}
 
 sub alpha_period {
 	my %order = qw(daily 0 weekly 1 monthly 2 annual 3 3year 4);

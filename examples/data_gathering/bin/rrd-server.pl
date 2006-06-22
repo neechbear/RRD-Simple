@@ -105,14 +105,27 @@ sub create_graphs {
 				my @graph_opts = map { ($_ => $graph_opts->{$_}) }
 						grep(!/^source(s|_)/,keys %{$graph_opts});
 				push @graph_opts, map { ($_ => [ split(/\s+/,$graph_opts->{$_}) ]) }
-						grep(/^source(s|_)/,keys %{$graph_opts});
+						grep(/^source_/,keys %{$graph_opts});
 
-				push @options, ('lazy','') unless exists $opt{f};
-				push @options, ('sources', [ sort $rrd->sources($rrdfile) ])
-					unless grep(/^sources$/,keys %{$graph_opts});
+				push @graph_opts, ('lazy','') unless exists $opt{f};
 
-				write_txt($rrd->graph($rrdfile, @colour_theme, @options,
+				# Only draw the sources we've been told to, and only
+				# those that actually exist in the RRD file
+				my @rrd_sources = $rrd->sources($rrdfile);
+				if (defined $graph_opts->{sources}) {
+					my @sources = ();
+					for my $ds (split(/\s+/,$graph_opts->{sources})) {
+						push @sources, $ds if grep(/^$ds$/,@rrd_sources);
+					}
+					push @graph_opts, ('sources',\@sources);
+				} else {
+					push @graph_opts, ('sources', [ sort @rrd_sources ]);
+				}
+
+				write_txt($rrd->graph($rrdfile,
 						destination => $destination,
+						@colour_theme,
+						@options,
 						@graph_opts,
 					));
 			};

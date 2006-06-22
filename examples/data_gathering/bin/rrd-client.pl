@@ -61,6 +61,7 @@ exit;
 
 sub cpu_temp {
 	my $cmd = '/usr/bin/sensors';
+	return () unless -f $cmd;
 	my %update = ();
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
@@ -77,6 +78,7 @@ sub cpu_temp {
 
 sub apache_logs {
 	my $dir = '/var/log/httpd';
+	return () unless -d $dir;
 	my %update = ();
 
 	if (-d $dir) {
@@ -94,50 +96,86 @@ sub apache_logs {
 }
 
 sub apache_status {
-	eval "use LWP::UserAgent";
-	die "Please install LWP::UserAgent so that I can monitor Apache.\n" if $@;
-
-	my $ua = LWP::UserAgent->new(
-			agent => "$0 $VERSION",
-			timeout => 5,
-		);
-	$ua->env_proxy;
-	$ua->max_size(1024*250);
-
-	my $url = 'http://localhost/server-status?auto';
+	my @data = ();
 	my %update = ();
 
 	my %keys = (W => 'Write', G => 'GraceClose', D => 'DNS', S => 'Starting',
 		L => 'Logging', R => 'Read', K => 'Keepalive', C => 'Closing',
 		I => 'Idle', '_' => 'Waiting');
 
-	my $response = $ua->get($url);
-	if ($response->is_success) {
-		for (split(/\n+|\r+/,$response->content)) {
-			my ($k,$v) = $_ =~ /^\s*(.+?):\s+(.+?)\s*$/;
-			$k =~ s/\s+//g; #$k = lc($k);
-			if ($k eq 'Scoreboard') {
-				my %x; $x{$_}++ for split(//,$v);
-				for (keys %keys) {
-					$update{"scoreboard.$keys{$_}"} = 
-						defined $x{$_} ? $x{$_} : 0;
-				}
-			} else {
-				$update{$k} = $v;
-			}
+	my $host = 'localhost';
+	my $url = "http://$host/server-status?auto";
+
+	eval "use LWP::UserAgent";
+	unless ($@) {
+		my $ua = LWP::UserAgent->new(
+				agent => "$0 $VERSION",
+				timeout => 5,
+			);
+		$ua->env_proxy;
+		$ua->max_size(1024*250);
+		my $response = $ua->get($url);
+		if ($response->is_success) {
+			@data = split(/\n+|\r+/,$response->content);
+		} else {
+			warn "failed to get $url; ". $response->status_line ."\n";
 		}
-		$update{ReqPerSec} = int($update{TotalAccesses});
-		$update{BytesPerSec} = int($update{TotalkBytes} * 1024);
 
 	} else {
-		warn "failed to get $url; ". $response->status_line ."\n";
+		eval "use Socket";
+		eval {
+			local $SIG{ALRM} = sub { die "alarm\n" };
+			alarm 5;
+
+			my $iaddr = inet_aton($host) || die;
+			my $paddr = sockaddr_in(80, $iaddr);
+			my $proto = getprotobyname('tcp');
+			socket(SOCK, AF_INET(), SOCK_STREAM(), $proto) || die "socket: $!";
+			connect(SOCK, $paddr) || die "connect: $!";
+
+			select(SOCK); 
+			$| = 1; 
+			select(STDOUT);
+
+			print SOCK "GET /server-status?auto HTTP/1.1\nHost: $host\n\n";
+			my $body = 0;
+			while (local $_ = <SOCK>) {
+				chomp;
+				push @data, $_ if $body;
+				$body = 1 if /^\s*$/;
+			}
+			close(SOCK);
+			alarm 0;
+		};
 	}
+
+	for (@data) {
+		my ($k,$v) = $_ =~ /^\s*(.+?):\s+(.+?)\s*$/;
+		$k =~ s/\s+//g; #$k = lc($k);
+		if ($k eq 'Scoreboard') {
+			my %x; $x{$_}++ for split(//,$v);
+			for (keys %keys) {
+				$update{"scoreboard.$keys{$_}"} = 
+					defined $x{$_} ? $x{$_} : 0;
+			}
+		} else {
+			$update{$k} = $v;
+		}
+	}
+
+	$update{ReqPerSec} = int($update{TotalAccesses})
+		if defined $update{TotalAccesses};
+	$update{BytesPerSec} = int($update{TotalkBytes} * 1024)
+		if defined $update{TotalkBytes};
 
 	return %update;
 }
 
 sub cpu_utilisation {
-	my $cmd = '/usr/bin/vmstat 1 2';
+	my $cmd = '/usr/bin/vmstat';
+	return () unless -f $cmd;
+	$cmd .= ' 1 2';
+
 	my @keys = ();
 	my %update = ();
 	my %labels = (wa => 'IO_Wait', id => 'Idle', sy => 'System', us => 'User');
@@ -157,7 +195,10 @@ sub cpu_utilisation {
 }
 
 sub hdd_io {
-	my $cmd = '/usr/bin/iostat -k';
+	my $cmd = '/usr/bin/iostat';
+	return () unless -f $cmd;
+	$cmd .= ' -k';
+
 	my %update = ();
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
@@ -204,7 +245,10 @@ sub mem_usage {
 }
 
 sub hdd_temp {
-	my $cmd = '/usr/sbin/hddtemp -q /dev/hd? /dev/sd?';
+	my $cmd = '/usr/sbin/hddtemp';
+	return () unless -f $cmd;
+	$cmd .= '  -q /dev/hd? /dev/sd?';
+
 	my %update = ();
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
@@ -236,6 +280,7 @@ sub hdd_capacity {
 }
 
 sub net_traffic {
+	return () unless -f '/proc/net/dev';
 	my @keys = ();
 	my %update = ();
 
@@ -257,6 +302,7 @@ sub net_traffic {
 			@keys = (map({"RX$_"} split(/\s+/,$rx)), map{"TX$_"} split(/\s+/,$tx));
 		}
 	}
+
 	close(FH) || warn "Unable to close '/proc/net/dev': $!\n";
 
 	return %update;
@@ -314,7 +360,10 @@ sub cpu_loadavg {
 }
 
 sub net_connections {
-	my $cmd = '/bin/netstat -na';
+	my $cmd = '/bin/netstat';
+	return () unless -f $cmd;
+	$cmd .= ' -na';
+
 	my %update = ();
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle for command '$cmd': $!\n";
@@ -329,6 +378,7 @@ sub net_connections {
 }
 
 sub proc_filehandles {
+	return () unless -f '/proc/sys/fs/file-nr';
 	my %update = ();
 
 	open(FH,'<','/proc/sys/fs/file-nr') || die "Unable to open '/proc/sys/fs/file-nr': $!\n";
@@ -339,7 +389,6 @@ sub proc_filehandles {
 
 	return %update;
 }
-
 
 
 1;

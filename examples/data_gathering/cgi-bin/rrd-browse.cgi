@@ -1,7 +1,7 @@
 #!/home/system/rrd/bin/perl -w
 ############################################################
 #
-#   $Id: rrd-browse.cgi 627 2006-06-15 17:22:45Z nicolaw $
+#   $Id$
 #   rrd-browse.cgi - Graph browser CGI script for RRD::Simple
 #
 #   Copyright 2006 Nicola Worthington

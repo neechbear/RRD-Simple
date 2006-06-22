@@ -10,7 +10,7 @@
 	source_colors	ff0000 00ff00 0000ff ffffff
 </graph>
 
-<graph mem_swap>
+<graph mem_usage_swap>
 	title		"Swap Usage"
 	base            1024
 	vertical_label  "bytes"
@@ -58,6 +58,45 @@
 	source_drawtypes "AREA STACK STACK STACK STACK STACK STACK"
 </graph>
 
+<graph apache_logs>
+	title		"Apache Log Activity"
+	vertical_label	"bytes logged/sec"
+</graph>
+
+<graph cpu_temp>
+	extended_legend	Yes
+	title		"CPU Temperature"
+	vertical_label	"Celsius"
+</graph>
+
+<graph apache_status_scoreboard>
+	title		"Apache Scoreboard"
+	vertical_label	"children"
+</graph>
+
+<graph apache_status>
+	extended_legend	Yes
+	title		"Apache Activity"
+	vertical_label	"bytes/hits per sec"
+	sources		"BytesPerSec BytesPerReq ReqPerSec"
+</graph>
+
+<graph mem_usage>
+	title		"Memory Usage"
+	base		1024
+	vertical_label	"bytes"
+	sources		"MemTotal Cached Buffers MemFree"
+	source_drawtypes "LINE2 AREA STACK LINE1"
+	source_colors	"ff0000 0000ff 00ffff 00ff00"
+</graph>
+
+<graph net_connections>
+	extended_legend	Yes
+	title		"Network Connections"
+	vertical_label	"Connections"
+</graph net_connections>
+
+
 #		basename => "hdd-io-$dev",
 #		title => "Hard Disk I/O: $dev",
 #		sources => [ qw(read write) ],
@@ -65,24 +104,6 @@
 #		source_drawtypes => [ qw(AREA LINE1) ],
 #		source_colors => [ qw(00ee00 dd0000) ],
 #		vertical_label => 'bytes/sec',
-
-#		basename => 'mem-usage',
-#		title => 'Memory Usage',
-#		base => 1024,
-#		vertical_label => 'bytes',
-#		sources => [ ('MemTotal',grep(/^(Buffers|Cached)$/i, keys %update),'MemFree') ],
-#		source_drawtypes => {
-#				MemTotal => 'LINE2',
-#				Cached   => 'AREA',
-#				Buffers  => 'STACK',
-#				MemFree  => 'LINE1',
-#			},
-#		source_colors => {
-#				MemTotal => 'ff0000',
-#				MemFree  => '00ff00',
-#				Cached   => '0000ff',
-#				Buffers  => '00ffff',
-#			},
 
 #		basename => "net-traffic-$dev",
 #		extended_legend => 1,
@@ -92,14 +113,4 @@
 #		source_labels => [ qw(Transmit Recieve) ],
 #		source_drawtypes => [ qw(AREA LINE) ],
 #		source_colors => [ qw(00dd00 0000dd) ],
-
-#		basename => "net-connections",
-#		extended_legend => 1,
-#		title => 'Network Connections',
-#		sources => [ ('ESTABLISHED',
-#				grep(!/^(LISTEN|ESTABLISHED)$/,@sources),
-#				'LISTEN') ], 
-#		source_drawtypes => \@types,
-#		source_colors => { LISTEN => 'ffffff' },
-#		vertical_label => 'Connections',
 

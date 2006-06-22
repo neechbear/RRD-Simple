@@ -2,31 +2,35 @@
 <h1><TMPL_VAR title></h1>
 
 <div class="contents">
+  <p>Welcome to rrd.me.uk.</p>
+
   <ul>
     <li><a href="<TMPL_VAR self_url>?template=by_host.tmpl">Browse by host</a> - overview of all monitored hosts</li>
+    <li><a href="<TMPL_VAR self_url>?template=list_hosts.tmpl">List of hosts</a> - list of all monitored hosts</li>
     <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl">Browse by graph</a> <i>(incomplete)</i></li>
   </ul>
 
   <p>
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
-    blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah
+    If you would like your server to be publically monitored by rrd.me.uk, you will
+    need to download a copy of the data gathering client script (rrd-client.pl).
+    <a href="/rrd-client.pl">Click here to download a copy of rrd-client.pl</a>. rrd-client.pl
+    currently only works on Linux 2.4 installs or higher, but will soon supoprt
+    BSD, Darwin and hopefully more. To get the best results by monitoring as much
+    as possible, you should make sure that you have the following programs installed:
+
+    <ul>
+      <li>/usr/bin/iostat - Required to monitor hard disk IO</li>
+      <li>/usr/bin/vmstat - Required to monitor CPU utilisation</li>
+      <li>/usr/bin/sensors - Required to monitor CPU temperature</li>
+      <li>/usr/bin/hddtemp - Required to monitor hard disk temperature</li>
+    </ul>
+
+    Once you have downloaded rrd-client.pl and tested that it generates output, you
+    should add it to your crontab to HTTP POST the data to our server run every 4 or
+    5 minutes. A typical crontab entry might be:<br /><br />
+
+    <code>*/5 * * * * /usr/local/bin/rrd-client.pl 2>/dev/null |
+       POST http://rrd.me.uk/cgi-bin/rrd-server.cgi >/dev/null</code>
   </p>
 </div>
 

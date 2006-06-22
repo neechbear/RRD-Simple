@@ -60,24 +60,28 @@ for my $host (sort(list_dir($dir{data}))) {
 	} else {
 		my %host = ( host => $host );
 		for (qw(thumbnails graphs)) {
-			my @ary = ();
-			for my $img (sort alpha_period list_dir("$dir{$_}/$host")) {
-				my %hash = (
-					src => "$tmpl{rrd_url}/$_/$host/$img",
-					period => ($img =~ /.*-(\w+)\.\w+$/),
-					graph => ($img =~ /^(.+)\-\w+\.\w+$/),
-				);
-				$hash{txt} = "$dir{graphs}/$host/$img.txt" if $_ eq 'graphs';
-				push @ary, \%hash;
-			}
-			$host{$_} = \@ary;
+			eval {
+				my @ary = ();
+				for my $img (sort alpha_period list_dir("$dir{$_}/$host")) {
+					my %hash = (
+						src => "$tmpl{rrd_url}/$_/$host/$img",
+						period => ($img =~ /.*-(\w+)\.\w+$/),
+						graph => ($img =~ /^(.+)\-\w+\.\w+$/),
+					);
+					$hash{txt} = "$dir{graphs}/$host/$img.txt" if $_ eq 'graphs';
+					push @ary, \%hash;
+				}
+				$host{$_} = \@ary;
+			};
+			warn $@ if $@;
 		}
+		$host{total_graphs} = grep(/^daily$/, map { $_->{period} } @{$host{graphs}});
 		push @{$tmpl{hosts}}, \%host;
 	}
 }
 
 # Print the output
-$tmpl{DEBUG} = Dumper(\%tmpl);
+#$tmpl{DEBUG} = Dumper(\%tmpl);
 my $template = HTML::Template::Expr->new(
 	        filename => $tmpl{template},
 	        associate => $cgi,

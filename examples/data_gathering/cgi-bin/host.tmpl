@@ -5,11 +5,20 @@
     <a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>"><TMPL_VAR HOST></a> &gt;
     <TMPL_VAR GRAPH>
 <TMPL_ELSE>
-    <TMPL_VAR HOST>
+    <TMPL_VAR HOST> &gt;
+    <TMPL_VAR PERIOD>
 </TMPL_IF>
 </h1>
 
 <div class="contents">
+<TMPL_UNLESS GRAPH>
+  <h3>
+    [ <TMPL_IF EXPR="PERIOD eq 'daily'">daily<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=daily">daily</a></TMPL_IF>
+    | <TMPL_IF EXPR="PERIOD eq 'weekly'">weekly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=weekly">weekly</a></TMPL_IF>
+    | <TMPL_IF EXPR="PERIOD eq 'monthly'">monthly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=monthly">monthly</a></TMPL_IF>
+    | <TMPL_IF EXPR="PERIOD eq 'annual'">annual<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=annual">annual</a></TMPL_IF> ]
+  </h3>
+</TMPL_UNLESS>
   <table border="0">
 <TMPL_LOOP hosts>
   <TMPL_IF EXPR="HOST eq host">

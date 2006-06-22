@@ -3,6 +3,7 @@
 
 <div class="contents">
 <TMPL_LOOP hosts>
+  <TMPL_IF EXPR="((HOST eq host) || (defined(HOST) == 0))">
 <div class="host">
 <h2><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>"><TMPL_VAR host></a></h2>
   <TMPL_LOOP thumbnails>
@@ -10,8 +11,16 @@
 <div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a><br /><TMPL_VAR graph></div>
     </TMPL_IF>
   </TMPL_LOOP>
+  <TMPL_IF no_graphs>
+    <i>No graphs available yet - please wait a few minutes.</i>
+  <TMPL_ELSE>
+    <TMPL_UNLESS thumbnails>
+      <i>No thumbnails available yet - please wait a few minutes.</i>
+    </TMPL_UNLESS>
+  </TMPL_IF>
 </div>
 <div class="vertspace"></div>
+  </TMPL_IF>
 </TMPL_LOOP>
 </div>
 

@@ -48,7 +48,7 @@ $VERSION = '0.01' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 # Get command line options
 my %opt = ();
-Getopt::Std::getopts('u:gth', \%opt);
+Getopt::Std::getopts('u:gthf', \%opt);
 
 # Display help
 (display_help() && exit) if defined $opt{h} ||
@@ -106,9 +106,10 @@ sub create_graphs {
 						grep(!/^source(s|_)/,keys %{$graph_opts});
 				push @graph_opts, map { ($_ => [ split(/\s+/,$graph_opts->{$_}) ]) }
 						grep(/^source(s|_)/,keys %{$graph_opts});
+				push @options, ('lazy','') unless exists $opt{f};
+
 				write_txt($rrd->graph($rrdfile, @colour_theme, @options,
 						destination => $destination,
-						lazy => '',
 						@graph_opts,
 					));
 			};

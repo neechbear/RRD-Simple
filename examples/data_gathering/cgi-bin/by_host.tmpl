@@ -8,7 +8,7 @@
 <h2><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>"><TMPL_VAR host></a></h2>
   <TMPL_LOOP thumbnails>
     <TMPL_IF EXPR="period eq 'daily'">
-<div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a><br /><TMPL_VAR graph></div>
+<div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a><br /><TMPL_VAR title></div>
     </TMPL_IF>
   </TMPL_LOOP>
   <TMPL_IF no_graphs>

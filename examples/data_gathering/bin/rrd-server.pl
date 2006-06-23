@@ -65,6 +65,7 @@ my $rrd = RRD::Simple->new(rrdtool => "$dir{bin}/rrdtool");
 memoize('read_create_data');
 memoize('read_graph_data');
 memoize('basename');
+memoize('graph_def');
 
 # Go and do some work
 my $hostname = defined $opt{u} ? update_rrd($rrd,\%dir,$opt{u}) : undef;
@@ -88,7 +89,7 @@ sub create_graphs {
 			'ARROW#61B51B','GRID#404852','MGRID#67C6DE',
 		) ] );
 
-	my $defs = read_graph_data("$dir->{etc}/graph.defs");
+	my $gdefs = read_graph_data("$dir->{etc}/graph.defs");
 	my @hosts = defined $hostname ? ($hostname) : list_dir("$dir->{data}");
 
 	# For each hostname
@@ -100,21 +101,22 @@ sub create_graphs {
 		# For each RRD
 		for my $file (list_dir("$dir->{data}/$hostname")) {
 			my $rrdfile = "$dir->{data}/$hostname/$file";
+			my $graph = basename($file,'.rrd');
+			my $gdef = graph_def($gdefs,$graph);
 			eval {
-				my $graph_opts = $defs->{graph}->{basename($file,'.rrd')} || {};
-				my @graph_opts = map { ($_ => $graph_opts->{$_}) }
-						grep(!/^source(s|_)/,keys %{$graph_opts});
-				push @graph_opts, map { ($_ => [ split(/\s+/,$graph_opts->{$_}) ]) }
-						grep(/^source_/,keys %{$graph_opts});
+				my @graph_opts = map { ($_ => $gdef->{$_}) }
+						grep(!/^source(s|_)/,keys %{$gdef});
+				push @graph_opts, map { ($_ => [ split(/\s+/,$gdef->{$_}) ]) }
+						grep(/^source_/,keys %{$gdef});
 
 				push @graph_opts, ('lazy','') unless exists $opt{f};
 
 				# Only draw the sources we've been told to, and only
 				# those that actually exist in the RRD file
 				my @rrd_sources = $rrd->sources($rrdfile);
-				if (defined $graph_opts->{sources}) {
+				if (defined $gdef->{sources}) {
 					my @sources = ();
-					for my $ds (split(/\s+/,$graph_opts->{sources})) {
+					for my $ds (split(/\s+/,$gdef->{sources})) {
 						push @sources, $ds if grep(/^$ds$/,@rrd_sources);
 					}
 					push @graph_opts, ('sources',\@sources);
@@ -132,6 +134,25 @@ sub create_graphs {
 			warn "$rrdfile => $@" if $@;
 		}
 	}
+}
+
+sub graph_def {
+	my ($gdefs,$graph) = @_;
+
+	my $rtn = {};
+	for (keys %{$gdefs->{graph}}) {
+		my $graph_key = qr(^$_$);
+		if ($graph =~ /$graph_key/) {
+			$rtn = { %{$gdefs->{graph}->{$_}} };
+			my ($var) = $graph =~ /_([^_]+)$/;
+			for my $key (keys %{$rtn}) {
+				$rtn->{$key} =~ s/\$1/$var/g;
+			}
+			last;
+		}
+	}
+
+	return $rtn;
 }
 
 sub list_dir {

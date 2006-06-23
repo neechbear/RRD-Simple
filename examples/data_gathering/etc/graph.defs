@@ -1,116 +1,115 @@
 <graph cpu_utilisation>
-	extended_legend	Yes
-	title		"CPU Utilisation"
-	vertical_label	"% percent"
-	upper_limit	100
-	lower_limit	0
+	extended_legend		Yes
+	title				"CPU Utilisation"
+	vertical_label		"% percent"
+	upper_limit			100
+	lower_limit			0
 	rigid
-	sources		System User IO_Wait Idle
-	source_drawtypes AREA STACK STACK STACK
-	source_colors	ff0000 00ff00 0000ff ffffff
+	sources				"System User IO_Wait Idle"
+	source_drawtypes	"AREA STACK STACK STACK"
+	source_colors		"ff0000 00ff00 0000ff ffffff"
 </graph>
 
 <graph mem_usage_swap>
-	title		"Swap Usage"
-	base            1024
-	vertical_label  "bytes"
-	sources		SwapTotal SwapUsed
-	source_drawtypes LINE2 AREA
+	title				"Swap Usage"
+	base				1024
+	vertical_label		"bytes"
+	sources				"SwapTotal SwapUsed"
+	source_drawtypes 	"LINE2 AREA"
 </graph>
 
 <graph hdd_temp>
-	extended_legend	Yes
-	title		"Hard Disk Temperature"
-	vertical_label	"Celsius"
+	extended_legend		Yes
+	title				"Hard Disk Temperature"
+	vertical_label		"Celsius"
 </graph>
 
 <graph hdd_capacity>
-	extended_legend	Yes
-	title		"Disk Capacity"
-	line_thickness	2
-	vertical_label	"% used"
-	units_exponent	0
-	upper_limit	100
+	extended_legend		Yes
+	title				"Disk Capacity"
+	line_thickness		2
+	vertical_label		"% used"
+	units_exponent		0
+	upper_limit			100
 </graph>
 
 <graph cpu_loadavg>
-	extended_legend	Yes
-	title		"Load Average"
-	vertical_label	"Load"
-	sources		"1min 5min 15min"
-	source_colors	"ffbb00 cc0000 0000cc"
-	source_drawtypes "AREA LINE1 LINE1"
+	extended_legend		Yes
+	title				"Load Average"
+	vertical_label		"Load"
+	sources				"1min 5min 15min"
+	source_colors		"ffbb00 cc0000 0000cc"
+	source_drawtypes	"AREA LINE1 LINE1"
 </graph>
 
 <graph proc_filehandles>
-	extended_legend	Yes
-	title		"File Handles"
-	vertical_label	"Handles"
-	sources		"Maximum Allocated Used Free"
-	source_drawtypes "LINE2 AREA LINE1 LINE1"
+	extended_legend		Yes
+	title				"File Handles"
+	vertical_label		"Handles"
+	sources				"Maximum Allocated Used Free"
+	source_drawtypes	"LINE2 AREA LINE1 LINE1"
 </graph>
 
 <graph proc_state>
-	extended_legend	Yes
-	title		"Processes"
-	vertical_label	"Processes"
-	sources		"Run Sleep IO_Wait Paging Stopped Zombie Dead"
-	source_drawtypes "AREA STACK STACK STACK STACK STACK STACK"
+	extended_legend		Yes
+	title				"Processes"
+	vertical_label		"Processes"
+	sources				"Run Sleep IO_Wait Paging Stopped Zombie Dead"
+	source_drawtypes	"AREA STACK STACK STACK STACK STACK STACK"
 </graph>
 
 <graph apache_logs>
-	title		"Apache Log Activity"
-	vertical_label	"bytes logged/sec"
+	title				"Apache Log Activity"
+	vertical_label		"bytes logged/sec"
 </graph>
 
 <graph cpu_temp>
 	extended_legend	Yes
-	title		"CPU Temperature"
-	vertical_label	"Celsius"
+	title				"CPU Temperature"
+	vertical_label		"Celsius"
 </graph>
 
 <graph apache_status_scoreboard>
-	title		"Apache Scoreboard"
-	vertical_label	"children"
+	title				"Apache Scoreboard"
+	vertical_label		"children"
 </graph>
 
 <graph apache_status>
-	extended_legend	Yes
-	title		"Apache Activity"
-	vertical_label	"bytes/hits per sec"
-	sources		"BytesPerSec BytesPerReq ReqPerSec"
+	extended_legend		Yes
+	title				"Apache Activity"
+	vertical_label		"bytes/hits per sec"
+	sources				"BytesPerSec BytesPerReq ReqPerSec"
 </graph>
 
 <graph mem_usage>
-	title		"Memory Usage"
-	base		1024
-	vertical_label	"bytes"
-	sources		"MemTotal Cached Buffers MemFree"
-	source_drawtypes "LINE2 AREA STACK LINE1"
-	source_colors	"ff0000 0000ff 00ffff 00ff00"
+	title				"Memory Usage"
+	base				1024
+	vertical_label		"bytes"
+	sources				"MemTotal Cached Buffers MemFree"
+	source_drawtypes 	"LINE2 AREA STACK LINE2"
+	source_colors		"ff0000 0000ff 00ffff 00ff00"
 </graph>
 
 <graph net_connections>
-	extended_legend	Yes
-	title		"Network Connections"
-	vertical_label	"Connections"
+	extended_legend		Yes
+	title				"Network Connections"
+	vertical_label		"Connections"
 </graph net_connections>
 
+<graph "hdd_io_[^_]+">
+	title				"Hard Disk I/O: $1"
+	sources				"Read Write"
+	source_drawtypes	"AREA LINE1"
+	source_colors		"00ee00 dd0000"
+	vertical_label		"bytes/sec"
+</graph>
 
-#		basename => "hdd-io-$dev",
-#		title => "Hard Disk I/O: $dev",
-#		sources => [ qw(read write) ],
-#		source_labels => [ qw(Read Write) ],
-#		source_drawtypes => [ qw(AREA LINE1) ],
-#		source_colors => [ qw(00ee00 dd0000) ],
-#		vertical_label => 'bytes/sec',
-
-#		basename => "net-traffic-$dev",
-#		extended_legend => 1,
-#		title => "Network Traffic: $dev",
-#		vertical_label => 'bytes/sec',
-#		sources => [ qw(TXbytes RXbytes) ],
-#		source_labels => [ qw(Transmit Recieve) ],
-#		source_drawtypes => [ qw(AREA LINE) ],
-#		source_colors => [ qw(00dd00 0000dd) ],
+<graph "net_traffic_[^_]+">
+	extended_legend		Yes
+	title				"Network Traffic: $1"
+	vertical_label		"bytes/sec"
+	sources				"Transmit Receive"
+	source_drawtypes	"AREA LINE"
+	source_colors		"00dd00 0000dd"
+</graph>
 

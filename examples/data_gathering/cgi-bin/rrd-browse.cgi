@@ -28,11 +28,17 @@ use CGI;
 use CGI::Carp qw(fatalsToBrowser);
 use HTML::Template::Expr;
 use File::Basename qw(basename);
+use Config::General qw();
+use Memoize;
 use Data::Dumper;
 
 # User defined constants
 use constant BASEDIR => '/home/system/rrd';
 use constant RRDURL => '/rrd';
+
+# Speed things up a little :)
+memoize('list_dir');
+memoize('graph_def');
 
 # Grab CGI paramaters
 my $cgi = new CGI;
@@ -51,6 +57,7 @@ $tmpl{self_url} = $cgi->self_url(-absolute => 1, -query_string => 0, -path_info 
 $tmpl{rrd_url} = RRDURL;
 
 # Build up the data in %tmpl
+my $gdefs = read_graph_data("$dir{etc}/graph.defs");
 my @graphs = list_dir($dir{graphs});
 my @thumbnails = list_dir($dir{thumbnails});
 $tmpl{hosts} = [];
@@ -68,6 +75,8 @@ for my $host (sort(list_dir($dir{data}))) {
 						period => ($img =~ /.*-(\w+)\.\w+$/),
 						graph => ($img =~ /^(.+)\-\w+\.\w+$/),
 					);
+					my $gdef = graph_def($gdefs,$hash{graph});
+					$hash{title} = defined $gdef->{title} ? $gdef->{title} : $hash{graph};
 					$hash{txt} = "$dir{graphs}/$host/$img.txt" if $_ eq 'graphs';
 					push @ary, \%hash;
 				}
@@ -83,17 +92,17 @@ for my $host (sort(list_dir($dir{data}))) {
 # Print the output
 #$tmpl{DEBUG} = Dumper(\%tmpl);
 my $template = HTML::Template::Expr->new(
-	        filename => $tmpl{template},
-	        associate => $cgi,
-	        case_sensitive => 1,
-	        loop_context_vars => 1,
-	        max_includes => 5,
-	        global_vars => 1,
-	        die_on_bad_params => 0,
+		filename => $tmpl{template},
+		associate => $cgi,
+		case_sensitive => 1,
+		loop_context_vars => 1,
+		max_includes => 5,
+		global_vars => 1,
+		die_on_bad_params => 0,
 		functions => {
-			slurp => \&slurp,
-		},
-        );
+				slurp => \&slurp,
+			},
+	);
 $template->param(\%tmpl);
 print $cgi->header(-content => 'text/html'), $template->output();
 
@@ -123,6 +132,48 @@ sub list_dir {
 	@items = grep(!/^\./,readdir(DH));
 	closedir(DH) || die "Unable to close file handle for directory '$dir': $!";
 	return @items;
+}
+
+sub graph_def {
+	my ($gdefs,$graph) = @_;
+
+	my $rtn = {};
+	for (keys %{$gdefs->{graph}}) {
+		my $graph_key = qr(^$_$);
+		if ($graph =~ /$graph_key/) {
+			$rtn = { %{$gdefs->{graph}->{$_}} };
+			my ($var) = $graph =~ /_([^_]+)$/;
+			for my $key (keys %{$rtn}) {
+				$rtn->{$key} =~ s/\$1/$var/g;
+			}
+			last;
+		}
+	}
+
+	return $rtn;
+}
+
+sub read_graph_data {
+	my $filename = shift || undef;
+
+	my %config = ();
+	eval {
+		my $conf = new Config::General(
+			-ConfigFile				=> $filename,
+			-LowerCaseNames			=> 1,
+			-UseApacheInclude		=> 1,
+			-IncludeRelative		=> 1,
+#			-DefaultConfig			=> \%default,
+			-MergeDuplicateBlocks	=> 1,
+			-AllowMultiOptions		=> 1,
+			-MergeDuplicateOptions	=> 1,
+			-AutoTrue				=> 1,
+		);
+		%config = $conf->getall;
+	};
+	warn $@ if $@;
+
+	return \%config;
 }
 
 1;

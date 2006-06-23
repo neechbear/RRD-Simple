@@ -379,7 +379,7 @@ sub net_connections {
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle for command '$cmd': $!\n";
 	while (local $_ = <PH>) {
-		if (my ($proto,$state) = $_ =~ /^(tcp[46]|udp[46]|raw)\s+.+\s+([A-Z_]+)\s*$/) {
+		if (my ($proto,$state) = $_ =~ /^(tcp[46]?|udp[46]?|raw)\s+.+\s+([A-Z_]+)\s*$/) {
 			$update{$state}++;
 		}
 	}
@@ -403,7 +403,6 @@ sub proc_filehandles {
 
 
 1;
-
 
 
 

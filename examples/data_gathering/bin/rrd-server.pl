@@ -31,7 +31,7 @@ BEGIN {
 	}
 }
 
-use 5.6.1;
+use 5.004;
 use strict;
 use warnings;
 use lib qw(../lib);

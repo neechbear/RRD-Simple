@@ -21,13 +21,14 @@
 ############################################################
 # vim:ts=4:sw=4:tw=78
 
-use 5.6.1;
+use 5.004;
 use strict;
 use warnings;
 use vars qw($VERSION);
 
 $VERSION = '0.01' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
+# Default list of probes
 my @probes = qw(
 		cpu_utilisation cpu_loadavg cpu_temp
 		hdd_io mem_usage hdd_temp hdd_capacity
@@ -36,25 +37,126 @@ my @probes = qw(
 		apache_status apache_logs
 	);
 
+# Get command line options
+my %opt = ();
+eval "require Getopt::Std";
+Getopt::Std::getopts('p:i:x:h', \%opt) unless $@;
+(display_help() && exit) if defined $opt{h};
+
+# Filter on probe include list
+if (defined $opt{i}) {
+	my $inc = join('|',split(/\s*,\s*/,$opt{i}));
+	@probes = grep(/(^|_)($inc)(_|$)/,@probes);
+}
+
+# Filter on probe exclude list
+if (defined $opt{x}) {
+	my $exc = join('|',split(/\s*,\s*/,$opt{x}));
+	@probes = grep(!/(^|_)($exc)(_|$)/,@probes);
+}
+
+# Run the probes one by one
+die "Nothing to probe!\n" unless @probes;
+my $post = '';
 for my $probe (@probes) {
 	eval {
-		report($probe,eval "$probe();");
+		my $str = report($probe,eval "$probe();");
+		if (defined $opt{p}) {
+			$post .= $str;
+		} else {
+			print $str;
+		}
 	};
 	warn $@ if $@;
 }
 
-sub report {
-	(my $probe = shift) =~ s/[_-]/\./g;
-	my %data = @_;
-	for my $k (sort keys %data) {
-		printf("%s.%s.%s %s\n", time(),
-			$probe, $k, $data{$k});
-	}
-}
+# HTTP POST the data if asked to
+print(scalar basic_http('POST',$opt{p},30,$post), "\n") if $opt{p};
 
 exit;
 
 
+
+# Report the data
+sub report {
+	(my $probe = shift) =~ s/[_-]/\./g;
+	my %data = @_;
+	my $str = '';
+	for my $k (sort keys %data) {
+		$str .= sprintf("%s.%s.%s %s\n", time(),
+			$probe, $k, $data{$k});
+	}
+	return $str;
+}
+
+# Display help
+sub display_help {
+	print qq{Syntax: $0 [-i probe1,probe2,..|-x probe1,probe2,..] [-p url] [-h]
+     -i <probes>     Include a list of comma seperated probes
+     -x <probes>     Exclude a list of comma seperated probes
+     -p <url>        HTTP POST data to the specified URL
+     -h              Display this help\n};
+}
+
+# Basic HTTP client if LWP is unavailable
+sub basic_http {
+	my ($method,$url,$timeout,$data) = @_;
+	$method ||= 'GET';
+	$url ||= 'http://localhost/';
+	$timeout ||= 5;
+
+	my ($scheme,$host,$port,$path) = $url =~ m,^(https?://)([\w\d\.\-]+)(?::(\d+))?(.*),i;
+	$scheme ||= 'http://';
+	$host ||= 'localhost';
+	$path ||= '/';
+	$port ||= 80;
+
+	my $str = '';
+	eval "use Socket";
+	return $str if $@;
+
+	eval {
+		local $SIG{ALRM} = sub { die "TIMEOUT\n" };
+		alarm $timeout;
+
+		my $iaddr = inet_aton($host) || die;
+		my $paddr = sockaddr_in($port, $iaddr);
+		my $proto = getprotobyname('tcp');
+		socket(SOCK, AF_INET(), SOCK_STREAM(), $proto) || die "socket: $!";
+		connect(SOCK, $paddr) || die "connect: $!";
+
+		select(SOCK); $| = 1; 
+		select(STDOUT);
+
+		# Send the HTTP request
+		print SOCK "$method $path HTTP/1.1\n";
+		print SOCK "Host: $host". ("$port" ne "80" ? ":$port" : '') ."\n";
+		print SOCK "User-Agent: $0 $VERSION\n";
+		if ($post && $method eq 'POST') {
+			print SOCK "Content-Length: ". length($post) ."\n";
+			print SOCK "Content-Type: application/x-www-form-urlencoded\n";
+		}
+		print SOCK "\n";
+		print SOCK $post if $post && $method eq 'POST';
+
+		my $body = 0;
+		while (local $_ = <SOCK>) {
+			$str .= $_ if $body;
+			$body = 1 if /^\s*$/;
+		}
+		close(SOCK);
+		alarm 0;
+	};
+
+	warn $@ if $@ && $post;
+	return wantarray ? split(/\n/,$str) : $str;
+}
+
+
+
+#
+# Probes
+#
 
 sub cpu_temp {
 	my $cmd = '/usr/bin/sensors';
@@ -96,19 +198,16 @@ sub apache_status {
 	my @data = ();
 	my %update = ();
 
+	my $timeout = 5;
+	my $url = 'http://localhost/server-status?auto';
 	my %keys = (W => 'Write', G => 'GraceClose', D => 'DNS', S => 'Starting',
 		L => 'Logging', R => 'Read', K => 'Keepalive', C => 'Closing',
 		I => 'Idle', '_' => 'Waiting');
 
-	my $host = 'localhost';
-	my $url = "http://$host/server-status?auto";
 
 	eval "use LWP::UserAgent";
 	unless ($@) {
-		my $ua = LWP::UserAgent->new(
-				agent => "$0 $VERSION",
-				timeout => 5,
-			);
+		my $ua = LWP::UserAgent->new(agent => "$0 $VERSION", timeout => $timeout);
 		$ua->env_proxy;
 		$ua->max_size(1024*250);
 		my $response = $ua->get($url);
@@ -117,33 +216,8 @@ sub apache_status {
 		} else {
 			warn "failed to get $url; ". $response->status_line ."\n";
 		}
-
 	} else {
-		eval "use Socket";
-		eval {
-			local $SIG{ALRM} = sub { die "alarm\n" };
-			alarm 5;
-
-			my $iaddr = inet_aton($host) || die;
-			my $paddr = sockaddr_in(80, $iaddr);
-			my $proto = getprotobyname('tcp');
-			socket(SOCK, AF_INET(), SOCK_STREAM(), $proto) || die "socket: $!";
-			connect(SOCK, $paddr) || die "connect: $!";
-
-			select(SOCK); 
-			$| = 1; 
-			select(STDOUT);
-
-			print SOCK "GET /server-status?auto HTTP/1.1\nHost: $host\n\n";
-			my $body = 0;
-			while (local $_ = <SOCK>) {
-				chomp;
-				push @data, $_ if $body;
-				$body = 1 if /^\s*$/;
-			}
-			close(SOCK);
-			alarm 0;
-		};
+		@data = basic_http('GET',$url,$timeout);
 	}
 
 	for (@data) {

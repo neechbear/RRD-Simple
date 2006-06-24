@@ -185,10 +185,10 @@ sub apache_logs {
 		my @files = grep(!/^\./,readdir(DH));
 		closedir(DH) || warn "Unable to close file handle for directory '$dir': $!\n";
 		for (@files) {
-			next if /\.(\d+|gz|bz2|Z|zip|old|bak|backup)$/i;
+			next if /\.(\d+|gz|bz2|Z|zip|old|bak|pid|backup)$/i || /[_\.\-]pid$/;
 			my $file = "$dir/$_";
 			next unless -f $file;
-			s/\./_/g;
+			s/[\.\-]/_/g;
 			$update{$_} = (stat($file))[7];
 		}
 	}

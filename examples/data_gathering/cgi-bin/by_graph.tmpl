@@ -2,7 +2,17 @@
 <h1><a href="<TMPL_VAR self_url>">Index</a> &gt; <TMPL_VAR title></h1>
 
 <div class="contents">
-  <p>This section is incomplete.</p>
+  <TMPL_LOOP graphs>
+    <TMPL_IF EXPR="((GRAPH eq graph) || (defined(GRAPH) == 0))">
+  <div class="host">
+    <h2><TMPL_VAR graph_title></h2>
+      <TMPL_LOOP thumbnails>
+<div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a><br /><TMPL_VAR host></div>
+      </TMPL_LOOP>
+  </div>
+  <div class="vertspace"></div>
+    </TMPL_IF>
+  </TMPL_LOOP>
 </div>
 
 <TMPL_INCLUDE footer.tmpl>

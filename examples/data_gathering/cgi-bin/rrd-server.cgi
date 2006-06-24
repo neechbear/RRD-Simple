@@ -39,6 +39,7 @@ my $ip = host2ip($host);
 
 if (open(PH,'|-',"/home/system/rrd/bin/rrd-server.pl -u $host")) {
 	while (<>) {
+		warn "$host $_";
 		next unless /^[\w\.\-\_\d]+\s+[\d\.]+\s*$/;
 		print PH $_;
 	}

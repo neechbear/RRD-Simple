@@ -1,4 +1,4 @@
-#!/home/system/rrd/bin/perl -w
+#!/home/system/rrd/bin/perl
 ############################################################
 #
 #   $Id$
@@ -60,7 +60,10 @@ $tmpl{rrd_url} = RRDURL;
 my $gdefs = read_graph_data("$dir{etc}/graph.defs");
 my @graphs = list_dir($dir{graphs});
 my @thumbnails = list_dir($dir{thumbnails});
-$tmpl{hosts} = [];
+my %graph_tmpl = ();
+$tmpl{hosts} = []; $tmpl{graphs} = [];
+
+# By host
 for my $host (sort(list_dir($dir{data}))) {
 	if (!grep(/^$host$/,@graphs)) {
 		push @{$tmpl{hosts}}, { host => $host, no_graphs => 1 };
@@ -79,6 +82,13 @@ for my $host (sort(list_dir($dir{data}))) {
 					$hash{title} = defined $gdef->{title} ? $gdef->{title} : $hash{graph};
 					$hash{txt} = "$dir{graphs}/$host/$img.txt" if $_ eq 'graphs';
 					push @ary, \%hash;
+
+					# By graph later
+					if ($_ eq 'thumbnails' && defined $hash{graph} &&
+							defined $hash{period} && $hash{period} eq 'daily') {
+						my %hash2 = %hash; delete $hash2{title}; $hash2{host} = $host;
+						push @{$graph_tmpl{"$hash{graph}\t$hash{title}"}}, \%hash2;
+					}
 				}
 				$host{$_} = \@ary;
 			};
@@ -87,6 +97,17 @@ for my $host (sort(list_dir($dir{data}))) {
 		$host{total_graphs} = grep(/^daily$/, map { $_->{period} } @{$host{graphs}});
 		push @{$tmpl{hosts}}, \%host;
 	}
+}
+
+# By graph
+for (sort keys %graph_tmpl) {
+	my ($graph,$title) = split(/\t/,$_);
+	push @{$tmpl{graphs}}, {
+			graph => $graph,
+			graph_title => $title,
+			total_hosts => @{$graph_tmpl{$_}}+0,
+			thumbnails => $graph_tmpl{$_},
+		};
 }
 
 # Print the output
@@ -136,6 +157,7 @@ sub list_dir {
 
 sub graph_def {
 	my ($gdefs,$graph) = @_;
+	return {} unless defined $graph;
 
 	my $rtn = {};
 	for (keys %{$gdefs->{graph}}) {

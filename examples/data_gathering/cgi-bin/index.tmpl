@@ -7,7 +7,8 @@
   <ul>
     <li><a href="<TMPL_VAR self_url>?template=by_host.tmpl">Browse by host</a> - overview of all monitored hosts</li>
     <li><a href="<TMPL_VAR self_url>?template=list_hosts.tmpl">List of hosts</a> - list of all monitored hosts</li>
-    <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl">Browse by graph</a> <i>(incomplete)</i></li>
+    <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl">Browse by graph</a> - overview of all monitors</li>
+    <li><a href="<TMPL_VAR self_url>?template=list_graphs.tmpl">List of graphs</a> - list of all monitors</li>
   </ul>
 
   <p>
@@ -29,8 +30,8 @@
     should add it to your crontab to HTTP POST the data to our server run every 4 or
     5 minutes. A typical crontab entry might be:<br /><br />
 
-    <code>*/5 * * * * /usr/local/bin/rrd-client.pl 2>/dev/null |
-       POST http://rrd.me.uk/cgi-bin/rrd-server.cgi >/dev/null</code>
+    <code>*/5 * * * * sleep 10; /usr/local/bin/rrd-client.pl
+       -p http://rrd.me.uk/cgi-bin/rrd-server.cgi >/dev/null 2>&1</code>
   </p>
 </div>
 

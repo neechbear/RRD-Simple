@@ -10,7 +10,7 @@ BEGIN {
 	use Test::More;
 	eval "use RRDs";
 	plan skip_all => "RRDs.pm *MUST* be installed!" if $@;
-	plan tests => 326 if !$@;
+	plan tests => 226 if !$@;
 }
 
 use lib qw(./lib ../lib);
@@ -27,7 +27,7 @@ for my $p (keys %scheme_graphs) {
 			bytesOut => 'GAUGE',
 		),"$p create");
 
-	for (my $t = 50; $t >= 1; $t--) {
+	for (my $t = 30; $t >= 1; $t--) {
 		ok($rrd->update($rrdfile,time-(110*$t),
 				bytesIn => 100,
 				bytesOut => 50,

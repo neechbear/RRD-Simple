@@ -4,12 +4,22 @@
 <div class="contents">
   <p>Welcome to rrd.me.uk.</p>
 
-  <ul>
-    <li><a href="<TMPL_VAR self_url>?template=by_host.tmpl">Browse by host</a> - overview of all monitored hosts</li>
-    <li><a href="<TMPL_VAR self_url>?template=list_hosts.tmpl">List of hosts</a> - list of all monitored hosts</li>
-    <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl">Browse by graph</a> - overview of all monitors</li>
-    <li><a href="<TMPL_VAR self_url>?template=list_graphs.tmpl">List of graphs</a> - list of all monitors</li>
-  </ul>
+  <table border="0"><tr><td valign="top">
+    <ul>
+      <li><a href="<TMPL_VAR self_url>?template=by_host.tmpl">Browse by host</a> - overview of all monitored hosts</li>
+      <li><a href="<TMPL_VAR self_url>?template=list_hosts.tmpl">List of hosts</a> - list of all monitored hosts</li>
+      <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl">Browse by graph</a> - overview of all monitors</li>
+      <li><a href="<TMPL_VAR self_url>?template=list_graphs.tmpl">List of graphs</a> - list of all monitors</li>
+    </ul>
+  </td><td valign="top">
+    <ul>
+      <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl&LIKE=cpu_">View all CPU graphs</a></li>
+      <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl&LIKE=net_traffic_">View all network traffic graphs</a></li>
+      <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl&LIKE=mem_">View all memory usage graphs</a></li>
+      <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl&LIKE=apache_">View all Apache graphs</a></li>
+      <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl&LIKE=_temp">View all temperate graphs</a></li>
+    </ul>
+  </td></tr></table>
 
   <p>
     If you would like your server to be publically monitored by rrd.me.uk, you will

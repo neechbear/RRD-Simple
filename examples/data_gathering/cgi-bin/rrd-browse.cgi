@@ -122,7 +122,13 @@ my $template = HTML::Template::Expr->new(
 		die_on_bad_params => 0,
 		functions => {
 				slurp => \&slurp,
-				like => sub { $_[0] =~ /$_[1]/i },
+				like => sub { return $_[0] =~ /$_[1]/i ? 1 : 0; },
+				equal_or_like => sub {
+						return 1 if (!defined($_[1]) || !length($_[1])) && (!defined($_[2]) || !length($_[2]));
+						(warn "$_[0] eq $_[1]\n" && return 1) if defined $_[1] && "$_[0]" eq "$_[1]";
+						return 1 if defined $_[2] && "$_[0]" =~ /$_[2]/;
+						return 0;
+					},
 			},
 	);
 $template->param(\%tmpl);

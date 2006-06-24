@@ -1278,7 +1278,7 @@ C<$unixtime> is optional and will default to C<time()> (the current unixtime).
 Specifying this value will determine the date and time that your data point
 values will be stored against in the RRD file.
 
-If you try update a value for a data source that does not exist, it will
+If you try to update a value for a data source that does not exist, it will
 automatically be added for you. The data source type will be set to whatever
 is contained in the C<$RRD::Simple::DEFAULT_DSTYPE> variable. (See the
 VARIABLES section below).
@@ -1287,6 +1287,11 @@ If you explicitly do not want this to happen, then you should check that you
 are only updating pre-existing data source names using the C<sources> method.
 You can manually add new data sources to an RRD file by using the C<add_source>
 method, which requires you to explicitly set the data source type.
+
+If you try to update an RRD file that does not exist, it will attept to create
+the RRD file for you using the same behaviour as described above. A warning
+message will be displayed indicating that the RRD file is being created for
+you if have perl warnings turned on.
 
 =head2 last
 

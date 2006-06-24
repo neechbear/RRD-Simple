@@ -3,7 +3,7 @@
 
 <div class="contents">
   <TMPL_LOOP graphs>
-    <TMPL_IF EXPR="((GRAPH eq graph) || (defined(GRAPH) == 0))">
+    <TMPL_IF EXPR="((GRAPH eq graph) || (like(graph,LIKE)) || ((defined(GRAPH) == 0) && (defined(LIKE) == 0)))">
   <div class="host">
     <h2><TMPL_VAR graph_title></h2>
       <TMPL_LOOP thumbnails>

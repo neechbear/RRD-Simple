@@ -122,6 +122,7 @@ my $template = HTML::Template::Expr->new(
 		die_on_bad_params => 0,
 		functions => {
 				slurp => \&slurp,
+				like => sub { $_[0] =~ /$_[1]/i },
 			},
 	);
 $template->param(\%tmpl);

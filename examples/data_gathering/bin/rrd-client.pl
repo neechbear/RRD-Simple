@@ -186,8 +186,10 @@ sub apache_logs {
 		closedir(DH) || warn "Unable to close file handle for directory '$dir': $!\n";
 		for (@files) {
 			next if /\.(\d+|gz|bz2|Z|zip|old|bak|backup)$/i;
-			next unless -f "$dir/$_";
-			$update{$_} = (stat("$dir/$_"))[7];
+			my $file = "$dir/$_";
+			next unless -f $file;
+			s/\./_/g;
+			$update{$_} = (stat($file))[7];
 		}
 	}
 

@@ -109,8 +109,6 @@
 	title				"Server Uptime"
 	vertical_label		"Days"
 	line_thickness		2
-	lower_limit			0
-	rigid
 </graph>
 
 <graph net_connections>

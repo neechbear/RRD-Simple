@@ -101,6 +101,7 @@
 	source_drawtypes	"AREA LINE1"
 	source_colours		"00ee00 0000aa"
 	vertical_label		"Users"
+	line_thickness		1
 	lower_limit			0
 	rigid
 </graph>

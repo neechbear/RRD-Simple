@@ -300,6 +300,7 @@ sub mem_usage {
 				for (my $i = 0; $i < @values; $i++) {
 					$update{ucfirst($keys[$i])} = $values[$i];
 				}
+				$update{Used} = $update{Used} - $update{Buffers} - $update{Cached};
 
 			} elsif (@keys && /^Swap:\s*(\d+.+)\s*$/i) {
 				my @values = split(/\s+/,$1);

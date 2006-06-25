@@ -1,11 +1,18 @@
 <TMPL_INCLUDE header.tmpl>
-<h1><a href="<TMPL_VAR self_url>">Index</a> &gt; <TMPL_VAR title></h1>
+<h1><a href="<TMPL_VAR self_url>">Index</a> &gt;
+<TMPL_IF EXPR="GRAPH || LIKE">
+  <a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>"><TMPL_VAR title></a> &gt;
+  <TMPL_IF GRAPH><TMPL_VAR GRAPH><TMPL_ELSE>Like <TMPL_VAR LIKE></TMPL_IF>
+<TMPL_ELSE>
+  <TMPL_VAR title>
+</TMPL_IF>
+</h1>
 
 <div class="contents">
   <TMPL_LOOP graphs>
     <TMPL_IF EXPR="equal_or_like(graph,GRAPH,LIKE)">
   <div class="host">
-    <h2><TMPL_VAR graph_title></h2>
+    <h2><TMPL_IF GRAPH><TMPL_VAR graph_title><TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&GRAPH=<TMPL_VAR graph>"><TMPL_VAR graph_title></TMPL_IF></h2>
       <TMPL_LOOP thumbnails>
 <div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a><br /><TMPL_VAR host></div>
       </TMPL_LOOP>

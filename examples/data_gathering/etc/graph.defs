@@ -10,14 +10,6 @@
 	source_colors		"ff0000 00ff00 0000ff ffffff"
 </graph>
 
-<graph mem_usage_swap>
-	title				"Swap Usage"
-	base				1024
-	vertical_label		"bytes"
-	sources				"SwapTotal SwapUsed"
-	source_drawtypes 	"LINE2 AREA"
-</graph>
-
 <graph hdd_temp>
 	extended_legend		Yes
 	title				"Hard Disk Temperature"
@@ -85,15 +77,28 @@
 	title				"Memory Usage"
 	base				1024
 	vertical_label		"bytes"
-	sources				"MemTotal Cached Buffers MemFree"
-	source_drawtypes 	"LINE2 AREA STACK LINE2"
-	source_colors		"ff0000 0000ff 00ffff 00ff00"
+	sources				"Total Buffers Cached Shared Used Free"
+	source_drawtypes 	"LINE2 AREA STACK STACK STACK STACK"
+	source_colors		"ff0000 0000ff 00ffff 00ff00 ffcc00 ffffff"
+</graph>
+
+<graph mem_usage_swap>
+	title				"Swap Usage"
+	base				1024
+	vertical_label		"bytes"
+	sources				"Total Used Free"
+	source_drawtypes 	"LINE2 AREA STACK"
+	source_colours		"ff0000 ffcc00 ffffff"
 </graph>
 
 <graph net_connections>
 	extended_legend		Yes
 	title				"Network Connections"
 	vertical_label		"Connections"
+	sources				"LISTEN ESTABLISHED TIME_WAIT CLOSED CLOSE_WAIT CLOSING LAST_ACK SYN_RECV SYN_SENT"
+	source_drawtypes	"AREA STACK STACK STACK STACK STACK STACK STACK STACK STACK STACK"
+	lower_limit			0
+	rigid
 </graph net_connections>
 
 <graph "hdd_io_[^_]+">

@@ -3,7 +3,7 @@
     <a href="<TMPL_VAR self_url>?template=by_host.tmpl">By host</a> &gt; 
 <TMPL_IF GRAPH>
     <a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>"><TMPL_VAR HOST></a> &gt;
-    <TMPL_VAR GRAPH>
+    <a href="<TMPL_VAR self_url>?template=by_graph.tmpl&GRAPH=<TMPL_VAR GRAPH>"><TMPL_VAR GRAPH></a>
 <TMPL_ELSE>
     <TMPL_VAR HOST> &gt;
     <TMPL_VAR PERIOD>

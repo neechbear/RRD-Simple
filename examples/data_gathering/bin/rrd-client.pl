@@ -288,30 +288,54 @@ sub hdd_io {
 
 sub mem_usage {
 	my %update = ();
+	my $cmd = -f '/usr/bin/free' ? '/usr/bin/free' : '/bin/free';
+	my @keys = ();
 
-	if (-f '/proc/meminfo') {
-		open(FH,'<','/proc/meminfo') || die "Unable to open '/proc/meminfo': $!\n";
-		while (local $_ = <FH>) {
-			if (my ($key,$value,$kb) = $_ =~ /^(\w+):\s+(\d+)\s*(kB)\s*$/i) {
-				next unless $key =~ /^(MemTotal|MemFree|Buffers|Cached|SwapFree|SwapTotal)$/i;
-				$value *= 1024 if defined $kb;
-				if ($key =~ /^Swap/i) {
-					$update{"swap.$key"} = $value;
-				} else {
-					$update{$key} = $value;
+	if ($^O eq 'linux' && -f $cmd && -x $cmd) {
+		$cmd .= ' -b';
+		open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
+		while (local $_ = <PH>) {
+			if (@keys && /^Mem:\s*(\d+.+)\s*$/i) {
+				my @values = split(/\s+/,$1);
+				for (my $i = 0; $i < @values; $i++) {
+					$update{ucfirst($keys[$i])} = $values[$i];
 				}
+
+			} elsif (@keys && /^Swap:\s*(\d+.+)\s*$/i) {
+				my @values = split(/\s+/,$1);
+				for (my $i = 0; $i < @values; $i++) {
+					$update{"swap.".ucfirst($keys[$i])} = $values[$i];
+				}
+
+			} elsif (!@keys && /^\s*([\w\s]+)\s*$/) {
+				@keys = split(/\s+/,$1);
 			}
 		}
-		if (exists $update{"swap.SwapTotal"} && exists $update{"swap.SwapFree"}) {
-			$update{"swap.SwapUsed"} = $update{"swap.SwapTotal"} - $update{"swap.SwapFree"};
-			delete $update{"swap.SwapFree"};
-		}
-		close(FH) || warn "Unable to close '/proc/meminfo': $!\n";
+		close(PH) || warn "Unable to close file handle PH for command '$cmd': $!\n";
+
+#	} elsif (-f '/proc/meminfo') {
+#		open(FH,'<','/proc/meminfo') || die "Unable to open '/proc/meminfo': $!\n";
+#		while (local $_ = <FH>) {
+#			if (my ($key,$value,$kb) = $_ =~ /^(\w+):\s+(\d+)\s*(kB)\s*$/i) {
+#				next unless $key =~ /^(MemTotal|MemFree|Buffers|Cached|SwapFree|SwapTotal)$/i;
+#				$value *= 1024 if defined $kb;
+#				if ($key =~ /^Swap/i) {
+#					$update{"swap.$key"} = $value;
+#				} else {
+#					$update{$key} = $value;
+#				}
+#			}
+#		}
+#		if (exists $update{"swap.SwapTotal"} && exists $update{"swap.SwapFree"}) {
+#			$update{"swap.SwapUsed"} = $update{"swap.SwapTotal"} - $update{"swap.SwapFree"};
+#			delete $update{"swap.SwapFree"};
+#		}
+#		close(FH) || warn "Unable to close '/proc/meminfo': $!\n";
 
 	} else {
 		eval "use Sys::MemInfo qw(totalmem freemem)";
 		die "Please install Sys::MemInfo so that I can get memory information.\n" if $@;
-		@update{qw(MemTotal MemFree)} = (totalmem(),freemem());
+		@update{qw(Total Free)} = (totalmem(),freemem());
 	}
 
 	return %update;

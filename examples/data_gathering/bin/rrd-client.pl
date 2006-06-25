@@ -209,22 +209,28 @@ sub apache_status {
 
 	eval "use LWP::UserAgent";
 	unless ($@) {
-		my $ua = LWP::UserAgent->new(agent => "$0 $VERSION", timeout => $timeout);
-		$ua->env_proxy;
-		$ua->max_size(1024*250);
-		my $response = $ua->get($url);
-		if ($response->is_success) {
-			@data = split(/\n+|\r+/,$response->content);
-		} else {
-			warn "failed to get $url; ". $response->status_line ."\n";
-		}
-	} else {
+		eval {
+			my $ua = LWP::UserAgent->new(agent => "$0 $VERSION", timeout => $timeout);
+			$ua->env_proxy;
+			$ua->max_size(1024*250);
+			my $response = $ua->get($url);
+			if ($response->is_success) {
+				@data = split(/\n+|\r+/,$response->content);
+			} else {
+				warn "failed to get $url; ". $response->status_line ."\n";
+			}
+		};
+	}
+	if ($@) {
 		@data = basic_http('GET',$url,$timeout);
 	}
 
 	for (@data) {
 		my ($k,$v) = $_ =~ /^\s*(.+?):\s+(.+?)\s*$/;
+		$k = '' unless defined $k;
+		$v = '' unless defined $v;
 		$k =~ s/\s+//g; #$k = lc($k);
+		next unless $k;
 		if ($k eq 'Scoreboard') {
 			my %x; $x{$_}++ for split(//,$v);
 			for (keys %keys) {

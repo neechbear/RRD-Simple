@@ -77,18 +77,40 @@
 	title				"Memory Usage"
 	base				1024
 	vertical_label		"bytes"
-	sources				"Total Buffers Cached Shared Used Free"
-	source_drawtypes 	"LINE2 AREA STACK STACK STACK STACK"
-	source_colors		"ff0000 0000ff 00ffff 00ff00 ffcc00 ffffff"
+	sources				"Buffers Cached Used Free Total"
+	source_drawtypes 	"AREA STACK STACK STACK LINE1"
+	source_colors		"0000ff 00dddd ffcc00 ffffff ff0000"
+	lower_limit			0
+	rigid
 </graph>
 
 <graph mem_usage_swap>
 	title				"Swap Usage"
 	base				1024
 	vertical_label		"bytes"
-	sources				"Total Used Free"
-	source_drawtypes 	"LINE2 AREA STACK"
-	source_colours		"ff0000 ffcc00 ffffff"
+	sources				"Used Free Total"
+	source_drawtypes 	"AREA STACK LINE1"
+	source_colours		"ffcc00 ffffff ff0000"
+	lower_limit			0
+	rigid
+</graph>
+
+<graph misc_users>
+	title				"Users Logged In"
+	sources				"Users Unique"
+	source_drawtypes	"AREA LINE1"
+	source_colours		"00ee00 0000aa"
+	vertical_label		"Users"
+	lower_limit			0
+	rigid
+</graph>
+
+<graph misc_uptime>
+	title				"Server Uptime"
+	vertical_label		"Days"
+	line_thickness		2
+	lower_limit			0
+	rigid
 </graph>
 
 <graph net_connections>

@@ -26,7 +26,7 @@ use strict;
 use warnings;
 use vars qw($VERSION);
 
-$VERSION = '0.01' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.39' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 # Default list of probes
 my @probes = qw(
@@ -35,13 +35,15 @@ my @probes = qw(
 		net_traffic net_connections
 		proc_state proc_filehandles
 		apache_status apache_logs
+		misc_uptime misc_users
 	);
 
 # Get command line options
 my %opt = ();
 eval "require Getopt::Std";
-Getopt::Std::getopts('p:i:x:h', \%opt) unless $@;
+Getopt::Std::getopts('p:i:x:hv', \%opt) unless $@;
 (display_help() && exit) if defined $opt{h};
+(display_version() && exit) if defined $opt{v};
 
 # Filter on probe include list
 if (defined $opt{i}) {
@@ -91,11 +93,17 @@ sub report {
 
 # Display help
 sub display_help {
-	print qq{Syntax: $0 [-i probe1,probe2,..|-x probe1,probe2,..] [-p url] [-h]
+	print qq{Syntax: $0 [-i probe1,probe2,..|-x probe1,probe2,..] [-p url] [-h|-v]
      -i <probes>     Include a list of comma seperated probes
      -x <probes>     Exclude a list of comma seperated probes
      -p <url>        HTTP POST data to the specified URL
+     -v              Display version information
      -h              Display this help\n};
+}
+
+# Display version
+sub display_version {
+	print "$0 version $VERSION ".'($Id$)'."\n";
 }
 
 # Basic HTTP client if LWP is unavailable
@@ -157,6 +165,64 @@ sub basic_http {
 #
 # Probes
 #
+
+sub misc_users {
+	my $cmd = -f '/usr/bin/who' ? '/usr/bin/who' : 
+			-f '/bin/who' ? '/bin/who' :
+			-f '/usr/bin/w' ? '/usr/bin/w' : '/bin/w';
+	return () unless -f $cmd;
+	my %update = ();
+
+	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
+	my %users = ();
+	while (local $_ = <PH>) {
+		next if /^\s*USERS\s*TTY/;
+		$users{(split(/\s+/,$_))[0]}++;
+		$update{Users}++;
+	}
+	close(PH) || warn "Unable to close file handle PH for command '$cmd': $!\n";
+	$update{Unique} = keys %users if keys %users;
+
+	unless (keys %update) {
+		$cmd = -f '/usr/bin/uptime' ? '/usr/bin/uptime' : '/bin/uptime';
+		if (my ($users) = `$cmd` =~ /,\s*(\d+)\s*users\s*,/i) {
+			$update{Users} = $1;
+		}
+	}
+
+	return %update;
+}
+
+sub misc_uptime {
+	my $cmd = -f '/usr/bin/uptime' ? '/usr/bin/uptime' : '/bin/uptime';
+	return () unless -f $cmd;
+	my %update = ();
+
+# 5:40PM  up 28 days, 18:27, 11 users, load averages: 1.00, 1.00, 1.00
+# 17:52:37 up 52 min,  2 users,  load average: 0.21, 0.16, 0.07
+	if (my ($str) = `$cmd` =~ /\s*up\s*(.+?)\s*,\s*\d+\s*users/) {
+		my $days = 0;
+		if (my ($nuke,$num) = $str =~ /(\s*(\d+)\s*days?,?\s*)/) {
+			$str =~ s/$nuke//;
+			$days += $num;
+		}
+		if (my ($nuke,$mins) = $str =~ /(\s*(\d+)\s*mins?,?\s*)/) {
+			$str =~ s/$nuke//;
+			$days += ($mins / (60*24));
+		}
+		if (my ($nuke,$hours) = $str =~ /(\s*(\d+)\s*hours?,?\s*)/) {
+			$str =~ s/$nuke//;
+			$days += ($hours / 24);
+		}
+		if (my ($hours,$mins) = $str =~ /\s*(\d+):(\d+)\s*,?/) {
+			$days += ($mins / (60*24));
+			$days += ($hours / 24);
+		}
+		$update{DaysUp} = $days;
+	}
+
+	return %update;
+}
 
 sub cpu_temp {
 	my $cmd = '/usr/bin/sensors';

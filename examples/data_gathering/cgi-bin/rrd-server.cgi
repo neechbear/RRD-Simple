@@ -42,8 +42,6 @@ my $ip = host2ip($host);
 (print "FAILED - FORWARD AND REVERSE DNS DO NOT MATCH\n" && exit)
 	unless "$ip" eq "$remote_addr";
 
-$host = 'aragorn.dev' if $host eq '62.189.112.129';
-
 if (open(PH,'|-', BASEDIR."/bin/rrd-server.pl -u $host")) {
 	while (<>) {
 		#warn "$host $_";

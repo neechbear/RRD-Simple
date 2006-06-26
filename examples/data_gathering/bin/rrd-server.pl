@@ -22,9 +22,15 @@
 # vim:ts=4:sw=4:tw=78
 
 BEGIN {
+	# User defined constants
+	use constant BASEDIR => '/home/system/rrd';
+}
+
+
+
+BEGIN {
 	# Ensure we can find RRDs.so for RRDs.pm
 	eval "use RRDs";
-	use constant BASEDIR => '/home/system/rrd';
 	if ($@ && !defined $ENV{LD_LIBRARY_PATH}) {
 		$ENV{LD_LIBRARY_PATH} = BASEDIR.'/lib';
 		exec($0,@ARGV);

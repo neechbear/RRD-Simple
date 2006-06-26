@@ -1,13 +1,16 @@
-The examples in this directory are not finished.
-Sorry.
+See cgi-bin/instructions.tmpl for instructions, or http://rrd.me.uk.
 
 
-rrd-client.pl does NOT have any special Perl requirements and does not
-need rrdtool or RRD::Simple to be installed.
++ rrd-client.pl
+  does NOT have any special Perl requirements and does not
+  need rrdtool or RRD::Simple to be installed.
 
-rrd-server.pl DOES require rrdtool and RRD::Simple to be installed.
++ rrd-server.pl
+  DOES require RRDtool version 1.2.x or higher and
+  RRD::Simple 1.39 or higher to be installed.
 
-rrd-browse.cgi DOES require a number of modules (see list below).
++ rrd-browse.cgi
+  DOES require a number of modules (see list below).
 
 
 Software required:
@@ -17,18 +20,12 @@ rrdtool-1.2.13.tar.gz
 
 Modules required:
 =================
-libwww-perl-5.805.tar.gz
-Compress-Zlib-1.41.tar.gz
-Config-General-2.31.tar.gz
-HTML-Parser-3.54.tar.gz
-HTML-Tagset-3.10.tar.gz
 HTML-Template-2.8.tar.gz
 HTML-Template-Expr-0.07.tar.gz
-Module-Build-0.2801.tar.gz
 Parse-RecDescent-1.94.tar.gz
+Config-General-2.31.tar.gz
+Module-Build-0.2801.tar.gz
 RRD-Simple-1.39.tar.gz
-URI-1.35.tar.gz
-
 
 
 Directories:
@@ -45,7 +42,6 @@ Directories:
 /home/system/rrd/thumbnails - .png thumbnails
 
 
-
 Notes:
 ======
 
@@ -55,7 +51,7 @@ Notes:
 # Pipe client to server
 */5 * * * * sleep 10; /home/system/rrd/bin/rrd-client.pl | /home/system/rrd/bin/rrd-server.pl -u server1.domain.com
 
-# Send over the network using netcat
-/home/system/rrd/bin/rrd-client.pl | nc -p 4444 server1.domain.com
-nc -l -p 4444 | /home/system/rrd/bin/rrd-server.pl -u server1.domain.com
+### Send over the network using netcat
+##/home/system/rrd/bin/rrd-client.pl | nc -p 4444 server1.domain.com
+##nc -l -p 4444 | /home/system/rrd/bin/rrd-server.pl -u server1.domain.com
 

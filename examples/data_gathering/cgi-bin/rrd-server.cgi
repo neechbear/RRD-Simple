@@ -1,4 +1,4 @@
-#!/home/system/rrd/bin/perl -w
+#!/usr/bin/perl -w
 ############################################################
 #
 #   $Id$
@@ -21,6 +21,11 @@
 ############################################################
 # vim:ts=4:sw=4:tw=78
 
+# User defined constants
+use constant BASEDIR => '/home/system/rrd';
+
+
+
 use 5.6.1;
 use warnings;
 use strict;
@@ -37,9 +42,11 @@ my $ip = host2ip($host);
 (print "FAILED - FORWARD AND REVERSE DNS DO NOT MATCH\n" && exit)
 	unless "$ip" eq "$remote_addr";
 
-if (open(PH,'|-',"/home/system/rrd/bin/rrd-server.pl -u $host")) {
+$host = 'aragorn.dev' if $host eq '62.189.112.129';
+
+if (open(PH,'|-', BASEDIR."/bin/rrd-server.pl -u $host")) {
 	while (<>) {
-		warn "$host $_";
+		#warn "$host $_";
 		next unless /^[\w\.\-\_\d]+\s+[\d\.]+\s*$/;
 		print PH $_;
 	}

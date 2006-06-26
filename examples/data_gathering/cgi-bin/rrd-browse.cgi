@@ -1,4 +1,4 @@
-#!/home/system/rrd/bin/perl
+#!/usr/bin/perl
 ############################################################
 #
 #   $Id$
@@ -21,6 +21,12 @@
 ############################################################
 # vim:ts=4:sw=4:tw=78
 
+# User defined constants
+use constant BASEDIR => '/home/system/rrd';
+use constant RRDURL => '/rrd';
+
+
+
 use 5.6.1;
 use warnings;
 use strict;
@@ -30,11 +36,7 @@ use HTML::Template::Expr;
 use File::Basename qw(basename);
 use Config::General qw();
 use Memoize;
-use Data::Dumper;
-
-# User defined constants
-use constant BASEDIR => '/home/system/rrd';
-use constant RRDURL => '/rrd';
+#use Data::Dumper;
 
 # Speed things up a little :)
 memoize('list_dir');

@@ -1,4 +1,4 @@
-Version 1.39 - 20th June 2006
+Version 1.39 - 26th June 2006
     + Changed the return value from the graph()
       method to be a hash instead of an array, so
       that the data inside can be easily identified

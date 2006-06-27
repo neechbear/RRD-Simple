@@ -27,7 +27,7 @@ my %update = ();
 if (-f '/bin/ps' && -x '/bin/ps') {
 	open(PH,'-|','/bin/ps -eo pid,s') || die $!;
 	while (local $_ = <PH>) {
-		if (/^\d+\s+(\w+)\s*$/) {
+		if (/^\s*\d+\s+(\w+)\s*$/) {
 			$update{$1}++;
 		}
 	}

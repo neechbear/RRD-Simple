@@ -185,7 +185,7 @@ sub misc_users {
 
 	unless (keys %update) {
 		$cmd = -f '/usr/bin/uptime' ? '/usr/bin/uptime' : '/bin/uptime';
-		if (my ($users) = `$cmd` =~ /,\s*(\d+)\s*users\s*,/i) {
+		if (my ($users) = `$cmd` =~ /,\s*(\d+)\s*users?\s*,/i) {
 			$update{Users} = $1;
 		}
 	}

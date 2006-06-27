@@ -21,6 +21,13 @@
 ############################################################
 # vim:ts=4:sw=4:tw=78
 
+# User defined constants
+use constant DB_MYSQL_DSN  => 'DBI:mysql:mysql:localhost';
+use constant DB_MYSQL_USER => '';
+use constant DB_MYSQL_PASS => '';
+
+
+
 use 5.004;
 use strict;
 use warnings;
@@ -36,6 +43,8 @@ my @probes = qw(
 		proc_state proc_filehandles
 		apache_status apache_logs
 		misc_uptime misc_users
+		db_mysql_activity
+		mail_exim_queue
 	);
 
 # Get command line options
@@ -160,16 +169,64 @@ sub basic_http {
 	return wantarray ? split(/\n/,$str) : $str;
 }
 
+sub select_cmd {
+	foreach (@_) {
+		return $_ if -f $_ && -x $_;
+	}
+	return '';
+}
+
+
 
 
 #
 # Probes
 #
 
+sub mail_exim_queue {
+	my $spooldir = '/var/spool/exim/input';
+	return () unless -d $spooldir && -x $spooldir && -r $spooldir;
+	local %mail::exim::queue::update = ();
+
+	eval {
+		use File::Find;
+		File::Find::find({wanted => \&wanted}, $spooldir);
+		sub wanted {
+			my ($dev,$ino,$mode,$nlink,$uid,$gid);
+			(($dev,$ino,$mode,$nlink,$uid,$gid) = lstat($_)) &&
+			-f _ &&
+			/^.*-D\z/s &&
+			$mail::exim::queue::update{Messages}++;
+		}
+	};
+
+	return %mail::exim::queue::update;
+}
+
+sub db_mysql_activity {
+	my %update = ();
+	return %update unless (defined DB_MYSQL_DSN && defined DB_MYSQL_USER);
+
+	eval {
+		use DBI;
+		my $dbh = DBI->connect(DB_MYSQL_DSN,DB_MYSQL_USER,DB_MYSQL_PASS);
+		my $sth = $dbh->prepare('SHOW STATUS');
+		$sth->execute();
+		while (my @ary = $sth->fetchrow_array()) {
+			if ($ary[0] =~ /^Questions$/i) {
+				%update = @ary;
+				last;
+			}
+		}
+		$sth->finish();
+		$dbh->disconnect();
+	};
+
+	return %update;
+}
+
 sub misc_users {
-	my $cmd = -f '/usr/bin/who' ? '/usr/bin/who' : 
-			-f '/bin/who' ? '/bin/who' :
-			-f '/usr/bin/w' ? '/usr/bin/w' : '/bin/w';
+	my $cmd = select_cmd(qw(/usr/bin/who /bin/who /usr/bin/w /bin/w));
 	return () unless -f $cmd;
 	my %update = ();
 
@@ -194,7 +251,7 @@ sub misc_users {
 }
 
 sub misc_uptime {
-	my $cmd = -f '/usr/bin/uptime' ? '/usr/bin/uptime' : '/bin/uptime';
+	my $cmd = select_cmd(qw(/usr/bin/uptime /bin/uptime));
 	return () unless -f $cmd;
 	my %update = ();
 
@@ -341,7 +398,7 @@ sub cpu_utilisation {
 }
 
 sub hdd_io {
-	my $cmd = -f '/usr/bin/iostat' ? '/usr/bin/iostat' : '/usr/sbin/iostat';
+	my $cmd = select_cmd(qw(/usr/bin/iostat /usr/sbin/iostat));
 	return () unless -f $cmd;
 	return () unless $^O eq 'linux';
 	$cmd .= ' -k';
@@ -362,7 +419,7 @@ sub hdd_io {
 
 sub mem_usage {
 	my %update = ();
-	my $cmd = -f '/usr/bin/free' ? '/usr/bin/free' : '/bin/free';
+	my $cmd = select_cmd(qw(/usr/bin/free /bin/free));
 	my @keys = ();
 
 	if ($^O eq 'linux' && -f $cmd && -x $cmd) {
@@ -481,12 +538,12 @@ sub net_traffic {
 }
 
 sub proc_state {
-	my $cmd = -f '/bin/ps' ? '/bin/ps' : '/usr/bin/ps';
+	my $cmd = select_cmd(qw(/bin/ps /usr/bin/ps));
 	my %update = ();
 	my %keys = ();
 
 	if (-f $cmd && -x $cmd) {
-		if ($^O eq 'freebsd') {
+		if ($^O eq 'freebsd' || $^O eq 'darwin') {
 			$cmd .= ' axo pid,state';
 		#	%keys = (D => 'IO_Wait', R => 'Run', S => 'Sleep', T => 'Stopped',
 		#			I => 'Idle', L => 'Lock_Wait', Z => 'Zombie', W => 'Idle_Thread');
@@ -546,7 +603,7 @@ sub cpu_loadavg {
 }
 
 sub net_connections {
-	my $cmd = -f '/bin/netstat' ? '/bin/netstat' : '/usr/bin/netstat';
+	my $cmd = select_cmd(qw(/bin/netstat /usr/bin/netstat /usr/sbin/netstat));
 	return () unless -f $cmd;
 	$cmd .= ' -na';
 

@@ -139,7 +139,7 @@ sub basic_http {
 		# Send the HTTP request
 		print SOCK "$method $path HTTP/1.1\n";
 		print SOCK "Host: $host". ("$port" ne "80" ? ":$port" : '') ."\n";
-		print SOCK "User-Agent: $0 $VERSION\n";
+		print SOCK "User-Agent: $0 version $VERSION ".'($Id$)'."\n";
 		if ($post && $method eq 'POST') {
 			print SOCK "Content-Length: ". length($post) ."\n";
 			print SOCK "Content-Type: application/x-www-form-urlencoded\n";
@@ -200,7 +200,7 @@ sub misc_uptime {
 
 # 5:40PM  up 28 days, 18:27, 11 users, load averages: 1.00, 1.00, 1.00
 # 17:52:37 up 52 min,  2 users,  load average: 0.21, 0.16, 0.07
-	if (my ($str) = `$cmd` =~ /\s*up\s*(.+?)\s*,\s*\d+\s*users/) {
+	if (my ($str) = `$cmd` =~ /\s*up\s*(.+?)\s*,\s*\d+\s*users?/) {
 		my $days = 0;
 		if (my ($nuke,$num) = $str =~ /(\s*(\d+)\s*days?,?\s*)/) {
 			$str =~ s/$nuke//;
@@ -276,7 +276,9 @@ sub apache_status {
 	eval "use LWP::UserAgent";
 	unless ($@) {
 		eval {
-			my $ua = LWP::UserAgent->new(agent => "$0 $VERSION", timeout => $timeout);
+			my $ua = LWP::UserAgent->new(
+				agent => "$0 version $VERSION ".'($Id)',
+				 timeout => $timeout);
 			$ua->env_proxy;
 			$ua->max_size(1024*250);
 			my $response = $ua->get($url);

@@ -10,6 +10,20 @@
 	source_colors		"ff0000 00ff00 0000ff ffffff"
 </graph>
 
+<graph db_mysql_activity>
+	title				"MySQL Database Activity"
+	vertical_label		"queries/sec"
+	source_drawtypes	"AREA"
+	sources				"Questions"
+	source_labels		"Queries"
+</graph>
+
+<graph mail_exim_queue>
+	title				"Exim Mail Queue"
+	vertical_label		"Messages"
+	source_drawtypes	"AREA"
+</graph>
+
 <graph hdd_temp>
 	extended_legend		Yes
 	title				"Hard Disk Temperature"

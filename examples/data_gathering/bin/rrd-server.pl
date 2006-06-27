@@ -406,7 +406,7 @@ __DATA__
 ^apache_status$	BytesPerSec	DERIVE	0	-
 ^apache_logs$	*	DERIVE	0	-
 
-^db_mysql_activity$	Questions	DERIVE	0	-
+^db_mysql_activity$	*	DERIVE	0	-
 
 __END__
 

@@ -208,7 +208,7 @@ sub db_mysql_activity {
 	return %update unless (defined DB_MYSQL_DSN && defined DB_MYSQL_USER);
 
 	eval {
-		use DBI;
+		require DBI;
 		my $dbh = DBI->connect(DB_MYSQL_DSN,DB_MYSQL_USER,DB_MYSQL_PASS);
 		my $sth = $dbh->prepare('SHOW STATUS');
 		$sth->execute();

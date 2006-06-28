@@ -10,7 +10,7 @@
   <h3>Prerequisite Software</h3>
   <p>
     If you are using a <a href="http://www.perl.org/get.html">recent 5.8.x version of Perl</a>,
-    only the following additonal modules are required to run the rrd-browse.cgi web interface:
+    only the following additional modules are required to run the rrd-browse.cgi web interface:
     <ul>
       <li><a href="http://search.cpan.org/~tlinden/Config-General/">Config-General-2.31.tar.gz</a></li>
       <li><a href="http://search.cpan.org/~samtregar/HTML-Template/">HTML-Template-2.8.tar.gz</a></li>
@@ -30,7 +30,7 @@
     </ul>
   </p>
 
-  <h3>Selecing an Instllation Location</h3>
+  <h3>Selecting an Installation Location</h3>
   <p>
     Select a location where you want to install the RRD monitoring software. By default,
     the software is configured to be installed under <code>/home/system/rrd/</code>. The
@@ -46,14 +46,14 @@
       <li><code>./thumbnails/</code> - will contain the thumbnail images</li>
     </ul>
     Create these directories in your install directory, and copy the files in to the
-    relevent directories. Remember to check that you have set execute permissions for
+    relevant directories. Remember to check that you have set execute permissions for
     the .pl and .cgi scripts.
   </p>
   <p>
     Once the files are in place, you will need to make a couple of small changes to the
     following files: <code>./bin/rrd-server.pl</code>, <code>./cgi-bin/rrd-server.cgi</code>,
     <code>./cgi-bin/rrd-browse.cgi</code> and <code>./etc/rrd-httpd.conf</code>.
-    You chould change any occurance of <code>/home/system/rrd</code> to reflect your
+    You should change any occurrence of <code>/home/system/rrd</code> to reflect your
     installation directory. In the case of the three .pl and .cgi files, this will be
     located in one place at the top of the file, and will look something like this:
 <pre>
@@ -64,9 +64,9 @@ use constant BASEDIR => '/home/system/rrd';
 
   <h3>Setting up rrd-server.cgi &amp; rrd-browse.cgi</h3>
   <p>
-    In order for rrd-server.cgi abd rrd-browse.cgi to work, you must allow your webserver to
+    In order for rrd-server.cgi abd rrd-browse.cgi to work, you must allow your web server to
     execute them as CGI scripts. The <code>./etc/rrd-httpd.conf</code> file contains a number
-    of configuration directives that will allow your Apache webserver to access the CGI scripts
+    of configuration directives that will allow your Apache web server to access the CGI scripts
     under the <code>/cgi-bin/rrd/</code> URL path on your server. You should either copy and
     paste the contents of this config file in to your Apache configuration file as you see fit,
     or, if you are running a Fedora Core or RedHat server, you might want to create a symbolic
@@ -74,7 +74,7 @@ use constant BASEDIR => '/home/system/rrd';
     <p>
       <code>ln -s /home/system/rrd/etc/rrd-httpd.conf /etc/httpd/conf.d/rrd-httpd.conf</code>
     </p>
-    Restarting your Apache webserver afterwards should make these scripts visible.
+    Restarting your Apache web server afterwards should make these scripts visible.
   </p>
 
   <h3>Automating Graph &amp; Thumbnail Creation</h3>
@@ -83,7 +83,7 @@ use constant BASEDIR => '/home/system/rrd';
     rrd-browse.cgi will only allow you to navigate the existing graphs and thumbnails. None
     of these scripts will automatically create graphs and thumbnails on their own. To generate
     the graphs, you will need to run the <code>./bin/rrd-server.pl</code> script with the
-    <code>-g</code> and <code>-t</code> paramaters. This will create the graphs and thumbnails
+    <code>-g</code> and <code>-t</code> parameters. This will create the graphs and thumbnails
     respectively. Add the following to your crontab to generate these on a regular basis:
     <p>
       <code>8,18,28,38,48,58 * * * * /home/system/rrd/bin/rrd-server.pl -gt >/dev/null 2>&1</code>

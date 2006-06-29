@@ -40,7 +40,7 @@ my @probes = qw(
 		cpu_utilisation cpu_loadavg cpu_temp
 		hdd_io mem_usage hdd_temp hdd_capacity
 		net_traffic net_connections
-		proc_state proc_filehandles
+		proc_threads proc_state proc_filehandles
 		apache_status apache_logs
 		misc_uptime misc_users
 		db_mysql_activity
@@ -182,6 +182,24 @@ sub select_cmd {
 #
 # Probes
 #
+
+sub proc_threads {
+	return () unless $^O eq 'linux' && `/bin/uname -r 2>&1` =~ /^2\.6\./;
+	my %update = ();
+	my $cmd = '/bin/ps -eo pid,nlwp';
+
+	open(PH,'-|',$cmd) || die "Unable to open file handle for command '$cmd': $!";
+	while (local $_ = <PH>) {
+		if (my ($pid,$nlwp) = $_ =~ /^\s*(\d+)\s+(\d+)\s*$/) {
+			$update{Processes}++;
+			$update{Threads} += $nlwp;
+			$update{MultiThreadProcs}++ if $nlwp > 1;
+		}
+	}
+	close(PH) || die "Unable to close file handle for command '$cmd': $!";
+
+	return %update;
+}
 
 sub mail_exim_queue {
 	my $spooldir = '/var/spool/exim/input';

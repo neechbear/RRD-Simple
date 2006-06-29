@@ -488,7 +488,7 @@ sub mem_usage {
 }
 
 sub hdd_temp {
-	my $cmd = '/usr/sbin/hddtemp';
+	my $cmd = select_cmd(qw(/usr/sbin/hddtemp /usr/bin/hddtemp));
 	return () unless -f $cmd;
 	$cmd .= '  -q /dev/hd? /dev/sd?';
 
@@ -515,12 +515,12 @@ sub hdd_capacity {
 		my %data = ();
 		@data{@cols} = split(/\s+/,$_);
 		if ($^O eq 'darwin' || defined $data{unknown}) {
-			@data{@cols} = $_ =~ /^(.+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)%?\s*(.+)\s*$/;
+			@data{@cols} = $_ =~ /^(.+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)%?\s+(.+)\s*$/;
 		}
 
 		next if ($data{fs} eq 'none' || $data{mount} =~ m#^/dev/#);
-		$data{capacity} =~ s/%//;
-		(my $ds = $data{mount}) =~ s/\//_/g;
+		$data{capacity} =~ s/\%//;
+		(my $ds = $data{mount}) =~ s/[^a-z0-9]/_/ig; $ds =~ s/__+/_/g;
 		$update{$ds} = $data{capacity};
 	}
 

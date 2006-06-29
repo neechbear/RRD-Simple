@@ -185,11 +185,9 @@ sub select_cmd {
 
 sub mail_exim_queue {
 	my $spooldir = '/var/spool/exim/input';
-	return () unless -d $spooldir && -x $spooldir && -r $spooldir;
-	local %mail::exim::queue::update = ();
-
-	eval {
-		use File::Find;
+	if (-d $spooldir && -x $spooldir && -r $spooldir) {
+		local %mail::exim::queue::update = ();
+		require File::Find;
 		File::Find::find({wanted => \&wanted}, $spooldir);
 		sub wanted {
 			my ($dev,$ino,$mode,$nlink,$uid,$gid);
@@ -198,9 +196,25 @@ sub mail_exim_queue {
 			/^.*-D\z/s &&
 			$mail::exim::queue::update{Messages}++;
 		}
-	};
+		return %mail::exim::queue::update
+			if keys %mail::exim::queue::update;
+	}
 
-	return %mail::exim::queue::update;
+	my $cmd = select_cmd(qw(/usr/bin/mailq /usr/sbin/mailq /usr/local/bin/mailq
+			/usr/local/sbin/mailq /bin/mailq /sbin/mailq
+			/usr/local/exim/bin/mailq /home/system/exim/bin/mailq));
+	return () unless -f $cmd;
+	my %update = ();
+
+	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
+	while (local $_ = <PH>) {
+		if (/^\s*\S+\s+\S+\s+[a-z0-9]{6}-[a-z0-9]{6}-[a-z0-9]{2} </i) {
+			$update{Messages}++;
+		}
+	}
+	close(PH) || warn "Unable to close file handle PH for command '$cmd': $!\n";
+
+	return %update;
 }
 
 sub db_mysql_activity {
@@ -496,13 +510,18 @@ sub hdd_capacity {
 	my @data = split(/\n/, ($^O =~ /linux/ ? `df -P -x iso9660` : `df -P`));
 	shift @data;
 
+	my @cols = qw(fs blocks used avail capacity mount unknown);
 	for (@data) {
-		my ($fs,$blocks,$used,$avail,$capacity,$mount) = split(/\s+/,$_);
-		next if ($fs eq 'none' || $mount =~ m#^/dev/#);
-		if (my ($val) = $capacity =~ /(\d+)/) {
-			(my $ds = $mount) =~ s/\//_/g;
-			$update{$ds} = $val;
-		} 
+		my %data = ();
+		@data{@cols} = split(/\s+/,$_);
+		if ($^O eq 'darwin' || defined $data{unknown}) {
+			@data{@cols} = $_ =~ /^(.+)\s*(\d+)\s*(\d+)\s*(\d+)\s*(\d+)%?\s*(.+)\s*$/;
+		}
+
+		next if ($data{fs} eq 'none' || $data{mount} =~ m#^/dev/#);
+		$data{capacity} =~ s/%//;
+		(my $ds = $data{mount}) =~ s/\//_/g;
+		$update{$ds} = $data{capacity};
 	}
 
 	return %update;

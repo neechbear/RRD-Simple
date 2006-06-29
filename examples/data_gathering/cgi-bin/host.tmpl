@@ -13,6 +13,7 @@
 <div class="contents">
 <TMPL_UNLESS GRAPH>
   <h3>
+    [ <a href="<TMPL_VAR self_url>?template=by_host.tmpl&HOST=<TMPL_VAR HOST>">overview</a> ]
     [ <TMPL_IF EXPR="PERIOD eq 'daily'">daily<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=daily">daily</a></TMPL_IF>
     | <TMPL_IF EXPR="PERIOD eq 'weekly'">weekly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=weekly">weekly</a></TMPL_IF>
     | <TMPL_IF EXPR="PERIOD eq 'monthly'">monthly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=monthly">monthly</a></TMPL_IF>

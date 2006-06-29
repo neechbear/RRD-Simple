@@ -39,8 +39,10 @@ use Memoize;
 #use Data::Dumper;
 
 # Speed things up a little :)
-memoize('list_dir');
-memoize('graph_def');
+my %list_cache = ();
+memoize('list_dir', SCALAR_CACHE => [HASH => \%list_cache]);
+my %graph_cache = ();
+memoize('graph_def', SCALAR_CACHE => [HASH => \%graph_cache]);
 
 # Grab CGI paramaters
 my $cgi = new CGI;
@@ -66,7 +68,7 @@ my %graph_tmpl = ();
 $tmpl{hosts} = []; $tmpl{graphs} = [];
 
 # By host
-for my $host (sort(list_dir($dir{data}))) {
+for my $host (sort by_domain list_dir($dir{data})) {
 	if (!grep(/^$host$/,@graphs)) {
 		push @{$tmpl{hosts}}, { host => $host, no_graphs => 1 };
 	} else {
@@ -136,6 +138,9 @@ my $template = HTML::Template::Expr->new(
 $template->param(\%tmpl);
 print $cgi->header(-content => 'text/html'), $template->output();
 
+%list_cache = ();
+%graph_cache = ();
+
 exit;
 
 sub slurp {
@@ -146,6 +151,24 @@ sub slurp {
 		close(FH);
 	}
 	return $rtn;
+}
+
+sub by_domain {
+	sub split_domain {
+		local $_ = shift || '';
+		if (/(.*)\.(\w\w\w+)$/) {
+			return ($2,$1);
+		} elsif (/(.*)\.(\w+\.\w\w)$/) {
+			return ($2,$1);
+		}
+		return ($_,'');
+	}
+	my @A = split_domain($a);
+	my @B = split_domain($b);
+
+	($A[0] cmp $B[0])
+		||
+	($A[1] cmp $B[1])
 }
 
 sub alpha_period {

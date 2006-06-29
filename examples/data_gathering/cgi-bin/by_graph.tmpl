@@ -14,7 +14,7 @@
   <div class="host">
     <h2><TMPL_IF GRAPH><TMPL_VAR graph_title><TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&GRAPH=<TMPL_VAR graph>"><TMPL_VAR graph_title></TMPL_IF></h2>
       <TMPL_LOOP thumbnails>
-<div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a><br /><TMPL_VAR host></div>
+<div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" class="thumbnail" /></a><br /><TMPL_VAR host></div>
       </TMPL_LOOP>
   </div>
   <div class="vertspace"></div>

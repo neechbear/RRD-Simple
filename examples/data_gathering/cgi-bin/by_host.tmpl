@@ -10,12 +10,12 @@
 
 <div class="contents">
 <TMPL_LOOP hosts>
-  <TMPL_IF EXPR="((HOST eq host) || (like(host,LIKE)) || ((defined(HOST) == 0) && (defined(LIKE) == 0)))">
+  <TMPL_IF EXPR="equal_or_like(host,HOST,LIKE)">
 <div class="host">
 <h2><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>"><TMPL_VAR host></a></h2>
   <TMPL_LOOP thumbnails>
     <TMPL_IF EXPR="period eq 'daily'">
-<div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a><br /><TMPL_VAR title></div>
+<div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" class="thumbnail" /></a><br /><TMPL_VAR title></div>
     </TMPL_IF>
   </TMPL_LOOP>
   <TMPL_IF no_graphs>

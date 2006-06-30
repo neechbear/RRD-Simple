@@ -184,7 +184,8 @@ sub select_cmd {
 #
 
 sub proc_threads {
-	return () unless $^O eq 'linux' && `/bin/uname -r 2>&1` =~ /^2\.6\./;
+	return () unless ($^O eq 'linux' && `/bin/uname -r 2>&1` =~ /^2\.6\./) ||
+					($^O eq 'solaris' && `/bin/uname -r 2>&1` =~ /^5\.9/);
 	my %update = ();
 	my $cmd = '/bin/ps -eo pid,nlwp';
 
@@ -525,7 +526,8 @@ sub hdd_temp {
 
 sub hdd_capacity {
 	my %update = ();
-	my @data = split(/\n/, ($^O =~ /linux/ ? `df -P -x iso9660` : `df -P`));
+	my @data = split(/\n/, ($^O =~ 'linux' ? `df -P -x iso9660` : 
+				$^O eq 'solaris' ? `df -lk -F ufs` : `df -P`));
 	shift @data;
 
 	my @cols = qw(fs blocks used avail capacity mount unknown);

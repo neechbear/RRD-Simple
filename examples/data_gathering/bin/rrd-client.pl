@@ -280,6 +280,9 @@ sub misc_users {
 		}
 	}
 
+	$update{Users} ||= 0;
+	$update{Unique} ||= 0;
+
 	return %update;
 }
 
@@ -288,8 +291,6 @@ sub misc_uptime {
 	return () unless -f $cmd;
 	my %update = ();
 
-# 5:40PM  up 28 days, 18:27, 11 users, load averages: 1.00, 1.00, 1.00
-# 17:52:37 up 52 min,  2 users,  load average: 0.21, 0.16, 0.07
 	if (my ($str) = `$cmd` =~ /\s*up\s*(.+?)\s*,\s*\d+\s*users?/) {
 		my $days = 0;
 		if (my ($nuke,$num) = $str =~ /(\s*(\d+)\s*days?,?\s*)/) {

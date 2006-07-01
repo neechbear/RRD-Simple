@@ -21,10 +21,20 @@
 ############################################################
 # vim:ts=4:sw=4:tw=78
 
+############################################################
 # User defined constants
 use constant DB_MYSQL_DSN  => 'DBI:mysql:mysql:localhost';
 use constant DB_MYSQL_USER => '';
 use constant DB_MYSQL_PASS => '';
+
+use constant NET_PING_HOSTS => qw();
+
+#
+#  YOU SHOULD NOT NEED TO EDIT ANYTHING BEYOND THIS POINT
+#
+############################################################
+
+
 
 
 
@@ -35,17 +45,19 @@ use vars qw($VERSION);
 
 $VERSION = '1.39' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
+
 # Default list of probes
 my @probes = qw(
 		cpu_utilisation cpu_loadavg cpu_temp
 		hdd_io mem_usage hdd_temp hdd_capacity
-		net_traffic net_connections
 		proc_threads proc_state proc_filehandles
 		apache_status apache_logs
 		misc_uptime misc_users
 		db_mysql_activity
 		mail_exim_queue
+		net_traffic net_connections net_ping_host
 	);
+
 
 # Get command line options
 my %opt = ();
@@ -53,6 +65,7 @@ eval "require Getopt::Std";
 Getopt::Std::getopts('p:i:x:hv', \%opt) unless $@;
 (display_help() && exit) if defined $opt{h};
 (display_version() && exit) if defined $opt{v};
+
 
 # Filter on probe include list
 if (defined $opt{i}) {
@@ -65,6 +78,7 @@ if (defined $opt{x}) {
 	my $exc = join('|',split(/\s*,\s*/,$opt{x}));
 	@probes = grep(!/(^|_)($exc)(_|$)/,@probes);
 }
+
 
 # Run the probes one by one
 die "Nothing to probe!\n" unless @probes;
@@ -81,10 +95,14 @@ for my $probe (@probes) {
 	warn $@ if $@;
 }
 
+
 # HTTP POST the data if asked to
 print(scalar basic_http('POST',$opt{p},30,$post), "\n") if $opt{p};
 
+
 exit;
+
+
 
 
 
@@ -100,6 +118,7 @@ sub report {
 	return $str;
 }
 
+
 # Display help
 sub display_help {
 	print qq{Syntax: $0 [-i probe1,probe2,..|-x probe1,probe2,..] [-p url] [-h|-v]
@@ -110,10 +129,12 @@ sub display_help {
      -h              Display this help\n};
 }
 
+
 # Display version
 sub display_version {
 	print "$0 version $VERSION ".'($Id$)'."\n";
 }
+
 
 # Basic HTTP client if LWP is unavailable
 sub basic_http {
@@ -169,6 +190,8 @@ sub basic_http {
 	return wantarray ? split(/\n/,$str) : $str;
 }
 
+
+# Return the most appropriate binary command
 sub select_cmd {
 	foreach (@_) {
 		return $_ if -f $_ && -x $_;
@@ -179,9 +202,41 @@ sub select_cmd {
 
 
 
+
+
 #
 # Probes
 #
+
+sub net_ping_host {
+	return () unless defined NET_PING_HOSTS() && scalar NET_PING_HOSTS() > 0;
+	my $cmd = select_cmd(qw(/bin/ping /usr/bin/ping /sbin/ping /usr/sbin/ping));
+	return () unless -f $cmd;
+	my %update = ();
+	my $count = 3;
+
+	for my $host (NET_PING_HOSTS()) {
+		my $cmd2 = "$cmd -c $count $host 2>&1";
+
+		open(PH,'-|',$cmd2) || die "Unable to open file handle PH for command '$cmd2': $!\n";
+		while (local $_ = <PH>) {
+			if (/\s+(\d+)%\s+packet\s+loss[\s,]/i) {
+				$update{"$host.PacketLoss"} = $1 || 0;
+			} elsif (my ($min,$avg,$max,$mdev) = $_ =~
+					/\s+([\d\.]+)\/([\d\.]+)\/([\d\.]+)\/([\d\.]+)\s+/) {
+				$update{"$host.AvgRTT"} = $avg || 0;
+				$update{"$host.MinRTT"} = $min || 0;
+				$update{"$host.MaxRTT"} = $max || 0;
+				$update{"$host.MDevRTT"} = $mdev || 0;
+			}
+		}
+		close(PH) || warn "Unable to close file handle PH for command '$cmd2': $!\n";
+	}
+
+	return %update;
+}
+
+
 
 sub proc_threads {
 	return () unless ($^O eq 'linux' && `/bin/uname -r 2>&1` =~ /^2\.6\./) ||
@@ -201,6 +256,8 @@ sub proc_threads {
 
 	return %update;
 }
+
+
 
 sub mail_exim_queue {
 	my $spooldir = '/var/spool/exim/input';
@@ -232,9 +289,12 @@ sub mail_exim_queue {
 		}
 	}
 	close(PH) || warn "Unable to close file handle PH for command '$cmd': $!\n";
+	$update{Messages} ||= 0;
 
 	return %update;
 }
+
+
 
 sub db_mysql_activity {
 	my %update = ();
@@ -257,6 +317,8 @@ sub db_mysql_activity {
 
 	return %update;
 }
+
+
 
 sub misc_users {
 	my $cmd = select_cmd(qw(/usr/bin/who /bin/who /usr/bin/w /bin/w));
@@ -285,6 +347,8 @@ sub misc_users {
 
 	return %update;
 }
+
+
 
 sub misc_uptime {
 	my $cmd = select_cmd(qw(/usr/bin/uptime /bin/uptime));
@@ -315,6 +379,8 @@ sub misc_uptime {
 	return %update;
 }
 
+
+
 sub cpu_temp {
 	my $cmd = '/usr/bin/sensors';
 	return () unless -f $cmd;
@@ -331,6 +397,8 @@ sub cpu_temp {
 
 	return %update;
 }
+
+
 
 sub apache_logs {
 	my $dir = '/var/log/httpd';
@@ -352,6 +420,8 @@ sub apache_logs {
 
 	return %update;
 }
+
+
 
 sub apache_status {
 	my @data = ();
@@ -409,6 +479,8 @@ sub apache_status {
 	return %update;
 }
 
+
+
 sub cpu_utilisation {
 	my $cmd = '/usr/bin/vmstat';
 	return () unless -f $cmd;
@@ -431,6 +503,8 @@ sub cpu_utilisation {
 	return ( map {( $labels{$_} || $_ => $update{$_} )} keys %labels );
 }
 
+
+
 sub hdd_io {
 	my $cmd = select_cmd(qw(/usr/bin/iostat /usr/sbin/iostat));
 	return () unless -f $cmd;
@@ -450,6 +524,8 @@ sub hdd_io {
 
 	return %update;
 }
+
+
 
 sub mem_usage {
 	my %update = ();
@@ -507,6 +583,8 @@ sub mem_usage {
 	return %update;
 }
 
+
+
 sub hdd_temp {
 	my $cmd = select_cmd(qw(/usr/sbin/hddtemp /usr/bin/hddtemp));
 	return () unless -f $cmd;
@@ -524,6 +602,8 @@ sub hdd_temp {
 
 	return %update;
 }
+
+
 
 sub hdd_capacity {
 	my %update = ();
@@ -548,6 +628,8 @@ sub hdd_capacity {
 	return %update;
 }
 
+
+
 sub net_traffic {
 	return () unless -f '/proc/net/dev';
 	my @keys = ();
@@ -571,11 +653,12 @@ sub net_traffic {
 			@keys = (map({"RX$_"} split(/\s+/,$rx)), map{"TX$_"} split(/\s+/,$tx));
 		}
 	}
-
 	close(FH) || warn "Unable to close '/proc/net/dev': $!\n";
 
 	return %update;
 }
+
+
 
 sub proc_state {
 	my $cmd = select_cmd(qw(/bin/ps /usr/bin/ps));
@@ -618,6 +701,8 @@ sub proc_state {
 	return %update;
 }
 
+
+
 sub cpu_loadavg {
 	my %update = ();
 	my @data = ();
@@ -642,6 +727,8 @@ sub cpu_loadavg {
 	return %update;
 }
 
+
+
 sub net_connections {
 	my $cmd = select_cmd(qw(/bin/netstat /usr/bin/netstat /usr/sbin/netstat));
 	return () unless -f $cmd;
@@ -659,6 +746,8 @@ sub net_connections {
 
 	return %update;
 }
+
+
 
 sub proc_filehandles {
 	return () unless -f '/proc/sys/fs/file-nr';

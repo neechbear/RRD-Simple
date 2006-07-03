@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl -wT
 ############################################################
 #
 #   $Id$
@@ -27,7 +27,8 @@ use constant DB_MYSQL_DSN  => 'DBI:mysql:mysql:localhost';
 use constant DB_MYSQL_USER => undef;
 use constant DB_MYSQL_PASS => undef;
 
-use constant NET_PING_HOSTS => qw();
+use constant NET_PING_HOSTS => $ENV{NET_PING_HOSTS} ?
+		split(/[\s,:]+/,$ENV{NET_PING_HOSTS}) : qw();
 
 #
 #  YOU SHOULD NOT NEED TO EDIT ANYTHING BEYOND THIS POINT
@@ -44,6 +45,8 @@ use warnings;
 use vars qw($VERSION);
 
 $VERSION = '1.39' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$ENV{PATH} = '/bin:/usr/bin';
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 
 # Default list of probes
@@ -269,7 +272,7 @@ sub mail_exim_queue {
 	if (-d $spooldir && -x $spooldir && -r $spooldir) {
 		local %mail::exim::queue::update = ();
 		require File::Find;
-		File::Find::find({wanted => \&wanted}, $spooldir);
+		File::Find::find({wanted => \&wanted, no_chdir => 1}, $spooldir);
 		sub wanted {
 			my ($dev,$ino,$mode,$nlink,$uid,$gid);
 			(($dev,$ino,$mode,$nlink,$uid,$gid) = lstat($_)) &&
@@ -489,8 +492,25 @@ sub apache_status {
 }
 
 
+sub _darwin_cpu_utilisation {
+	my $output = qx{/usr/bin/sar 4 1};
+	my %rv = ();
+	if ($output =~ m/Average:\s+(\d+)\s+(\d+)\s+(\d+)/) {
+		%rv = (
+				User => $1,
+				System => $2,
+				Idle => $3,
+				IO_Wait => 0, # at the time of writing, sar doesn't provide this metric
+			);
+	}
+	return %rv;
+}
 
 sub cpu_utilisation {
+	if ($^O eq 'darwin') {
+		return _darwin_cpu_utilisation();
+	}
+
 	my $cmd = '/usr/bin/vmstat';
 	return () unless -f $cmd;
 	$cmd .= ' 1 2';
@@ -564,6 +584,14 @@ sub mem_usage {
 		}
 		close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
 
+	} elsif ($^O eq 'darwin' && -x '/usr/sbin/sysctl') {
+		my $swap = qx{/usr/sbin/sysctl vm.swapusage};
+		if ($swap =~ m/total = (.+)M  used = (.+)M  free = (.+)M/) {
+			$update{"swap.Total"} = $1*1024*1024;
+			$update{"swap.Used"} = $2*1024*1024;
+			$update{"swap.Free"} = $3*1024*1024;
+		}
+
 	} else {
 		eval "use Sys::MemInfo qw(totalmem freemem)";
 		die "Please install Sys::MemInfo so that I can get memory information.\n" if $@;
@@ -579,9 +607,16 @@ sub hdd_temp {
 	my $cmd = select_cmd(qw(/usr/sbin/hddtemp /usr/bin/hddtemp));
 	return () unless -f $cmd;
 
-	my @devs = (glob('/dev/hd?'),glob('/dev/sd?'));
+	my @devs = ();
+	for my $dev (glob('/dev/hd?'),glob('/dev/sd?')) {
+		if ($dev =~ /^(\/dev\/\w{3})$/i) {
+			push @devs, $1;
+		}
+	}
+
 	$cmd .= "  -q @devs";
 	my %update = ();
+	return %update unless @devs;
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
 	while (local $_ = <PH>) {
@@ -607,7 +642,7 @@ sub hdd_capacity {
 	} elsif ($^O eq 'darwin') {
 		$cmd .= ' -P -T hfs,ufs';
 	} else {
-		$cmd .= 'df -P';
+		$cmd .= ' -P';
 	}
 
 	my @data = split(/\n/, `$cmd`);

@@ -222,7 +222,9 @@ sub net_ping_host {
 	my %update = ();
 	my $count = 3;
 
-	for my $host (NET_PING_HOSTS()) {
+	for my $str (NET_PING_HOSTS()) {
+		my ($host) = $str =~ /^([\w\d_\-\.]+)$/i;
+		next unless $host;
 		my $cmd2 = "$cmd -c $count $host 2>&1";
 
 		open(PH,'-|',$cmd2) || die "Unable to open file handle PH for command '$cmd2': $!\n";

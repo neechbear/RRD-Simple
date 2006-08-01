@@ -1,42 +1,108 @@
-<graph cpu_utilisation>
-	extended_legend		Yes
-	title				"CPU Utilisation"
-	vertical_label		"% percent"
-	upper_limit			100
-	lower_limit			0
+<graph weather_dewPoint_(.+)>
+	title "Dew Point at $1"
+	vertical_label  "Celsius"
+</graph>
+
+<graph weather_relativeHumidity_(.+)>
+	title "Humidity at $1"
+	vertical_label  "%"
+</graph>
+
+<graph weather_temperature_(.+)>
+	title "Temperature at $1"
+	vertical_label "Celsius"
+</graph> 
+
+<graph weather_visibilityMiles_(.+)>
+	title "Visibility at $1"
+	vertical_label   "Miles"
+</graph>
+
+<graph weather_windSpeed_(.+)>
+	title "Wind Speed at $1"
+	vertical_label "Miles per Hour"
+</graph> 
+
+<graph gametrust_shockwavecom_game>
+	vertical_label          "Users"
+	extended_legend         Yes
+	title                   "Shockwave Game Usage"
+</graph>
+
+<graph gametrust_miniclipcom_game>
+	vertical_label          "Users"
+	extended_legend         Yes
+	title                   "MiniClip Game Usage"
+</graph>
+
+<graph gametrust_standardcluster_game>
+	vertical_label          "Users"
+	extended_legend         Yes
+	title                   "Cluster Game Usage"
+</graph>
+
+<graph natgrid_demand>
+	title                   "Electricity Demand"
+	vertical_label          "Watts"
+	source_drawtypes        "AREA"
+</graph>
+
+<graph natgrid_freq>
+	title                   "Supply Frequency"
+	vertical_label          "Hertz"
+	upper_limit             51
+	lower_limit             49
 	rigid
-	sources				"System User IO_Wait Idle"
-	source_drawtypes	"AREA STACK STACK STACK"
-	source_colors		"ff0000 00ff00 0000ff ffffff"
+</graph>
+
+<graph cpu_utilisation>
+	extended_legend         Yes
+	title                   "CPU Utilisation"
+	vertical_label          "% percent"
+	upper_limit             100
+	lower_limit             0
+	rigid
+	sources                 "System User IO_Wait Idle"
+	source_drawtypes        "AREA STACK STACK STACK"
+	source_colors           "ff0000 00ff00 0000ff ffffff"
 </graph>
 
 <graph db_mysql_activity>
-	title				"MySQL Database Activity"
-	vertical_label		"queries/sec"
-	source_drawtypes	"AREA"
-	sources				"Questions"
-	source_labels		"Queries"
+	title                   "MySQL Database Activity"
+	vertical_label          "queries/sec"
+	source_drawtypes        "AREA"
+	sources                 "Questions"
+	source_labels           "Queries"
 </graph>
 
 <graph mail_exim_queue>
-	title				"Exim Mail Queue"
-	vertical_label		"Messages"
-	source_drawtypes	"AREA"
+	title                   "Exim Mail Queue"
+	vertical_label          "Messages"
+	source_drawtypes        "AREA"
+</graph>
+
+<graph mail_postfix_queue>
+	title                   "Postfix Mail Queue"
+	vertical_label          "Messages"
+	source_drawtypes        "AREA"
 </graph>
 
 <graph hdd_temp>
-	extended_legend		Yes
-	title				"Hard Disk Temperature"
-	vertical_label		"Celsius"
+	extended_legend         Yes
+	title                   "Hard Disk Temperature"
+	vertical_label          "Celsius"
+	lower_limit             15
+	upper_limit             60
+	rigid
 </graph>
 
 <graph hdd_capacity>
-	extended_legend		Yes
-	title				"Disk Capacity"
-	line_thickness		2
-	vertical_label		"% used"
-	units_exponent		0
-	upper_limit			100
+	extended_legend         Yes
+	title                   "Disk Capacity"
+	line_thickness          2
+	vertical_label          "% used"
+	units_exponent          0
+	upper_limit             100
 </graph>
 
 <graph cpu_loadavg>
@@ -54,6 +120,15 @@
 	vertical_label		"Handles"
 	sources				"Maximum Allocated Used Free"
 	source_drawtypes	"LINE2 AREA LINE1 LINE1"
+</graph>
+
+<graph proc_threads>
+	extended_legend		Yes
+	title				"Threads"
+	vertical_label		"n"
+	sources				"Threads Processes MultiThreadProcs"
+	source_drawtypes	"AREA LINE1 LINE1"
+	source_colours		"9999ff 007700 cc0000"
 </graph>
 
 <graph proc_state>
@@ -124,6 +199,12 @@
 	title				"Server Uptime"
 	vertical_label		"Days"
 	line_thickness		2
+</graph>
+
+<graph "net_ping_host_(.+)">
+	extended_legend		Yes
+	title				"Ping: $1"
+	vertical_label		"ms / loss %"
 </graph>
 
 <graph net_connections>

@@ -149,9 +149,11 @@ sub graph_def {
 	my $rtn = {};
 	for (keys %{$gdefs->{graph}}) {
 		my $graph_key = qr(^$_$);
-		if ($graph =~ /$graph_key/) {
+		if (my ($var) = $graph =~ /$graph_key/) {
 			$rtn = { %{$gdefs->{graph}->{$_}} };
-			my ($var) = $graph =~ /_([^_]+)$/;
+			unless (defined $var && "$var" ne "1") {
+				($var) = $graph =~ /_([^_]+)$/;
+			}
 			for my $key (keys %{$rtn}) {
 				$rtn->{$key} =~ s/\$1/$var/g;
 			}

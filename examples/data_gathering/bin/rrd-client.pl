@@ -28,7 +28,7 @@ use constant DB_MYSQL_USER => undef;
 use constant DB_MYSQL_PASS => undef;
 
 use constant NET_PING_HOSTS => $ENV{NET_PING_HOSTS} ?
-		split(/[\s,:]+/,$ENV{NET_PING_HOSTS}) : qw();
+		(split(/[\s,:]+/,$ENV{NET_PING_HOSTS})) : qw();
 
 #
 #  YOU SHOULD NOT NEED TO EDIT ANYTHING BEYOND THIS POINT
@@ -57,7 +57,7 @@ my @probes = qw(
 		apache_status apache_logs
 		misc_uptime misc_users
 		db_mysql_activity
-		mail_exim_queue
+		mail_exim_queue mail_postfix_queue
 		net_traffic net_connections net_ping_host
 	);
 
@@ -270,40 +270,64 @@ sub proc_threads {
 
 sub mail_exim_queue {
 	my $spooldir = '/var/spool/exim/input';
+	return unless -d $spooldir && -x $spooldir && -r $spooldir;
 
-	if (-d $spooldir && -x $spooldir && -r $spooldir) {
-		local %mail::exim::queue::update = ();
-		require File::Find;
-		File::Find::find({wanted => \&wanted, no_chdir => 1}, $spooldir);
-		sub wanted {
+	local %mail::exim::queue::update = ();
+	require File::Find;
+	File::Find::find({wanted => sub {
 			my ($dev,$ino,$mode,$nlink,$uid,$gid);
 			(($dev,$ino,$mode,$nlink,$uid,$gid) = lstat($_)) &&
 			-f _ &&
 			/^.*-D\z/s &&
 			$mail::exim::queue::update{Messages}++;
-		}
-		return %mail::exim::queue::update
-			if keys %mail::exim::queue::update;
+		}, no_chdir => 1}, $spooldir);
+	return %mail::exim::queue::update;
+}
+
+
+
+sub mail_postfix_queue {
+	my @spooldirs = qw(
+			/var/spool/postfix/incoming
+			/var/spool/postfix/active
+			/var/spool/postfix/defer
+			/var/spool/postfix/deferred
+		);
+	for my $spooldir (@spooldirs) {
+		return unless -d $spooldir && -x $spooldir && -r $spooldir;
 	}
 
+	local %mail::postfix::queue::update = ();
+	require File::Find;
+	File::Find::find({wanted => sub {
+			my ($dev,$ino,$mode,$nlink,$uid,$gid);
+			(($dev,$ino,$mode,$nlink,$uid,$gid) = lstat($_)) &&
+			-f _ &&
+			$mail::postfix::queue::update{Messages}++;
+		}, no_chdir => 1}, @spooldirs);
+	return %mail::postfix::queue::update;
+}
+
+
+
+# DO NOT ENABLE THIS ONE YET
+sub mail_queue {
 	my $cmd = select_cmd(qw(/usr/bin/mailq /usr/sbin/mailq /usr/local/bin/mailq
 			/usr/local/sbin/mailq /bin/mailq /sbin/mailq
 			/usr/local/exim/bin/mailq /home/system/exim/bin/mailq));
 	return () unless -f $cmd;
 
 	my %update = ();
-	my $other_mailer_data = 0;
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
 	while (local $_ = <PH>) {
+		# This needs to match a single message id = currently only exim friendly
 		if (/^\s*\S+\s+\S+\s+[a-z0-9]{6}-[a-z0-9]{6}-[a-z0-9]{2} </i) {
 			$update{Messages}++;
-		} else {
-			$other_mailer_data++;
 		}
 	}
 	close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
-	$update{Messages} = 0 if !defined($update{Messages}) && !$other_mailer_data;
+	$update{Messages} = 0 if !defined($update{Messages});
 
 	return %update;
 }
@@ -379,7 +403,7 @@ sub misc_uptime {
 			$str =~ s/$nuke//;
 			$days += ($mins / (60*24));
 		}
-		if (my ($nuke,$hours) = $str =~ /(\s*(\d+)\s*hours?,?\s*)/) {
+		if (my ($nuke,$hours) = $str =~ /(\s*(\d+)\s*(hour|hr)s?,?\s*)/) {
 			$str =~ s/$nuke//;
 			$days += ($hours / 24);
 		}
@@ -402,7 +426,7 @@ sub cpu_temp {
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
 	while (local $_ = <PH>) {
-		if (my ($k,$v) = $_ =~ /^([^:]*\bCPU\b.*?):\s*\S*?([\d\.]+)\S*\s*/) {
+		if (my ($k,$v) = $_ =~ /^([^:]*\b(?:CPU|temp)\d*\b.*?):\s*\S*?([\d\.]+)\S*\s*/i) {
 			$k =~ s/\W//g; $k =~ s/Temp$//i;
 			$update{$k} = $v;
 		}

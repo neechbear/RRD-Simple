@@ -7,6 +7,30 @@
     </title>
     <meta http-equiv="refresh" content="900">
     <style type="text/css">
+      span.tooltip {
+        position: relative;
+        border-bottom: 1px #000077 dashed;
+      }
+      span.tooltip span {
+        display: none;
+      }
+      span.tooltip:hover span {
+        background: #ffffe1;
+        border: 1px #000000 solid;
+        padding: 7px 7px 7px 7px;
+        position: absolute;
+        top: 7px;
+        left: 10px;
+        width: 300px;
+        filter:alpha(opacity=50);
+        display: block;
+        z-index: 1;
+        -moz-opacity:0.8;
+        opacity: 0.8;
+      }
+      em {
+        font-weight: bold;
+      }
       a {
         color: #000077;
       }

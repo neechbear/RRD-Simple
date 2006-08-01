@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 ############################################################
 #
 #   $Id$
@@ -35,14 +35,16 @@ use CGI::Carp qw(fatalsToBrowser);
 use HTML::Template::Expr;
 use File::Basename qw(basename);
 use Config::General qw();
-use Memoize;
 #use Data::Dumper;
 
 # Speed things up a little :)
-my %list_cache = ();
-memoize('list_dir', SCALAR_CACHE => [HASH => \%list_cache]);
-my %graph_cache = ();
-memoize('graph_def', SCALAR_CACHE => [HASH => \%graph_cache]);
+unless (defined $ENV{MOD_PERL}) {
+	eval "use Memoize";
+	unless ($@) {
+		memoize('list_dir');
+		memoize('graph_def');
+	}
+}
 
 # Grab CGI paramaters
 my $cgi = new CGI;
@@ -50,7 +52,7 @@ my %q = $cgi->Vars;
 
 # cd to the righr location and define directories
 my %dir = map { ( $_ => BASEDIR."/$_" ) } qw(bin spool data etc graphs cgi-bin thumbnails);
-chdir $dir{'cgi-bin'} || (printf("<h1>Unable to chdir to '%s': %s</h1>", $dir{'cgi-bin'}, $!) && exit);
+chdir $dir{'cgi-bin'} || die sprintf("Unable to chdir to '%s': %s", $dir{'cgi-bin'}, $!);
 
 # Create the initial %tmpl data hash
 my %tmpl = %ENV;
@@ -60,17 +62,18 @@ $tmpl{title} = ucfirst(basename($tmpl{template},'.tmpl')); $tmpl{title} =~ s/[_\
 $tmpl{self_url} = $cgi->self_url(-absolute => 1, -query_string => 0, -path_info => 0);
 $tmpl{rrd_url} = RRDURL;
 
-# Build up the data in %tmpl
+# Go read a bunch of stuff from disk to pump in to %tmpl in a moment
 my $gdefs = read_graph_data("$dir{etc}/graph.defs");
 my @graphs = list_dir($dir{graphs});
 my @thumbnails = list_dir($dir{thumbnails});
+
+# Build up the data in %tmpl by host
 my %graph_tmpl = ();
 $tmpl{hosts} = []; $tmpl{graphs} = [];
-
-# By host
 for my $host (sort by_domain list_dir($dir{data})) {
 	if (!grep(/^$host$/,@graphs)) {
 		push @{$tmpl{hosts}}, { host => $host, no_graphs => 1 };
+
 	} else {
 		my %host = ( host => $host );
 		for (qw(thumbnails graphs)) {
@@ -114,7 +117,7 @@ for (sort keys %graph_tmpl) {
 		};
 }
 
-# Print the output
+# Render the output
 #$tmpl{DEBUG} = Dumper(\%tmpl);
 my $template = HTML::Template::Expr->new(
 		filename => $tmpl{template},
@@ -138,11 +141,11 @@ my $template = HTML::Template::Expr->new(
 $template->param(\%tmpl);
 print $cgi->header(-content => 'text/html'), $template->output();
 
-%list_cache = ();
-%graph_cache = ();
-
 exit;
 
+
+
+# Slurp in a file from disk, yum yum
 sub slurp {
 	my $rtn = $_[0];
 	if (open(FH,'<',$_[0])) {
@@ -153,6 +156,7 @@ sub slurp {
 	return $rtn;
 }
 
+# Sort by domain
 sub by_domain {
 	sub split_domain {
 		local $_ = shift || '';
@@ -171,6 +175,7 @@ sub by_domain {
 	($A[1] cmp $B[1])
 }
 
+# Sort by time period
 sub alpha_period {
 	my %order = qw(daily 0 weekly 1 monthly 2 annual 3 3year 4);
 	($a =~ /^(.+)\-/)[0] cmp ($b =~ /^(.+)\-/)[0]
@@ -178,6 +183,7 @@ sub alpha_period {
 	$order{($a =~ /^.+\-(\w+)\./)[0]} <=> $order{($b =~ /^.+\-(\w+)\./)[0]}
 }
 
+# Return a list of items in a directory
 sub list_dir {
 	my $dir = shift;
 	my @items = ();
@@ -187,6 +193,7 @@ sub list_dir {
 	return @items;
 }
 
+# Pull out the most relevent graph definition
 sub graph_def {
 	my ($gdefs,$graph) = @_;
 	return {} unless defined $graph;
@@ -194,9 +201,11 @@ sub graph_def {
 	my $rtn = {};
 	for (keys %{$gdefs->{graph}}) {
 		my $graph_key = qr(^$_$);
-		if ($graph =~ /$graph_key/) {
+		if (my ($var) = $graph =~ /$graph_key/) {
 			$rtn = { %{$gdefs->{graph}->{$_}} };
-			my ($var) = $graph =~ /_([^_]+)$/;
+			unless (defined $var && "$var" ne "1") {
+				($var) = $graph =~ /_([^_]+)$/;
+			}
 			for my $key (keys %{$rtn}) {
 				$rtn->{$key} =~ s/\$1/$var/g;
 			}
@@ -207,6 +216,7 @@ sub graph_def {
 	return $rtn;
 }
 
+# Read in the graph definition config file
 sub read_graph_data {
 	my $filename = shift || undef;
 
@@ -231,4 +241,5 @@ sub read_graph_data {
 }
 
 1;
+
 

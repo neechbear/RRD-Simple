@@ -6,7 +6,7 @@
 <TMPL_LOOP hosts>
     <li>[<a href="<TMPL_VAR self_url>?template=by_host.tmpl&HOST=<TMPL_VAR host>">overview</a>]
       <a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>"><TMPL_VAR host></a>
-      - <TMPL_VAR total_graphs> graphs</li>
+      - <TMPL_IF no_graphs><i>No graphs yet</i><TMPL_ELSE><TMPL_VAR total_graphs> graphs</TMPL_IF></li>
 </TMPL_LOOP>
   </ul>
 </div>

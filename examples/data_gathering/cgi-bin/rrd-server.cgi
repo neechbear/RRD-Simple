@@ -31,10 +31,24 @@ use warnings;
 use strict;
 use Socket;
 
-print "Content-type: text/html\n\n";
+print "Content-type: plain/text\n\n" unless exists $ENV{MOD_PERL};
 
 my $remote_addr = $ENV{REMOTE_ADDR};
-(print "FAILED - NO REMOTE_ADDR\n" && exit) unless isIP($remote_addr);
+for (qw(HTTP_X_FORWARDED_FOR HTTP_VIA HTTP_CLIENT_IP HTTP_PROXY_CONNECTION
+		FORWARDED_FOR X_FORWARDED_FOR X_HTTP_FORWARDED_FOR HTTP_FORWARDED)) {
+	if (defined $ENV{$_} && $ENV{$_} =~ /([\d\.]+)/) {
+		my $ip = $1;
+		if (isIP($ip)) {
+			$remote_addr = $ip;
+			last;
+		}
+	}
+}
+
+unless ($remote_addr) {
+	print "FAILED - NO REMOTE_ADDR\n";
+	exit;
+}
 
 my $host = ip2host($remote_addr);
 my $ip = host2ip($host);
@@ -42,9 +56,17 @@ my $ip = host2ip($host);
 (print "FAILED - FORWARD AND REVERSE DNS DO NOT MATCH\n" && exit)
 	unless "$ip" eq "$remote_addr";
 
+# Custom hostname flanges
+$host = 'merry.tfb.net' if $ip eq (split(/\s+/,`host router.ntl.tfb.net 2>/dev/null`))[3];
+$host = 'arwen.tfb.net' if $host eq 'nicolaw.arwen.tfb.net';
+$host = 'aragorn' if $ip eq '62.189.112.129' || $ip eq '161.69.135.243';
+$host = 'isle-of-cats.etla.org' if $ip eq '82.71.23.88';
+$host = 'pandora' if $ip eq '10.163.10.200';
+$host = 'tmgc.gametrust.com' if $ip eq '207.97.225.213';
+
 if (open(PH,'|-', BASEDIR."/bin/rrd-server.pl -u $host")) {
 	while (<>) {
-		#warn "$host $_";
+		warn "$host $_";
 		next unless /^[\w\.\-\_\d]+\s+[\d\.]+\s*$/;
 		print PH $_;
 	}
@@ -71,10 +93,10 @@ sub ip2host {
 
 sub isIP {
 	return 0 unless defined $_[0];
-	return 1 if $_[0] =~ /\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.
+	return 1 if $_[0] =~ /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.
 				(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.
 				(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.
-				(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/x;
+				(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/x;
 	return 0;
 }
 
@@ -94,6 +116,6 @@ sub host2ip {
 	}
 }
 
-
+1;
 
 

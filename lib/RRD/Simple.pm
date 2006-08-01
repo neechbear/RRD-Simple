@@ -32,7 +32,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.39' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.40' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -139,7 +139,7 @@ sub create {
 
 	# Pass to RRDs for execution
 	my @rtn = RRDs::create($rrdfile, @def);
-	my $error = RRDs::error;
+	my $error = RRDs::error();
 	croak($error) if $error;
 	DUMP('RRDs::info',RRDs::info($rrdfile));
 	return @rtn;
@@ -209,7 +209,7 @@ sub update {
 			} else {
 				# Decide what DS type and heartbeat to use
 				my $info = RRDs::info($rrdfile);
-				my $error = RRDs::error;
+				my $error = RRDs::error();
 				croak($error) if $error;
 
 				my %dsTypes;
@@ -234,7 +234,7 @@ sub update {
 
 	# Pass to RRDs to execute the update
 	my @rtn = RRDs::update($rrdfile, @def);
-	my $error = RRDs::error;
+	my $error = RRDs::error();
 	croak($error) if $error;
 	return @rtn;
 }
@@ -254,7 +254,7 @@ sub last {
 	TRACE("Using filename: $rrdfile");
 
 	my $last = RRDs::last($rrdfile);
-	my $error = RRDs::error;
+	my $error = RRDs::error();
 	croak($error) if $error;
 	return $last;
 }
@@ -273,7 +273,7 @@ sub sources {
 	TRACE("Using filename: $rrdfile");
 
 	my $info = RRDs::info($rrdfile);
-	my $error = RRDs::error;
+	my $error = RRDs::error();
 	croak($error) if $error;
 
 	my @ds;
@@ -463,7 +463,7 @@ sub last_values {
 
 	# Pass to RRDs to execute
 	my ($time,$heartbeat,$ds,$data) = RRDs::fetch($rrdfile, @def);
-	my $error = RRDs::error;
+	my $error = RRDs::error();
 	croak($error) if $error;
 
 	# Put it in to a nice easy format
@@ -519,7 +519,7 @@ sub info {
 	my $rrdfile = @_ % 2 ? shift : _guess_filename();
 
 	my $info = RRDs::info($rrdfile);
-	my $error = RRDs::error;
+	my $error = RRDs::error();
 	croak($error) if $error;
 	DUMP('$info',$info);
 
@@ -778,7 +778,7 @@ sub _create_graph {
 
 	# Generate the graph
 	my @rtn = RRDs::graph(@cmd);
-	my $error = RRDs::error;
+	my $error = RRDs::error();
 	croak($error) if $error;
 	return ($image,@rtn);
 }
@@ -903,7 +903,7 @@ sub _add_source {
 		# list by nicolaw/heds on 2006/01/08
 		if ($RRDs::VERSION >= 1.2013) {
 			my @rtn = RRDs::dump($rrdfile,$tempXmlFile);
-			my $error = RRDs::error;
+			my $error = RRDs::error();
 			croak($error) if $error;
 		}
 	};
@@ -1010,7 +1010,7 @@ EndDS
 	eval {
 		if ($RRDs::VERSION >= 1.0049) {
 			my @rtn = RRDs::restore($tempImportXmlFile,$new_rrdfile);
-			my $error = RRDs::error;
+			my $error = RRDs::error();
 			croak($error) if $error;
 		}
 	};
@@ -1546,7 +1546,8 @@ details.
 =head1 SEE ALSO
 
 L<RRDTool::OO>, L<RRDs>,
-L<http://www.rrdtool.org>, examples/*.pl
+L<http://www.rrdtool.org>, examples/*.pl,
+L<http://rrd.me.uk>
 
 =head1 VERSION
 
@@ -1557,6 +1558,10 @@ $Id$
 Nicola Worthington <nicolaw@cpan.org>
 
 L<http://perlgirl.org.uk>
+
+If you like this software, why not show your appreciation by sending the
+author something nice from her
+L<Amazon wishlist|http://www.amazon.co.uk/gp/registry/1VZXC59ESWYK0>?
 
 =head1 COPYRIGHT
 

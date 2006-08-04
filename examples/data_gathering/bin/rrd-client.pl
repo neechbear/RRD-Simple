@@ -23,9 +23,9 @@
 
 ############################################################
 # User defined constants
-use constant DB_MYSQL_DSN  => 'DBI:mysql:mysql:localhost';
-use constant DB_MYSQL_USER => undef;
-use constant DB_MYSQL_PASS => undef;
+use constant DB_MYSQL_DSN  => $ENV{DB_MYSQL_DSN} || 'DBI:mysql:mysql:localhost';
+use constant DB_MYSQL_USER => $ENV{DB_MYSQL_USER} || undef;
+use constant DB_MYSQL_PASS => $ENV{DB_MYSQL_PASS} || undef;
 
 use constant NET_PING_HOSTS => $ENV{NET_PING_HOSTS} ?
 		(split(/[\s,:]+/,$ENV{NET_PING_HOSTS})) : qw();
@@ -44,20 +44,21 @@ use strict;
 use warnings;
 use vars qw($VERSION);
 
-$VERSION = '1.39' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.40' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 $ENV{PATH} = '/bin:/usr/bin';
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 
 # Default list of probes
 my @probes = qw(
-		cpu_utilisation cpu_loadavg cpu_temp
-		hdd_io mem_usage hdd_temp hdd_capacity
+		cpu_utilisation cpu_loadavg cpu_temp cpu_interrupts
+		hdd_io hdd_temp hdd_capacity
+		mem_usage mem_swap_activity
 		proc_threads proc_state proc_filehandles
 		apache_status apache_logs
 		misc_uptime misc_users
 		db_mysql_activity
-		mail_exim_queue mail_postfix_queue
+		mail_exim_queue mail_postfix_queue mail_sendmail_queue
 		net_traffic net_connections net_ping_host
 	);
 
@@ -86,6 +87,7 @@ if (defined $opt{x}) {
 # Run the probes one by one
 die "Nothing to probe!\n" unless @probes;
 my $post = '';
+my %update_cache;
 for my $probe (@probes) {
 	eval {
 		local $SIG{ALRM} = sub { die "Timeout!\n"; };
@@ -104,7 +106,7 @@ for my $probe (@probes) {
 
 
 # HTTP POST the data if asked to
-print(scalar basic_http('POST',$opt{p},30,$post), "\n") if $opt{p};
+print scalar(basic_http('POST',$opt{p},30,$post))."\n" if $opt{p};
 
 
 exit;
@@ -194,7 +196,7 @@ sub basic_http {
 	};
 
 	warn "basic_http: $@" if $@ && $post;
-	return wantarray ? split(/\n/,$str) : $str;
+	return wantarray ? split(/\n/,$str) : "$str";
 }
 
 
@@ -282,6 +284,23 @@ sub mail_exim_queue {
 			$mail::exim::queue::update{Messages}++;
 		}, no_chdir => 1}, $spooldir);
 	return %mail::exim::queue::update;
+}
+
+
+sub mail_sendmail_queue {
+	my $spooldir = '/var/spool/mqueue';
+	return unless -d $spooldir && -x $spooldir && -r $spooldir;
+
+	local %mail::sendmail::queue::update = ();
+	require File::Find;
+	File::Find::find({wanted => sub {
+			my ($dev,$ino,$mode,$nlink,$uid,$gid);
+			(($dev,$ino,$mode,$nlink,$uid,$gid) = lstat($_)) &&
+			-f _ &&
+			/^Qf[a-zA-Z0-9]{14}\z/s &&
+			$mail::sendmail::queue::update{Messages}++;
+		}, no_chdir => 1}, $spooldir);
+	return %mail::sendmail::queue::update;
 }
 
 
@@ -532,6 +551,7 @@ sub _darwin_cpu_utilisation {
 	return %rv;
 }
 
+
 sub cpu_utilisation {
 	if ($^O eq 'darwin') {
 		return _darwin_cpu_utilisation();
@@ -539,25 +559,61 @@ sub cpu_utilisation {
 
 	my $cmd = '/usr/bin/vmstat';
 	return () unless -f $cmd;
-	$cmd .= ' 1 2';
-
-	my @keys = ();
-	my %update = ();
+	my %update = _parse_vmstat("$cmd 1 2");
 	my %labels = (wa => 'IO_Wait', id => 'Idle', sy => 'System', us => 'User');
-
-	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
-	while (local $_ = <PH>) {
-		s/^\s+|\s+$//g;
-		if (/\s+\d+\s+\d+\s+\d+\s+/ && @keys) {
-			@update{@keys} = split(/\s+/,$_);
-		} else { @keys = split(/\s+/,$_); }
-	}
-	close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
 
 	$update{$_} ||= 0 for keys %labels;
 	return ( map {( $labels{$_} || $_ => $update{$_} )} keys %labels );
 }
 
+
+sub cpu_interrupts {
+	my $cmd = '/usr/bin/vmstat';
+	return () unless -f $cmd;
+
+	my %update = _parse_vmstat("$cmd 1 2");
+	my %labels = (in => 'Interrupts');
+	return unless defined $update{in};
+
+	$update{$_} ||= 0 for keys %labels;
+	return ( map {( $labels{$_} || $_ => $update{$_} )} keys %labels );
+}
+
+
+sub mem_swap_activity {
+	my $cmd = '/usr/bin/vmstat';
+	return () unless -f $cmd;
+
+	my %update = _parse_vmstat("$cmd 1 2");
+	my %labels = (si => 'Swap_In', so => 'Swap_Out');
+	return unless defined $update{si} && defined $update{so};
+
+	$update{$_} ||= 0 for keys %labels;
+	return ( map {( $labels{$_} || $_ => $update{$_} )} keys %labels );
+}
+
+
+sub _parse_vmstat {
+	my $cmd = shift;
+	my %update;
+	my @keys;
+
+	if (exists $update_cache{vmstat}) {
+		%update = %{$update_cache{vmstat}};
+	} else {
+		open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
+		while (local $_ = <PH>) {
+			s/^\s+|\s+$//g;
+			if (/\s+\d+\s+\d+\s+\d+\s+/ && @keys) {
+				@update{@keys} = split(/\s+/,$_);
+			} else { @keys = split(/\s+/,$_); }
+		}
+		close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
+		$update_cache{vmstat} = \%update;
+	}
+
+	return %update;
+}
 
 
 sub hdd_io {

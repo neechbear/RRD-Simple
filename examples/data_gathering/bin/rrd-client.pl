@@ -56,10 +56,10 @@ my @probes = qw(
 		mem_usage mem_swap_activity
 		proc_threads proc_state proc_filehandles
 		apache_status apache_logs
-		misc_uptime misc_users
+		misc_uptime misc_users misc_ipmi_temp
 		db_mysql_activity
 		mail_exim_queue mail_postfix_queue mail_sendmail_queue
-		net_traffic net_connections net_ping_host
+		net_traffic net_connections net_ping_host net_connections_ports
 	);
 
 
@@ -91,7 +91,7 @@ my %update_cache;
 for my $probe (@probes) {
 	eval {
 		local $SIG{ALRM} = sub { die "Timeout!\n"; };
-		alarm 10;
+		alarm 15;
 		my $str = report($probe,eval "$probe();");
 		if (defined $opt{p}) {
 			$post .= $str;
@@ -218,9 +218,9 @@ sub select_cmd {
 #
 
 sub net_ping_host {
-	return () unless defined NET_PING_HOSTS() && scalar NET_PING_HOSTS() > 0;
+	return unless defined NET_PING_HOSTS() && scalar NET_PING_HOSTS() > 0;
 	my $cmd = select_cmd(qw(/bin/ping /usr/bin/ping /sbin/ping /usr/sbin/ping));
-	return () unless -f $cmd;
+	return unless -f $cmd;
 	my %update = ();
 	my $count = 3;
 
@@ -250,7 +250,7 @@ sub net_ping_host {
 
 
 sub proc_threads {
-	return () unless ($^O eq 'linux' && `/bin/uname -r 2>&1` =~ /^2\.6\./) ||
+	return unless ($^O eq 'linux' && `/bin/uname -r 2>&1` =~ /^2\.6\./) ||
 					($^O eq 'solaris' && `/bin/uname -r 2>&1` =~ /^5\.9/);
 	my %update = ();
 	my $cmd = '/bin/ps -eo pid,nlwp';
@@ -334,7 +334,7 @@ sub mail_queue {
 	my $cmd = select_cmd(qw(/usr/bin/mailq /usr/sbin/mailq /usr/local/bin/mailq
 			/usr/local/sbin/mailq /bin/mailq /sbin/mailq
 			/usr/local/exim/bin/mailq /home/system/exim/bin/mailq));
-	return () unless -f $cmd;
+	return unless -f $cmd;
 
 	my %update = ();
 
@@ -379,7 +379,7 @@ sub db_mysql_activity {
 
 sub misc_users {
 	my $cmd = select_cmd(qw(/usr/bin/who /bin/who /usr/bin/w /bin/w));
-	return () unless -f $cmd;
+	return unless -f $cmd;
 	my %update = ();
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
@@ -409,7 +409,7 @@ sub misc_users {
 
 sub misc_uptime {
 	my $cmd = select_cmd(qw(/usr/bin/uptime /bin/uptime));
-	return () unless -f $cmd;
+	return unless -f $cmd;
 	my %update = ();
 
 	if (my ($str) = `$cmd` =~ /\s*up\s*(.+?)\s*,\s*\d+\s*users?/) {
@@ -440,7 +440,7 @@ sub misc_uptime {
 
 sub cpu_temp {
 	my $cmd = '/usr/bin/sensors';
-	return () unless -f $cmd;
+	return unless -f $cmd;
 	my %update = ();
 
 	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
@@ -459,7 +459,7 @@ sub cpu_temp {
 
 sub apache_logs {
 	my $dir = '/var/log/httpd';
-	return () unless -d $dir;
+	return unless -d $dir;
 	my %update = ();
 
 	if (-d $dir) {
@@ -537,6 +537,7 @@ sub apache_status {
 }
 
 
+
 sub _darwin_cpu_utilisation {
 	my $output = qx{/usr/bin/sar 4 1};
 	my %rv = ();
@@ -552,13 +553,14 @@ sub _darwin_cpu_utilisation {
 }
 
 
+
 sub cpu_utilisation {
 	if ($^O eq 'darwin') {
 		return _darwin_cpu_utilisation();
 	}
 
 	my $cmd = '/usr/bin/vmstat';
-	return () unless -f $cmd;
+	return unless -f $cmd;
 	my %update = _parse_vmstat("$cmd 1 2");
 	my %labels = (wa => 'IO_Wait', id => 'Idle', sy => 'System', us => 'User');
 
@@ -567,9 +569,10 @@ sub cpu_utilisation {
 }
 
 
+
 sub cpu_interrupts {
 	my $cmd = '/usr/bin/vmstat';
-	return () unless -f $cmd;
+	return unless -f $cmd;
 
 	my %update = _parse_vmstat("$cmd 1 2");
 	my %labels = (in => 'Interrupts');
@@ -580,9 +583,10 @@ sub cpu_interrupts {
 }
 
 
+
 sub mem_swap_activity {
 	my $cmd = '/usr/bin/vmstat';
-	return () unless -f $cmd;
+	return unless -f $cmd;
 
 	my %update = _parse_vmstat("$cmd 1 2");
 	my %labels = (si => 'Swap_In', so => 'Swap_Out');
@@ -591,6 +595,7 @@ sub mem_swap_activity {
 	$update{$_} ||= 0 for keys %labels;
 	return ( map {( $labels{$_} || $_ => $update{$_} )} keys %labels );
 }
+
 
 
 sub _parse_vmstat {
@@ -616,10 +621,53 @@ sub _parse_vmstat {
 }
 
 
+
+sub _parse_ipmitool_sensor {
+	my $cmd = shift;
+	my %update;
+	my @keys;
+
+	if (exists $update_cache{ipmitool_sensor}) {
+		%update = %{$update_cache{ipmitool_sensor}};
+	} else {
+		if ((-e '/dev/ipmi0' || -e '/dev/ipmi/0') && open(PH,'-|',$cmd)) {
+			while (local $_ = <PH>) {
+					chomp; s/(^\s+|\s+$)//g;
+					my ($key,@ary) = split(/\s*\|\s*/,$_);
+					$key =~ s/[^a-zA-Z0-9_]//g;
+					$update{$key} = \@ary;
+			}
+			close(PH);
+			$update_cache{ipmitool_sensor} = \%update;
+		}
+	}
+
+	return %update;
+}
+
+
+
+sub misc_ipmi_temp {
+	my $cmd = select_cmd(qw(/usr/bin/ipmitool));
+	return unless -f $cmd;
+
+	my %update = ();
+	my %data = _parse_ipmitool_sensor("$cmd sensor");
+	for (grep(/temp/i,keys %data)) {
+		$update{$_} = $data{$_}->[0]
+			if $data{$_}->[0] =~ /^[0-9\.]+$/;
+	}
+	return unless keys %update;
+
+	return %update;;
+}
+
+
+
 sub hdd_io {
 	my $cmd = select_cmd(qw(/usr/bin/iostat /usr/sbin/iostat));
-	return () unless -f $cmd;
-	return () unless $^O eq 'linux';
+	return unless -f $cmd;
+	return unless $^O eq 'linux';
 	$cmd .= ' -k';
 
 	my %update = ();
@@ -687,7 +735,7 @@ sub mem_usage {
 
 sub hdd_temp {
 	my $cmd = select_cmd(qw(/usr/sbin/hddtemp /usr/bin/hddtemp));
-	return () unless -f $cmd;
+	return unless -f $cmd;
 
 	my @devs = ();
 	for my $dev (glob('/dev/hd?'),glob('/dev/sd?')) {
@@ -715,7 +763,7 @@ sub hdd_temp {
 
 sub hdd_capacity {
 	my $cmd = select_cmd(qw(/bin/df /usr/bin/df));
-	return () unless -f $cmd;
+	return unless -f $cmd;
 
 	if ($^O eq 'linux') {
 		$cmd .= ' -P -x iso9660 -x nfs -x smbfs';
@@ -751,7 +799,7 @@ sub hdd_capacity {
 
 
 sub net_traffic {
-	return () unless -f '/proc/net/dev';
+	return unless -f '/proc/net/dev';
 	my @keys = ();
 	my %update = ();
 
@@ -849,20 +897,62 @@ sub cpu_loadavg {
 
 
 
-sub net_connections {
+sub _parse_netstat {
+	my $cmd = shift;
+	my $update;
+	my @keys = qw(local_ip local_port remote_ip remote_port);
+
+	if (exists $update_cache{netstat}) {
+		$update = $update_cache{netstat};
+	} else {
+		open(PH,'-|',$cmd) || die "Unable to open file handle for command '$cmd': $!\n";
+		while (local $_ = <PH>) {
+			my %line;
+			if (@line{qw(proto data state)} = $_ =~ /^(tcp[46]?|udp[46]?|raw)\s+(.+)\s+([A-Z_]+)\s*$/) {
+				@line{@keys} = $line{data} =~ /(?:^|[\s\b])([:abcdef0-9\.]+):(\d{1,5})(?:[\s\b]|$)/g;
+				push @{$update}, \%line;
+			}
+		}
+		close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
+		$update_cache{netstat} = $update;
+	}
+
+	return $update;
+}
+
+
+
+sub net_connections_ports {
 	my $cmd = select_cmd(qw(/bin/netstat /usr/bin/netstat /usr/sbin/netstat));
-	return () unless -f $cmd;
+	return unless -f $cmd;
 	$cmd .= ' -na';
 
 	my %update = ();
-
-	open(PH,'-|',$cmd) || die "Unable to open file handle for command '$cmd': $!\n";
-	while (local $_ = <PH>) {
-		if (my ($proto,$state) = $_ =~ /^(tcp[46]?|udp[46]?|raw)\s+.+\s+([A-Z_]+)\s*$/) {
-			$update{$state}++;
+	my %listening_ports;
+	for (@{_parse_netstat($cmd)}) {
+		if ($_->{state} =~ /listen/i && defined $_->{local_port}) {
+			$listening_ports{"$_->{proto}:$_->{local_port}"} = 1;
 		}
 	}
-	close(PH) || die "Unable to close file handle for command '$cmd': $!\n";
+	for (@{_parse_netstat($cmd)}) {
+		next if !defined $_->{state} || !defined $_->{remote_port};
+		$update{"$_->{proto}_$_->{remote_port}"}++ if exists $listening_ports{"$_->{proto}:$_->{remote_port}"};
+	}
+
+	return %update;
+}
+
+
+
+sub net_connections {
+	my $cmd = select_cmd(qw(/bin/netstat /usr/bin/netstat /usr/sbin/netstat));
+	return unless -f $cmd;
+	$cmd .= ' -na';
+
+	my %update = ();
+	for (@{_parse_netstat($cmd)}) {
+		$update{$_->{state}}++ if defined $_->{state};
+	}
 
 	return %update;
 }
@@ -870,7 +960,7 @@ sub net_connections {
 
 
 sub proc_filehandles {
-	return () unless -f '/proc/sys/fs/file-nr';
+	return unless -f '/proc/sys/fs/file-nr';
 	my %update = ();
 
 	open(FH,'<','/proc/sys/fs/file-nr') || die "Unable to open '/proc/sys/fs/file-nr': $!\n";

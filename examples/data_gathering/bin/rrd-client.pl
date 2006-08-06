@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!/usr/bin/perl -w
 ############################################################
 #
 #   $Id$
@@ -203,7 +203,9 @@ sub basic_http {
 # Return the most appropriate binary command
 sub select_cmd {
 	foreach (@_) {
-		return $_ if -f $_ && -x $_;
+		if (-f $_ && -x $_ && /(\S+)/) {
+			return $1;
+		}
 	}
 	return '';
 }
@@ -973,7 +975,6 @@ sub proc_filehandles {
 }
 
 
-1;
 
 
 

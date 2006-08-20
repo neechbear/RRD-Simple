@@ -27,7 +27,8 @@ ok($rrd->create($rrdfile,'day',
 
 my $lastValue = 0;
 for (my $t = $start; $t <= $end; $t += 60) {
-	$lastValue = int(rand(999));
+	#$lastValue = int(rand(999));
+	$lastValue = 100;
 	ok($rrd->update($rrdfile,$t,
 			foo => $lastValue,
 			bar => $lastValue+100
@@ -46,7 +47,7 @@ my %rtn;
 ok(%rtn = $rrd->last_values($rrdfile),'last_values');
 
 SKIP: {
-	skip "last_values() method not yet completed", 2;
+#	skip "last_values() method not yet completed", 2;
 	ok($rtn{foo} == $lastValue, "$rtn{foo} == $lastValue (foo)");
 	ok($rtn{bar} == ($lastValue + 100), "$rtn{bar} == ($lastValue + 100) (bar)");
 }

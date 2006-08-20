@@ -23,10 +23,10 @@ package RRD::Simple;
 # vim:ts=4:sw=4:tw=78
 
 use strict;
-use Exporter;
+require Exporter;
 use RRDs;
 use Carp qw(croak cluck confess carp);
-use File::Spec;
+use File::Spec qw();
 use File::Basename qw(fileparse dirname basename);
 
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
@@ -37,7 +37,7 @@ $VERSION = '1.40' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 @ISA = qw(Exporter);
 @EXPORT = qw();
 @EXPORT_OK = qw(create update last_update graph info
-				add_source sources retention_period);
+				add_source sources retention_period last_values);
 %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 $DEBUG ||= $ENV{DEBUG} ? 1 : 0;
@@ -1103,7 +1103,7 @@ sub _guess_filename {
 
 sub TRACE {
 	return unless $DEBUG;
-	warn(shift());
+	carp(shift());
 }
 
 
@@ -1111,7 +1111,25 @@ sub DUMP {
 	return unless $DEBUG;
 	eval {
 		require Data::Dumper;
-		warn(shift().': '.Data::Dumper::Dumper(shift()));
+		$Data::Dumper::Indent = 2;
+		$Data::Dumper::Terse = 1;
+		carp(shift().': '.Data::Dumper::Dumper(shift()));
+	}
+}
+
+BEGIN {
+	eval "use RRDs";
+	if ($@) {
+		carp qq{
++-----------------------------------------------------------------------------+
+| ERROR! -- Could not load RRDs.pm                                            |
+|                                                                             |
+| RRD::Simple requires RRDs.pm (a part of RRDtool) in order to function. You  |
+| can download a copy of RRDtool from http://www.rrdtool.org. See the INSTALL |
+| document for more details.                                                  |
++-----------------------------------------------------------------------------+
+
+} unless $ENV{AUTOMATED_TESTING};
 	}
 }
 

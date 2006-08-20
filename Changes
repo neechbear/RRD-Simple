@@ -1,10 +1,15 @@
-Version 1.40 - 3rd July 2006
+Version 1.40 - 20th August 2006
     + Some small changes to POD.
 
     + Updated version of examples/data_gathering/*
       scripts, as currently used on http://rrd.me.uk
 
-    + Changed RRDs::error calls to RRDs::error()
+    + Changed RRDs::error calls to RRDs::error().
+
+    + Changed debug warn() calls to carp().
+
+    + Explicitly import fewer symbols from other
+      modules.
 
 
 Version 1.39 - 26th June 2006

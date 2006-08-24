@@ -1600,6 +1600,7 @@ the extra effort of using the OO interface:
  last_update (synonym for the last() method)
  sources
  add_source
+ rename_source
  graph
  retention_period
  info

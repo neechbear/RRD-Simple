@@ -1,4 +1,4 @@
-Version 1.40 - 20th August 2006
+Version 1.40 - 24th August 2006
     + Some small changes to POD.
 
     + Updated version of examples/data_gathering/*
@@ -10,6 +10,20 @@ Version 1.40 - 20th August 2006
 
     + Explicitly import fewer symbols from other
       modules.
+
+    + Added rename_source() method and associated
+      POD and unit test.
+
+    + Changed the graph() method to recognise use
+      of command (GPRINT,PRINT,COMMENT,VRULE,.. etc)
+      over options and flags, so that they will be
+      added to the graph definition after the
+      data sources have been defined.
+
+    + Added new unit tests for new functionality.
+      t/35average_hrule.t tests and demonstrates
+      how the changes to the graph() method can be
+      used.
 
 
 Version 1.39 - 26th June 2006

@@ -36,7 +36,7 @@ $VERSION = '1.40' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
-@EXPORT_OK = qw(create update last_update graph info
+@EXPORT_OK = qw(create update last_update graph info rename_source
 				add_source sources retention_period last_values);
 %EXPORT_TAGS = (all => \@EXPORT_OK);
 
@@ -142,7 +142,7 @@ sub create {
 	my $error = RRDs::error();
 	croak($error) if $error;
 	DUMP('RRDs::info',RRDs::info($rrdfile));
-	return @rtn;
+	return wantarray ? @rtn : \@rtn;
 }
 
 
@@ -236,7 +236,7 @@ sub update {
 	my @rtn = RRDs::update($rrdfile, @def);
 	my $error = RRDs::error();
 	croak($error) if $error;
-	return @rtn;
+	return wantarray ? @rtn : \@rtn;
 }
 
 
@@ -282,7 +282,7 @@ sub sources {
 			push @ds, $1;
 		}
 	}
-	return @ds;
+	return wantarray ? @ds : \@ds;
 }
 
 
@@ -410,7 +410,31 @@ sub graph {
 	}
 
 #	return @rtn;
-	return %rtn;
+	return wantarray ? %rtn : \%rtn;
+}
+
+
+# Rename an existing data source
+sub rename_source {
+	my $self = shift;
+	unless (ref $self && UNIVERSAL::isa($self, __PACKAGE__)) {
+		unshift @_, $self unless $self eq __PACKAGE__;
+		$self = new __PACKAGE__;
+	}
+
+	# Grab or guess the filename
+	my $rrdfile = @_ % 2 ? shift : _guess_filename();
+
+	my ($old,$new) = @_;
+	croak "No old data source name specified" unless defined $old;
+	croak "No new data source name specified" unless defined $new;
+	croak "Data source '$old' does not exist in RRD file $rrdfile"
+		unless grep($_ eq $old, $self->sources($rrdfile));
+
+	my @rtn = RRDs::tune($rrdfile,'-r',"$old:$new");
+	my $error = RRDs::error();
+	croak($error) if $error;
+	return wantarray ? @rtn : \@rtn;
 }
 
 
@@ -448,7 +472,7 @@ sub last_values {
 	for my $rra (@{$info->{rra}}) {
 		$hasLastRRA++ if $rra->{cf} eq 'LAST';
 	}
-	return () if !$hasLastRRA;
+	return if !$hasLastRRA;
 
 	# What's the largest heartbeat in the RRD file data sources?
 	my $largestHeartbeat = 1;
@@ -482,7 +506,7 @@ sub last_values {
 	# in to an RRD, then I'll admit that this method exists and export
 	# it too.
 
-	return %rtn;
+	return wantarray ? %rtn : \%rtn;
 }
 
 
@@ -495,7 +519,7 @@ sub retention_period {
 	}
 
 	my $info = $self->info(@_);
-	return undef if !defined($info);
+	return if !defined($info);
 
 	my $duration = $info->{step};
 	for my $rra (@{$info->{rra}}) {
@@ -503,7 +527,7 @@ sub retention_period {
 		$duration = $secs if $secs > $duration;
 	}
 
-	return $duration;
+	return wantarray ? ($duration) : $duration;
 }
 
 
@@ -546,11 +570,16 @@ sub _create_graph {
 	my $rrdfile = shift;
 	my $type = _valid_scheme(shift) || 'day';
 	my $cf = shift || 'AVERAGE';
+	my $command_regex = qr/^([VC]?DEF|G?PRINT|COMMENT|[HV]RULE\d*|LINE\d*|AREA|TICK|SHIFT|STACK):.+/;
 
 	my %param;
 	while (my $k = shift) {
-		$k =~ s/_/-/g;
-		$param{lc($k)} = shift;
+		if ($k =~ /$command_regex/) {
+			$param{$k} = shift;
+		} else {
+			$k =~ s/_/-/g;
+			$param{lc($k)} = shift;
+		}
 	}
 
 	# Specify some default values
@@ -677,9 +706,22 @@ sub _create_graph {
 
 	# Convert our parameters in to an RRDs friendly defenition
 	my @def;
+	my @post_def;
 	while (my ($k,$v) = each %param) {
-		if (length($k) == 1) { $k = '-'.uc($k); }
-		else { $k = "--$k"; }
+		# Allow these keywords to be passed as-is
+		if ($k =~ /$command_regex/) {
+			push @post_def, $k;
+			next;
+
+		# Short single character options
+		} elsif (length($k) == 1) {
+			$k = '-'.uc($k);
+
+		# Long options
+		} else {
+			$k = "--$k";
+		}
+
 		for my $v ((ref($v) eq 'ARRAY' ? @{$v} : ($v))) {
 			if (!defined $v || !length($v)) {
 				push @def, $k;
@@ -743,6 +785,7 @@ sub _create_graph {
 			push @cmd, sprintf('VDEF:%sMIN=%s,MINIMUM',$ds,$ds);
 			push @cmd, sprintf('VDEF:%sMAX=%s,MAXIMUM',$ds,$ds);
 			push @cmd, sprintf('VDEF:%sLAST=%s,LAST',$ds,$ds);
+			push @cmd, sprintf('VDEF:%sAVERAGE=%s,AVERAGE',$ds,$ds);
 			push @cmd, sprintf('PRINT:%sMIN:%s min %%1.2lf',$ds,$ds);
 			push @cmd, sprintf('PRINT:%sMAX:%s max %%1.2lf',$ds,$ds);
 			push @cmd, sprintf('PRINT:%sLAST:%s last %%1.2lf',$ds,$ds);
@@ -767,6 +810,9 @@ sub _create_graph {
 			}
 		}
 	}
+
+	# Push the post command defs on to the stack
+	push @cmd, @post_def;
 
 	# Add a comment stating when the graph was last updated
 	push @cmd, ('COMMENT:\s','COMMENT:\s','COMMENT:\s');
@@ -1039,7 +1085,7 @@ EndDS
 	}
 
 	# Return the new RRD filename
-	return $new_rrdfile;
+	return wantarray ? ($new_rrdfile) : $new_rrdfile;
 }
 
 
@@ -1340,6 +1386,15 @@ source type.
 
 This method can be called internally by the C<update> method to automatically
 add missing data sources.
+
+=head2 rename_source
+
+ $rrd->rename_source($rrdfile, "old_datasource", "new_datasource");
+
+C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
+the file extension of .rrd).
+
+You may renames a data source in an existing RRD file using this method.
 
 =head2 graph
 

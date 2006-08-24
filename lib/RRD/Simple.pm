@@ -951,7 +951,7 @@ sub _add_source {
 	# Do it the old fashioned way
 	if ($@ || !-f $tempXmlFile || (stat($tempXmlFile))[7] < 200) {
 		croak "rrdtool binary '$rrdtool' does not exist or is not executable"
-			unless (-f $rrdtool && -x $rrdtool);
+			if !defined $rrdtool || !-f $rrdtool || !-x $rrdtool;
 		_safe_exec(sprintf('%s dump %s > %s',$rrdtool,$rrdfile,$tempXmlFile));
 	}
 

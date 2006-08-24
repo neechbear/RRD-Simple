@@ -25,6 +25,14 @@ Version 1.40 - 24th August 2006
       how the changes to the graph() method can be
       used.
 
+    + Fixed a bug where an uninitialised variable
+      could cause unexpected behaviour if you tried
+      to add a new data source using add_source()
+      method. This only manifested itself with an
+      versions of RRDs earlier than 1.2013, and
+      where the rrdtool binary is not installed or
+      the path to the rrdtool binary is unknown.
+
 
 Version 1.39 - 26th June 2006
     + Changed the return value from the graph()

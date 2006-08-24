@@ -927,6 +927,7 @@ sub _alt_graph_name {
 sub _add_source {
 	croak('Pardon?!') if ref $_[0];
 	my ($rrdfile,$ds,$dstype,$heartbeat,$rrdtool) = @_;
+	$rrdtool = '' unless defined $rrdtool;
 
 	require File::Copy;
 	require File::Temp;

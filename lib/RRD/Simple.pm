@@ -573,9 +573,11 @@ sub _create_graph {
 	my $command_regex = qr/^([VC]?DEF|G?PRINT|COMMENT|[HV]RULE\d*|LINE\d*|AREA|TICK|SHIFT|STACK):.+/;
 
 	my %param;
+	my @command_param;
 	while (my $k = shift) {
 		if ($k =~ /$command_regex/) {
-			$param{$k} = shift;
+			push @command_param, $k;
+			shift;
 		} else {
 			$k =~ s/_/-/g;
 			$param{lc($k)} = shift;
@@ -706,22 +708,12 @@ sub _create_graph {
 
 	# Convert our parameters in to an RRDs friendly defenition
 	my @def;
-	my @post_def;
 	while (my ($k,$v) = each %param) {
-		# Allow these keywords to be passed as-is
-		if ($k =~ /$command_regex/) {
-			push @post_def, $k;
-			next;
-
-		# Short single character options
-		} elsif (length($k) == 1) {
+		if (length($k) == 1) { # Short single character options
 			$k = '-'.uc($k);
-
-		# Long options
-		} else {
+		} else { # Long options
 			$k = "--$k";
 		}
-
 		for my $v ((ref($v) eq 'ARRAY' ? @{$v} : ($v))) {
 			if (!defined $v || !length($v)) {
 				push @def, $k;
@@ -812,7 +804,7 @@ sub _create_graph {
 	}
 
 	# Push the post command defs on to the stack
-	push @cmd, @post_def;
+	push @cmd, @command_param;
 
 	# Add a comment stating when the graph was last updated
 	push @cmd, ('COMMENT:\s','COMMENT:\s','COMMENT:\s');

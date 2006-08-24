@@ -1629,7 +1629,7 @@ L<http://perlgirl.org.uk>
 
 If you like this software, why not show your appreciation by sending the
 author something nice from her
-L<Amazon wishlist|http://www.amazon.co.uk/gp/registry/1VZXC59ESWYK0>?
+L<Amazon wishlist|http://www.amazon.co.uk/gp/registry/1VZXC59ESWYK0?sort=priority>?
 
 =head1 COPYRIGHT
 

@@ -767,32 +767,35 @@ sub hdd_capacity {
 	my $cmd = select_cmd(qw(/bin/df /usr/bin/df));
 	return unless -f $cmd;
 
-	if ($^O eq 'linux') {
-		$cmd .= ' -P -x iso9660 -x nfs -x smbfs';
-	} elsif ($^O eq 'solaris') {
-		$cmd .= ' -lk -F ufs';
-	} elsif ($^O eq 'darwin') {
-		$cmd .= ' -P -T hfs,ufs';
-	} else {
-		$cmd .= ' -P';
-	}
+	if ($^O eq 'linux') { $cmd .= ' -P -x iso9660 -x nfs -x smbfs'; }
+	elsif ($^O eq 'solaris') { $cmd .= ' -lk -F ufs'; }
+	elsif ($^O eq 'darwin') { $cmd .= ' -P -T hfs,ufs'; }
+	else { $cmd .= ' -P'; }
 
-	my @data = split(/\n/, `$cmd`);
-	shift @data;
 	my %update = ();
+	my %variants = (
+			'' => '',
+			'inodes.' => ' -i ',
+		);
 
-	my @cols = qw(fs blocks used avail capacity mount unknown);
-	for (@data) {
-		my %data = ();
-		@data{@cols} = split(/\s+/,$_);
-		if ($^O eq 'darwin' || defined $data{unknown}) {
-			@data{@cols} = $_ =~ /^(.+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)%?\s+(.+)\s*$/;
+	for my $variant (keys %variants) {
+		my $variant_cmd = "$cmd $variants{$variant}";
+		my @data = split(/\n/, `$variant_cmd`);
+		shift @data;
+
+		my @cols = qw(fs blocks used avail capacity mount unknown);
+		for (@data) {
+			my %data = ();
+			@data{@cols} = split(/\s+/,$_);
+			if ($^O eq 'darwin' || defined $data{unknown}) {
+				@data{@cols} = $_ =~ /^(.+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)%?\s+(.+)\s*$/;
+			}
+
+			next if ($data{fs} eq 'none' || $data{mount} =~ m#^/dev/#);
+			$data{capacity} =~ s/\%//;
+			(my $ds = $data{mount}) =~ s/[^a-z0-9]/_/ig; $ds =~ s/__+/_/g;
+			$update{"${variant}$ds"} = $data{capacity};
 		}
-
-		next if ($data{fs} eq 'none' || $data{mount} =~ m#^/dev/#);
-		$data{capacity} =~ s/\%//;
-		(my $ds = $data{mount}) =~ s/[^a-z0-9]/_/ig; $ds =~ s/__+/_/g;
-		$update{$ds} = $data{capacity};
 	}
 
 	return %update;
@@ -934,6 +937,7 @@ sub net_connections_ports {
 	for (@{_parse_netstat($cmd)}) {
 		if ($_->{state} =~ /listen/i && defined $_->{local_port}) {
 			$listening_ports{"$_->{proto}:$_->{local_port}"} = 1;
+			$update{"$_->{proto}_$_->{local_port}"} = 0;
 		}
 	}
 	for (@{_parse_netstat($cmd)}) {

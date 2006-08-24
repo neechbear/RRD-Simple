@@ -55,6 +55,16 @@
 	rigid
 </graph>
 
+<graph cpu_interrupts>
+	extended_legend         Yes
+	title                   "CPU Interrupts"
+	vertical_label          "interrupts/sec"
+	source_drawtypes        "AREA"
+	source_colors           "ff0000"
+	lower_limit			0
+	rigid
+</graph>
+
 <graph cpu_utilisation>
 	extended_legend         Yes
 	title                   "CPU Utilisation"
@@ -75,6 +85,12 @@
 	source_labels           "Queries"
 </graph>
 
+<graph mail_sendmail_queue>
+	title                   "Sendmail Mail Queue"
+	vertical_label          "Messages"
+	source_drawtypes        "AREA"
+</graph>
+
 <graph mail_exim_queue>
 	title                   "Exim Mail Queue"
 	vertical_label          "Messages"
@@ -85,6 +101,15 @@
 	title                   "Postfix Mail Queue"
 	vertical_label          "Messages"
 	source_drawtypes        "AREA"
+</graph>
+
+<graph misc_ipmi_temp>
+	extended_legend         Yes
+	title                   "IPMI Temperature Probes"
+	vertical_label          "Celsius"
+	lower_limit             10
+	upper_limit             80
+	rigid
 </graph>
 
 <graph hdd_temp>
@@ -99,6 +124,15 @@
 <graph hdd_capacity>
 	extended_legend         Yes
 	title                   "Disk Capacity"
+	line_thickness          2
+	vertical_label          "% used"
+	units_exponent          0
+	upper_limit             100
+</graph>
+
+<graph hdd_capacity_inodes>
+	extended_legend         Yes
+	title                   "Disk Inode Capacity"
 	line_thickness          2
 	vertical_label          "% used"
 	units_exponent          0
@@ -207,6 +241,14 @@
 	vertical_label		"ms / loss %"
 </graph>
 
+<graph net_connections_ports>
+	extended_legend		Yes
+	title				"Service Connections"
+	vertical_label		"Connections"
+	lower_limit			0
+	rigid
+</graph net_connections>
+
 <graph net_connections>
 	extended_legend		Yes
 	title				"Network Connections"
@@ -216,6 +258,15 @@
 	lower_limit			0
 	rigid
 </graph net_connections>
+
+<graph "mem_swap_activity">
+	extended_legend	Yes
+	title				"Swap Activity"
+	sources				"Swap_Out Swap_In"
+	source_drawtypes	"AREA LINE1"
+	source_colors		"00ee00 dd0000"
+	vertical_label		"kb/sec"
+</graph>
 
 <graph "hdd_io_[^_]+">
 	title				"Hard Disk I/O: $1"

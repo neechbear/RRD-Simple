@@ -932,7 +932,9 @@ sub _add_source {
 	require File::Temp;
 
 	# Generate an XML dump of the RRD file
-	my $tempXmlFile = File::Temp::tmpnam();
+	my ($tempXmlFileFH,$tempXmlFile) = File::Temp::tempfile();
+	croak "File::Temp::tempfile() failed to return a temporary filename"
+		unless defined $tempXmlFile;
 	TRACE("_add_source(): \$tempXmlFile = $tempXmlFile");
 
 	# Try the internal perl way first (portable)

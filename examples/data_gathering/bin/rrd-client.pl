@@ -53,7 +53,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my @probes = qw(
 		cpu_utilisation cpu_loadavg cpu_temp cpu_interrupts
 		hdd_io hdd_temp hdd_capacity
-		mem_usage mem_swap_activity
+		mem_usage mem_swap_activity mem_proc_largest
 		proc_threads proc_state proc_filehandles
 		apache_status apache_logs
 		misc_uptime misc_users misc_ipmi_temp
@@ -245,6 +245,28 @@ sub net_ping_host {
 		}
 		close(PH) || die "Unable to close file handle PH for command '$cmd2': $!\n";
 	}
+
+	return %update;
+}
+
+
+
+sub mem_proc_largest {
+	my $cmd = select_cmd(qw(/bin/ps /usr/bin/ps));
+	return unless -f $cmd;
+	$cmd .= ' -eo vsize';
+
+	my %update = ();
+	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
+	while (local $_ = <PH>) {
+		if (/(\d+)/) {
+			my $kb = $1;
+			$update{LargestProc} = $kb if !defined $update{LargestProc} ||
+				(defined $update{LargestProc} && $kb > $update{LargestProc});
+		}
+	}
+	close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
+	$update{LargestProc} *= 1024 if defined $update{LargestProc};
 
 	return %update;
 }

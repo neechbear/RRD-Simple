@@ -57,7 +57,7 @@ my @probes = qw(
 		proc_threads proc_state proc_filehandles
 		apache_status apache_logs
 		misc_uptime misc_users misc_ipmi_temp
-		db_mysql_activity
+		db_mysql_activity db_mysql_replication
 		mail_exim_queue mail_postfix_queue mail_sendmail_queue
 		net_traffic net_connections net_ping_host net_connections_ports
 	);
@@ -394,6 +394,26 @@ sub db_mysql_activity {
 		}
 		$sth->finish();
 		$dbh->disconnect();
+	};
+
+	return %update;
+}
+
+
+
+sub db_mysql_replication {
+	my %update = ();
+	return %update unless (defined DB_MYSQL_DSN && defined DB_MYSQL_USER);
+
+	eval {
+		require DBI;
+		my $dbh = DBI->connect(DB_MYSQL_DSN,DB_MYSQL_USER,DB_MYSQL_PASS);
+		my $sth = $dbh->prepare('SHOW SLAVE STATUS');
+		$sth->execute();
+		my $row = $sth->fetchrow_hashref;
+		$sth->finish();
+		$dbh->disconnect();
+		$update{SecondsBehind} = $row->{Seconds_Behind_Master} || 0;
 	};
 
 	return %update;

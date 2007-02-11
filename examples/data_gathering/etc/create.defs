@@ -15,3 +15,5 @@
 
 ^db_mysql_activity$	*	DERIVE	0	-
 
+^mail_postfix_traffic$ * ABSOLUTE 0 -
+

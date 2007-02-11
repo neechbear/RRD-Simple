@@ -36,6 +36,7 @@ $build = Module::Build->new(
 			'File::Copy'     => 0, # 2.08
 			'RRDs'           => 0, # 1.2013
 			'Carp'           => 0, # 1.04
+			'POSIX'          => 0,
 		},
 
 		build_requires => {

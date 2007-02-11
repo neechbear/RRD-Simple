@@ -3,7 +3,7 @@
 #   $Id$
 #   RRD::Simple - Simple interface to create and store data in RRD files
 #
-#   Copyright 2005,2006 Nicola Worthington
+#   Copyright 2005,2006,2007 Nicola Worthington
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ package RRD::Simple;
 use strict;
 require Exporter;
 use RRDs;
+use POSIX qw(strftime); # Used for strftime in graph() method
 use Carp qw(croak cluck confess carp);
 use File::Spec qw();
 use File::Basename qw(fileparse dirname basename);
@@ -32,12 +33,14 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.40' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.41' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
 @EXPORT_OK = qw(create update last_update graph info rename_source
-				add_source sources retention_period last_values);
+				add_source sources retention_period last_values
+				heartbeat);
+#				delete_source minimum maximum
 %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 $DEBUG ||= $ENV{DEBUG} ? 1 : 0;
@@ -56,13 +59,15 @@ sub new {
 	croak 'Odd number of elements passed when even was expected' if @_ % 2;
 	my $self = { @_ };
 
-	my $validkeys = join('|',qw(rrdtool cf));
+	my $validkeys = join('|',qw(rrdtool cf default_dstype default_dst));
 	cluck('Unrecognised parameters passed: '.
 		join(', ',grep(!/^$validkeys$/,keys %{$self})))
 		if (grep(!/^$validkeys$/,keys %{$self}) && $^W);
 
 	$self->{rrdtool} = _find_binary(exists $self->{rrdtool} ?
 						$self->{rrdtool} : 'rrdtool');
+
+	$self->{default_dstype} ||= $self->{default_dst};
 
 	#$self->{cf} ||= [ qw(AVERAGE MIN MAX LAST) ];
 	# By default, now only create RRAs for AVERAGE and MAX, like
@@ -113,7 +118,7 @@ sub create {
 
 	# Add data sources
 	for my $ds (sort keys %ds) {
-		$ds =~ s/[^a-zA-Z0-9_]//g;
+		$ds =~ s/[^a-zA-Z0-9_-]//g;
 		push @def, sprintf('DS:%s:%s:%s:%s:%s',
 						substr($ds,0,19),
 						uc($ds{$ds}),
@@ -169,11 +174,12 @@ sub update {
 
 	# Try to automatically create it
 	unless (-f $rrdfile) {
+		my $default_dstype = $self->{default_dstype} || $DEFAULT_DSTYPE;
 		cluck("RRD file '$rrdfile' does not exist; attempting to create it ",
-				"using default DS type of $DEFAULT_DSTYPE") if $^W;
+				"using default DS type of '$default_dstype'") if $^W;
 		my @args;
 		for (my $i = 0; $i < @_; $i++) {
-			push @args, ($_[$i],$DEFAULT_DSTYPE) unless $i % 2;
+			push @args, ($_[$i],$default_dstype) unless $i % 2;
 		}
 		$self->create($rrdfile,@args);
 	}
@@ -185,7 +191,7 @@ sub update {
 
 	my %ds;
 	while (my $ds = shift(@_)) {
-		$ds =~ s/[^a-zA-Z0-9_]//g;
+		$ds =~ s/[^a-zA-Z0-9_-]//g;
 		$ds = substr($ds,0,19);
 		$ds{$ds} = shift(@_);
 		$ds{$ds} = 'U' if !defined($ds{$ds});
@@ -199,7 +205,7 @@ sub update {
 		if (!grep(/^$ds$/,@sources)) {
 			# If someone got the case wrong, remind and correct them
 			if (grep(/^$ds$/i,@sources)) {
-				cluck("Data source '$ds' does not exist. Automatically ",
+				cluck("Data source '$ds' does not exist; automatically ",
 					"correcting it to '",(grep(/^$ds$/i,@sources))[0],
 					"' instead") if $^W;
 				$ds{(grep(/^$ds$/i,@sources))[0]} = $ds{$ds};
@@ -331,26 +337,27 @@ sub add_source {
 	# Add the data source
 	my $new_rrdfile = '';
 	eval {
-		$new_rrdfile = _add_source(
-				$rrdfile,$ds,$dstype,$heartbeat,$self->{rrdtool}
+		$new_rrdfile = _modify_source(
+				$rrdfile,$ds,$self->{rrdtool},
+				'add',$dstype,$heartbeat,
 			);
 	};
 
 	# Barf if the eval{} got upset
 	if ($@) {
-		croak "Failed to add new data source '$ds' to RRD file $rrdfile: $@";
+		croak "Failed to add new data source '$ds' to RRD file '$rrdfile': $@";
 	}
 
 	# Barf of the new RRD file doesn't exist
 	unless (-f $new_rrdfile) {
-		croak "Failed to add new data source '$ds' to RRD file $rrdfile: ",
-				"new RRD file $new_rrdfile does not exist";
+		croak "Failed to add new data source '$ds' to RRD file '$rrdfile': ",
+				"new RRD file '$new_rrdfile' does not exist";
 	}
 
 	# Barf is the new data source isn't in our new RRD file
 	unless ($TgtSources eq join(',',sort($self->sources($new_rrdfile)))) {
-		croak "Failed to add new data source '$ds' to RRD file $rrdfile: ",
-				"new RRD file $new_rrdfile does not contain expected data ",
+		croak "Failed to add new data source '$ds' to RRD file '$rrdfile': ",
+				"new RRD file '$new_rrdfile' does not contain expected data ",
 				"source names";
 	}
 
@@ -359,7 +366,7 @@ sub add_source {
 	if (File::Copy::move($rrdfile,$rrdfileBackup) &&
 				File::Copy::move($new_rrdfile,$rrdfile)) {
 		unless (unlink($rrdfileBackup)) {
-			cluck("Failed to remove back RRD file $rrdfileBackup: $!")
+			cluck("Failed to remove back RRD file '$rrdfileBackup': $!")
 				if $^W;
 		}
 	} else {
@@ -424,16 +431,61 @@ sub rename_source {
 
 	# Grab or guess the filename
 	my $rrdfile = @_ % 2 ? shift : _guess_filename();
+	croak "RRD file '$rrdfile' does not exist" unless -f $rrdfile;
+	TRACE("Using filename: $rrdfile");
 
 	my ($old,$new) = @_;
-	croak "No old data source name specified" unless defined $old;
-	croak "No new data source name specified" unless defined $new;
-	croak "Data source '$old' does not exist in RRD file $rrdfile"
+	croak "No old data source name specified" unless defined $old && length($old);
+	croak "No new data source name specified" unless defined $new && length($new);
+	croak "Data source '$old' does not exist in RRD file '$rrdfile'"
 		unless grep($_ eq $old, $self->sources($rrdfile));
 
 	my @rtn = RRDs::tune($rrdfile,'-r',"$old:$new");
 	my $error = RRDs::error();
 	croak($error) if $error;
+	return wantarray ? @rtn : \@rtn;
+}
+
+
+# Get or set a data source heartbeat
+sub heartbeat {
+	my $self = shift;
+	unless (ref $self && UNIVERSAL::isa($self, __PACKAGE__)) {
+		unshift @_, $self unless $self eq __PACKAGE__;
+		$self = new __PACKAGE__;
+	}
+
+	# Grab or guess the filename
+	my $rrdfile = @_ >= 3 ? shift : 
+			_isLegalDsName($_[0]) && $_[1] =~ /^[0-9]+$/ ?
+			_guess_filename() : shift;
+	croak "RRD file '$rrdfile' does not exist" unless -f $rrdfile;
+	TRACE("Using filename: $rrdfile");
+
+	# Explode if we get no data source name
+	my ($ds,$new_heartbeat) = @_;
+	croak "No data source name was specified" unless defined $ds && length($ds);
+
+	# Check the data source name exists
+	my $info = $self->info($rrdfile);
+	my $heartbeat = $info->{ds}->{$ds}->{minimal_heartbeat};
+	croak "Data source '$ds' does not exist in RRD file '$rrdfile'"
+		unless defined $heartbeat && $heartbeat;
+
+	if (!defined $new_heartbeat) {
+		return wantarray ? ($heartbeat) : $heartbeat;
+	}
+
+	my @rtn = !defined $new_heartbeat ? ($heartbeat) : ();
+	# Redefine the data source heartbeat
+	if (defined $new_heartbeat) {
+		croak "New minimal heartbeat '$new_heartbeat' is not a valid positive integer"
+			unless $new_heartbeat =~ /^[1-9][0-9]*$/;
+		my @rtn = RRDs::tune($rrdfile,'-h',"$ds:$new_heartbeat");
+		my $error = RRDs::error();
+		croak($error) if $error;
+	}
+
 	return wantarray ? @rtn : \@rtn;
 }
 
@@ -604,6 +656,12 @@ sub _create_graph {
 		$image = File::Spec->catfile($param{'destination'},$image);
 	}
 	delete $param{'destination'};
+
+	# Specify timestamps- new for version 1.41
+	my $timestamp = !defined $param{'timestamp'} ||
+						$param{'timestamp'} !~ /^(graph|rrd|both|none)$/i
+					? 'graph' : lc($param{'timestamp'});
+	delete $param{'timestamp'};
 
 	# Specify extended legend - new for version 1.35
 	my $extended_legend = defined $param{'extended-legend'} &&
@@ -807,10 +865,27 @@ sub _create_graph {
 	push @cmd, @command_param;
 
 	# Add a comment stating when the graph was last updated
-	push @cmd, ('COMMENT:\s','COMMENT:\s','COMMENT:\s');
-	my $time = 'Last updated: '.localtime().'\r';
-	$time =~ s/:/\\:/g if $RRDs::VERSION >= 1.2; # Only escape for 1.2
-	push @cmd, "COMMENT:$time";
+	if ($timestamp ne 'none') {
+		#push @cmd, ('COMMENT:\s','COMMENT:\s','COMMENT:\s');
+		push @cmd, ('COMMENT:\s','COMMENT:\s');
+		my $timefmt = '%a %d/%b/%Y %T %Z';
+
+		if ($timestamp eq 'rrd' || $timestamp eq 'both') {
+			my $time = sprintf('RRD last updated: %s\r',
+							strftime($timefmt,localtime((stat($rrdfile))[9]))
+						);
+			$time =~ s/:/\\:/g if $RRDs::VERSION >= 1.2; # Only escape for 1.2
+			push @cmd, "COMMENT:$time";
+		}
+
+		if ($timestamp eq 'graph' || $timestamp eq 'both') {
+			my $time = sprintf('Graph last updated: %s\r',
+							strftime($timefmt,localtime(time))
+						);
+			$time =~ s/:/\\:/g if $RRDs::VERSION >= 1.2; # Only escape for 1.2
+			push @cmd, "COMMENT:$time";
+		}
+	}
 
 	DUMP('@cmd',\@cmd);
 
@@ -827,6 +902,13 @@ sub _create_graph {
 #
 # Private subroutines
 #
+
+sub _isLegalDsName {
+#rrdtool-1.0.49/src/rrd_format.h:#define DS_NAM_FMT    "%19[a-zA-Z0-9_-]"
+#rrdtool-1.2.11/src/rrd_format.h:#define DS_NAM_FMT    "%19[a-zA-Z0-9_-]"
+	return $_[0] =~ /^[a-zA-Z0-9_-]{1,19}$/;
+}
+
 
 sub _rrd_def {
 	croak('Pardon?!') if ref $_[0];
@@ -924,10 +1006,19 @@ sub _alt_graph_name {
 }
 
 
-sub _add_source {
+sub _modify_source {
 	croak('Pardon?!') if ref $_[0];
-	my ($rrdfile,$ds,$dstype,$heartbeat,$rrdtool) = @_;
+	my ($rrdfile,$ds,$rrdtool,$action,$dstype,$heartbeat) = @_;
 	$rrdtool = '' unless defined $rrdtool;
+
+	# Decide what action we should take
+	if ($action !~ /^(add|del)$/) {
+		my $caller = (caller(1))[3];
+		$action = $caller =~ /\badd\b/i ? 'add' :
+				$caller =~ /\bdel(ete)?\b/i ? 'del' : undef;
+	}
+	croak "Unknown or no action passed to method _modify_source()"
+		unless defined $action && $action =~ /^(add|del)$/;
 
 	require File::Copy;
 	require File::Temp;
@@ -936,7 +1027,7 @@ sub _add_source {
 	my ($tempXmlFileFH,$tempXmlFile) = File::Temp::tempfile();
 	croak "File::Temp::tempfile() failed to return a temporary filename"
 		unless defined $tempXmlFile;
-	TRACE("_add_source(): \$tempXmlFile = $tempXmlFile");
+	TRACE("_modify_source(): \$tempXmlFile = $tempXmlFile");
 
 	# Try the internal perl way first (portable)
 	eval {
@@ -966,6 +1057,8 @@ sub _add_source {
 
 	# Create a marker hash ref to store temporary state
 	my $marker = {
+				currentDSIndex => 0,
+				deleteDSIndex => undef,
 				addedNewDS => 0,
 				parse => 0,
 				version => 1,
@@ -975,8 +1068,14 @@ sub _add_source {
 	while (local $_ = <IN>) {
 		chomp;
 
+		# Find out what index number the existing DS definition is in
+		if ($action eq 'del' && /<name>\s*(\S+)\s*<\/name>/) {
+			$marker->{deleteIndex} = $marker->{currentDSIndex} if $1 eq $ds;
+			$marker->{currentDSIndex}++;
+		}
+
 		# Add the DS definition
-		if (!$marker->{addedNewDS} && /<rra>/) {
+		if ($action eq 'add' && !$marker->{addedNewDS} && /<rra>/) {
 			print OUT <<EndDS;
 	<ds>
 		<name> $ds </name>
@@ -996,7 +1095,7 @@ EndDS
 		}
 
 		# Insert DS under CDP_PREP entity
-		if (/<\/cdp_prep>/) {
+		if ($action eq 'add' && /<\/cdp_prep>/) {
 			# Version 0003 RRD from rrdtool 1.2x
 			if ($marker->{version} >= 3) {
 				print OUT "			<ds>\n";
@@ -1025,7 +1124,7 @@ EndDS
 		if ($marker->{parse} == 1) {
 			if ($_ =~ /^(.+ <row>.+)(<\/row>.*)/) {
 				print OUT $1;
-				print OUT "<v> NaN </v>";
+				print OUT "<v> NaN </v>" if $action eq 'add';
 				print OUT $2;
 				print OUT "\n";
 			}
@@ -1045,7 +1144,7 @@ EndDS
 
 	# Import the new output file in to the old RRD filename
 	my $new_rrdfile = File::Temp::tmpnam();
-	TRACE("_add_source(): \$new_rrdfile = $new_rrdfile");
+	TRACE("_modify_source(): \$new_rrdfile = $new_rrdfile");
 
 	# Try the internal perl way first (portable)
 	eval {
@@ -1066,7 +1165,7 @@ EndDS
 		# At least check the file is created
 		unless (-f $new_rrdfile) {
 			_nuke_tmp($tempXmlFile,$tempImportXmlFile);
-			croak "Command '$cmd' failed to create the new RRD file $new_rrdfile: $rtn";
+			croak "Command '$cmd' failed to create the new RRD file '$new_rrdfile': $rtn";
 		}
 	}
 
@@ -1289,7 +1388,9 @@ RRA definitions.
 =head2 new
 
  my $rrd = RRD::Simple->new(
-         rrdtool => "/usr/local/rrdtool-1.2.11/bin/rrdtool"
+         rrdtool => "/usr/local/rrdtool-1.2.11/bin/rrdtool",
+         cf => [ qw(AVERAGE MAX) ],
+         default_dstype => "GAUGE",
      );
 
 The C<rrdtool> parameter is optional. It specifically defines where the
@@ -1301,6 +1402,15 @@ The C<rrdtool> binary is only used by the C<add_source> method, and only
 under certain circumstances. The C<add_source> method may also be called
 automatically by the C<update> method, if data point values for a previously
 undefined data source are provided for insertion.
+
+The C<cf> parameter is optional, and defaults to AVERAGE and MAX. The C<cf>
+paramater defines which consolidation functions are used in round robin
+archives (RRAs) when creating new RRD files.
+
+The C<default_dstype> parameter is optional. Specifying the default data
+source type (DST) through the new() method allows the DST to be localised
+to the $rrd object instance rather than be global to the RRD::Simple package.
+See L<$RRD::Simple::DEFAULT_DSTYPE>.
 
 =head2 create
 
@@ -1396,6 +1506,7 @@ You may renames a data source in an existing RRD file using this method.
  my %rtn = $rrd->graph($rrdfile,
          destination => "/path/to/write/graph/images",
          basename => "graph_basename",
+         timestamp => "both", # graph, rrd, both or none
          sources => [ qw(source_name1 source_name2 source_name3) ],
          source_colors => [ qw(ff0000 aa3333 000000) ],
          source_labels => [ ("My Source 1","My Source Two","Source 3") ],
@@ -1437,6 +1548,21 @@ C<destination> directory:
 
 The default file format is C<png>, but this can be explicitly specified using
 the standard RRDs options. (See below).
+
+=item timestamp
+
+ my %rtn = $rrd->graph($rrdfile,
+         timestamp => "graph", # graph, rrd, both or none
+     );
+
+The C<timestamp> parameter is optional, but will default to "graph". This
+parameter specifies which "last upated" timestamps should be added to the
+bottom right hand corner of the graph.
+
+Valid values are: "graph" - the timestamp of when the graph was last updated
+will be used, "rrd" - the timestamp of when the RRD file was last updated will
+be used, "both" - both the timestamps of when the graph and RRD file were last
+updated will be used, "none" - no timestamp will be used.
 
 =item sources
 
@@ -1569,6 +1695,17 @@ the file extension of .rrd).
 This method will return a complex data structure containing details about
 the RRD file, including RRA and data source information.
 
+=head2 heartbeat
+
+ my $heartbeat = $rrd->heartbeat($rrdfile, "dsname");
+ my @rtn = $rrd->heartbeat($rrdfile, "dsname", 600);
+
+C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
+the file extension of .rrd).
+
+This method will return the current heartbeat of a data source, or set a
+new heartbeat of a data source.
+
 =head1 VARIABLES
 
 =head2 $RRD::Simple::DEBUG
@@ -1604,6 +1741,7 @@ the extra effort of using the OO interface:
  graph
  retention_period
  info
+ heartbeat
 
 The tag C<all> is available to easily export everything:
 
@@ -1616,6 +1754,7 @@ details.
 
 L<RRDTool::OO>, L<RRDs>,
 L<http://www.rrdtool.org>, examples/*.pl,
+L<http://search.cpan.org/src/NICOLAW/RRD-Simple-1.41/examples/>,
 L<http://rrd.me.uk>
 
 =head1 VERSION
@@ -1630,11 +1769,12 @@ L<http://perlgirl.org.uk>
 
 If you like this software, why not show your appreciation by sending the
 author something nice from her
-L<Amazon wishlist|http://www.amazon.co.uk/gp/registry/1VZXC59ESWYK0?sort=priority>?
+L<Amazon wishlist|http://www.amazon.co.uk/gp/registry/1VZXC59ESWYK0?sort=priority>? 
+( http://www.amazon.co.uk/gp/registry/1VZXC59ESWYK0?sort=priority )
 
 =head1 COPYRIGHT
 
-Copyright 2005,2006 Nicola Worthington.
+Copyright 2005,2006,2007 Nicola Worthington.
 
 This software is licensed under The Apache Software License, Version 2.0.
 

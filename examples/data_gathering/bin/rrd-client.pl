@@ -59,8 +59,9 @@ my @probes = qw(
 		misc_uptime misc_users misc_ipmi_temp
 		db_mysql_activity db_mysql_replication
 		mail_exim_queue mail_postfix_queue mail_sendmail_queue
-		net_traffic net_connections net_ping_host net_connections_ports
+		net_traffic net_connections net_ping_host
 	);
+# net_connections_ports
 
 
 # Get command line options
@@ -298,7 +299,7 @@ sub mail_exim_queue {
 	my $spooldir = '/var/spool/exim/input';
 	return unless -d $spooldir && -x $spooldir && -r $spooldir;
 
-	local %mail::exim::queue::update = ();
+	local %mail::exim::queue::update = (Messages => 0);
 	require File::Find;
 	File::Find::find({wanted => sub {
 			my ($dev,$ino,$mode,$nlink,$uid,$gid);
@@ -315,7 +316,7 @@ sub mail_sendmail_queue {
 	my $spooldir = '/var/spool/mqueue';
 	return unless -d $spooldir && -x $spooldir && -r $spooldir;
 
-	local %mail::sendmail::queue::update = ();
+	local %mail::sendmail::queue::update = (Messages => 0);
 	require File::Find;
 	File::Find::find({wanted => sub {
 			my ($dev,$ino,$mode,$nlink,$uid,$gid);
@@ -340,7 +341,7 @@ sub mail_postfix_queue {
 		return unless -d $spooldir && -x $spooldir && -r $spooldir;
 	}
 
-	local %mail::postfix::queue::update = ();
+	local %mail::postfix::queue::update = (Messages => 0);
 	require File::Find;
 	File::Find::find({wanted => sub {
 			my ($dev,$ino,$mode,$nlink,$uid,$gid);

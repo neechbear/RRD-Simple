@@ -1,3 +1,12 @@
+<graph misc_qproc_(\S+)>
+	extended_legend         Yes
+	Title                   "IPC::DirQueue [$1]"
+	vertical_label          "files" 
+	sources                 "queue data active tmp"
+	source_drawtypes        "AREA LINE1 LINE1 LINE1"
+	source_colours          "ffcc00 cc9900 ff0000 bb00bb"
+</graph>
+
 <graph weather_dewPoint_(.+)>
 	title "Dew Point at $1"
 	vertical_label  "Celsius"
@@ -108,6 +117,27 @@
 	title                   "Postfix Mail Queue"
 	vertical_label          "Messages"
 	source_drawtypes        "AREA"
+	extended_legend         Yes
+</graph>
+
+<graph mail_postfix_traffic>
+	title                   "Postfix Traffic"
+	vertical_label          "messages/min"
+	source_drawtypes        "AREA LINE1 AREA AREA"
+	sources                 "sent received rejected bounced"
+	source_labels           "Sent Received Rejected Bounced"
+	source_colours          "bbbbff 008800 990000 000000"
+	extended_legend         Yes
+</graph>
+
+<graph misc_crs_reviews>
+	extended_legend         Yes
+	Title                   "CRS Reviews per Hour"
+	vertical_label          "reviews/hour"
+	sources                 "S P H U"
+	source_labels           "Spam Phish Ham Unknown"
+	source_drawtypes        "AREA STACK LINE1 LINE1"
+	source_colours          "ffaaaa cc7777 0000aa bb00bb"
 </graph>
 
 <graph misc_ipmi_temp>
@@ -285,7 +315,7 @@
 	vertical_label		"kb/sec"
 </graph>
 
-<graph "hdd_io_[^_]+">
+<graph "(?:win_)?hdd_io_[^_]+">
 	title				"Hard Disk I/O: $1"
 	sources				"Read Write"
 	source_drawtypes	"AREA LINE1"
@@ -293,7 +323,7 @@
 	vertical_label		"bytes/sec"
 </graph>
 
-<graph "net_traffic_[^_]+">
+<graph "(?:win_)?net_traffic_[^_]+">
 	extended_legend		Yes
 	title				"Network Traffic: $1"
 	vertical_label		"bytes/sec"

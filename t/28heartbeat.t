@@ -1,6 +1,6 @@
 # $Id$
 
-my $rrdfile = -d 't' ? 't/27test.rrd' : '27test.rrd';
+my $rrdfile = -d 't' ? 't/28test.rrd' : '28test.rrd';
 unlink $rrdfile if -f $rrdfile;
 
 use strict;

@@ -1,3 +1,19 @@
+Version 1.41 - 11th February 2007
+    + Added new requirement of POSIX to Build.PL.
+
+    + Added new timestamp parameter to the graph()
+      method.
+
+    + Added heartbeat() method and POD and unit
+      test for it.
+
+    + Documented some parameters to the new() method
+      that were previously undocumented.
+
+    + Updated version of examples/data_gathering/*
+      scripts, as currently used on http://rrd.me.uk
+
+
 Version 1.40 - 24th August 2006
     + Some small changes to POD.
 

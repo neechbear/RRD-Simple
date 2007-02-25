@@ -3,7 +3,7 @@
 #   $Id: Examples.pm 756 2006-08-24 22:30:54Z nicolaw $
 #   RRD::Simple::Examples - Examples POD for RRD::Simple
 #
-#   Copyright 2005,2006 Nicola Worthington
+#   Copyright 2005,2006,2007 Nicola Worthington
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,15 +18,13 @@
 #   limitations under the License.
 #
 ############################################################
-
-package RRD::Simple::Examples;
 # vim:ts=4:sw=4:tw=78
 
 =pod
 
 =head1 NAME
 
-RRD::Simple::Examples
+RRD::Simple::Examples - Examples using RRD::Simple
 
 =head1 EXAMPLES
 
@@ -57,13 +55,11 @@ RRD::Simple::Examples
 
 =head1 COPYRIGHT
 
-Copyright 2005,2006 Nicola Worthington.
+Copyright 2005,2006,2007 Nicola Worthington.
 
 This software is licensed under The Apache Software License, Version 2.0.
 
 L<http://www.apache.org/licenses/LICENSE-2.0>
 
 =cut
-
-1;
 

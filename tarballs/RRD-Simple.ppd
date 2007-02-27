@@ -1,4 +1,4 @@
-<SOFTPKG NAME="RRD-Simple" VERSION="1,41,0,0">
+<SOFTPKG NAME="RRD-Simple" VERSION="1,42,0,0">
     <TITLE>RRD-Simple</TITLE>
     <ABSTRACT>Simple interface to create and store data in RRD files</ABSTRACT>
     <AUTHOR>Nicola Worthington &lt;nicolaw@cpan.org&gt;</AUTHOR>
@@ -10,6 +10,6 @@
         <DEPENDENCY NAME="File-Spec" VERSION="0,0,0,0" />
         <DEPENDENCY NAME="File-Basename" VERSION="0,0,0,0" />
         <DEPENDENCY NAME="Carp" VERSION="0,0,0,0" />
-        <CODEBASE HREF="PPM-RRD-Simple-1.41.tar.gz" />
+        <CODEBASE HREF="PPM-RRD-Simple-1.42.tar.gz" />
     </IMPLEMENTATION>
 </SOFTPKG>

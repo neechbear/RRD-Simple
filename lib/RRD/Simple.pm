@@ -33,7 +33,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.41' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.42' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -47,6 +47,8 @@ $DEBUG ||= $ENV{DEBUG} ? 1 : 0;
 $DEFAULT_DSTYPE ||= exists $ENV{DEFAULT_DSTYPE}
 				? $ENV{DEFAULT_DSTYPE} : 'GAUGE';
 
+my $objstore = {};
+
 
 
 #
@@ -57,27 +59,34 @@ $DEFAULT_DSTYPE ||= exists $ENV{DEFAULT_DSTYPE}
 sub new {
 	ref(my $class = shift) && croak 'Class name required';
 	croak 'Odd number of elements passed when even was expected' if @_ % 2;
-	my $self = { @_ };
 
-	my $validkeys = join('|',qw(rrdtool cf default_dstype default_dst));
+	# Conjure up an invisible object 
+	my $self = bless \(my $dummy), $class;
+	$objstore->{_refaddr($self)} = {@_};
+	my $stor = $objstore->{_refaddr($self)};
+	#my $self = { @_ };
+
+	# Added "file" support in 1.42 - see sub _guess_filename
+	my @validkeys = qw(rrdtool cf default_dstype default_dst file);
+	my $validkeys = join('|', @validkeys);
 	cluck('Unrecognised parameters passed: '.
-		join(', ',grep(!/^$validkeys$/,keys %{$self})))
-		if (grep(!/^$validkeys$/,keys %{$self}) && $^W);
+		join(', ',grep(!/^$validkeys$/,keys %{$stor})))
+		if (grep(!/^$validkeys$/,keys %{$stor}) && $^W);
 
-	$self->{rrdtool} = _find_binary(exists $self->{rrdtool} ?
-						$self->{rrdtool} : 'rrdtool');
+	$stor->{rrdtool} = _find_binary(exists $stor->{rrdtool} ?
+						$stor->{rrdtool} : 'rrdtool');
 
-	$self->{default_dstype} ||= $self->{default_dst};
+	$stor->{default_dstype} ||= $stor->{default_dst};
 
-	#$self->{cf} ||= [ qw(AVERAGE MIN MAX LAST) ];
+	#$stor->{cf} ||= [ qw(AVERAGE MIN MAX LAST) ];
 	# By default, now only create RRAs for AVERAGE and MAX, like
 	# mrtg v2.13.2. This is to save disk space and processing time
 	# during updates etc.
-	$self->{cf} ||= [ qw(AVERAGE MAX) ]; 
-	$self->{cf} = [ $self->{cf} ] if !ref($self->{cf});
+	$stor->{cf} ||= [ qw(AVERAGE MAX) ]; 
+	$stor->{cf} = [ $stor->{cf} ] if !ref($stor->{cf});
 
-	bless($self,$class);
 	DUMP($class,$self);
+	DUMP('$stor',$stor);
 	return $self;
 }
 
@@ -91,9 +100,10 @@ sub create {
 	}
 
 	# Grab or guess the filename
+	my $stor = $objstore->{_refaddr($self)};
 	my $rrdfile = (@_ % 2 && !_valid_scheme($_[0]))
 				|| (!(@_ % 2) && _valid_scheme($_[1]))
-					? shift : _guess_filename();
+					? shift : _guess_filename($stor);
 	croak "RRD file '$rrdfile' already exists" if -f $rrdfile;
 	TRACE("Using filename: $rrdfile");
 
@@ -129,7 +139,7 @@ sub create {
 
 	# Add RRA definitions
 	my %cf;
-	for my $cf (@{$self->{cf}}) {
+	for my $cf (@{$stor->{cf}}) {
 		$cf{$cf} = $rrdDef->{rra};
 	}
 	for my $cf (sort keys %cf) {
@@ -160,9 +170,10 @@ sub update {
 	}
 
 	# Grab or guess the filename
+	my $stor = $objstore->{_refaddr($self)};
 	my $rrdfile = (@_ % 2 && $_[0] !~ /^[1-9][0-9]{8,10}$/i)
 				 || (!(@_ % 2) && $_[1] =~ /^[1-9][0-9]{8,10}$/i)
-					? shift : _guess_filename();
+					? shift : _guess_filename($stor);
 
 	# We've been given an update timestamp
 	my $time = time();
@@ -174,7 +185,7 @@ sub update {
 
 	# Try to automatically create it
 	unless (-f $rrdfile) {
-		my $default_dstype = $self->{default_dstype} || $DEFAULT_DSTYPE;
+		my $default_dstype = $stor->{default_dstype} || $DEFAULT_DSTYPE;
 		cluck("RRD file '$rrdfile' does not exist; attempting to create it ",
 				"using default DS type of '$default_dstype'") if $^W;
 		my @args;
@@ -255,7 +266,8 @@ sub last {
 		$self = new __PACKAGE__;
 	}
 
-	my $rrdfile = shift || _guess_filename();
+	my $stor = $objstore->{_refaddr($self)};
+	my $rrdfile = shift || _guess_filename($stor);
 	croak "RRD file '$rrdfile' does not exist" unless -f $rrdfile;
 	TRACE("Using filename: $rrdfile");
 
@@ -274,7 +286,8 @@ sub sources {
 		$self = new __PACKAGE__;
 	}
 
-	my $rrdfile = shift || _guess_filename();
+	my $stor = $objstore->{_refaddr($self)};
+	my $rrdfile = shift || _guess_filename($stor);
 	croak "RRD file '$rrdfile' does not exist" unless -f $rrdfile;
 	TRACE("Using filename: $rrdfile");
 
@@ -301,7 +314,8 @@ sub add_source {
 	}
 
 	# Grab or guess the filename
-	my $rrdfile = @_ % 2 ? shift : _guess_filename();
+	my $stor = $objstore->{_refaddr($self)};
+	my $rrdfile = @_ % 2 ? shift : _guess_filename($stor);
 	unless (-f $rrdfile) {
 		cluck("RRD file '$rrdfile' does not exist; attempting to create it")
 			if $^W;
@@ -338,7 +352,7 @@ sub add_source {
 	my $new_rrdfile = '';
 	eval {
 		$new_rrdfile = _modify_source(
-				$rrdfile,$ds,$self->{rrdtool},
+				$rrdfile,$ds,$stor->{rrdtool},
 				'add',$dstype,$heartbeat,
 			);
 	};
@@ -384,7 +398,8 @@ sub graph {
 	}
 
 	# Grab or guess the filename
-	my $rrdfile = @_ % 2 ? shift : _guess_filename();
+	my $stor = $objstore->{_refaddr($self)};
+	my $rrdfile = @_ % 2 ? shift : _guess_filename($stor);
 
 	# How much data do we have to graph?
 	my $period = $self->retention_period($rrdfile);
@@ -430,7 +445,8 @@ sub rename_source {
 	}
 
 	# Grab or guess the filename
-	my $rrdfile = @_ % 2 ? shift : _guess_filename();
+	my $stor = $objstore->{_refaddr($self)};
+	my $rrdfile = @_ % 2 ? shift : _guess_filename($stor);
 	croak "RRD file '$rrdfile' does not exist" unless -f $rrdfile;
 	TRACE("Using filename: $rrdfile");
 
@@ -456,9 +472,10 @@ sub heartbeat {
 	}
 
 	# Grab or guess the filename
+	my $stor = $objstore->{_refaddr($self)};
 	my $rrdfile = @_ >= 3 ? shift : 
 			_isLegalDsName($_[0]) && $_[1] =~ /^[0-9]+$/ ?
-			_guess_filename() : shift;
+			_guess_filename($stor) : shift;
 	croak "RRD file '$rrdfile' does not exist" unless -f $rrdfile;
 	TRACE("Using filename: $rrdfile");
 
@@ -499,7 +516,8 @@ sub fetch {
 	}
 
 	# Grab or guess the filename
-	my $rrdfile = @_ % 2 ? shift : _guess_filename();
+	my $stor = $objstore->{_refaddr($self)};
+	my $rrdfile = @_ % 2 ? shift : _guess_filename($stor);
 
 }
 
@@ -513,7 +531,8 @@ sub last_values {
 	}
 
 	# Grab or guess the filename
-	my $rrdfile = @_ % 2 ? shift : _guess_filename();
+	my $stor = $objstore->{_refaddr($self)};
+	my $rrdfile = @_ % 2 ? shift : _guess_filename($stor);
 
 	# When was the RRD last updated?
 	my $lastUpdated = $self->last($rrdfile);
@@ -592,7 +611,8 @@ sub info {
 	}
 
 	# Grab or guess the filename
-	my $rrdfile = @_ % 2 ? shift : _guess_filename();
+	my $stor = $objstore->{_refaddr($self)};
+	my $rrdfile = @_ % 2 ? shift : _guess_filename($stor);
 
 	my $info = RRDs::info($rrdfile);
 	my $error = RRDs::error();
@@ -868,6 +888,7 @@ sub _create_graph {
 	if ($timestamp ne 'none') {
 		#push @cmd, ('COMMENT:\s','COMMENT:\s','COMMENT:\s');
 		push @cmd, ('COMMENT:\s','COMMENT:\s');
+		push @cmd, 'COMMENT:\s' unless $extended_legend;
 		my $timefmt = '%a %d/%b/%Y %T %Z';
 
 		if ($timestamp eq 'rrd' || $timestamp eq 'both') {
@@ -903,6 +924,33 @@ sub _create_graph {
 # Private subroutines
 #
 
+no warnings 'redefine';
+sub UNIVERSAL::a_sub_not_likely_to_be_here { ref($_[0]) }
+use warnings 'redefine';
+
+
+sub _blessed ($) {
+	local($@, $SIG{__DIE__}, $SIG{__WARN__});
+	return length(ref($_[0]))
+			? eval { $_[0]->a_sub_not_likely_to_be_here }
+			: undef
+}
+
+
+sub _refaddr($) {
+	my $pkg = ref($_[0]) or return undef;
+	if (_blessed($_[0])) {
+		bless $_[0], 'Scalar::Util::Fake';
+	} else {
+		$pkg = undef;
+	}
+	"$_[0]" =~ /0x(\w+)/;
+	my $i = do { local $^W; hex $1 };
+	bless $_[0], $pkg if defined $pkg;
+	return $i;
+}
+
+
 sub _isLegalDsName {
 #rrdtool-1.0.49/src/rrd_format.h:#define DS_NAM_FMT    "%19[a-zA-Z0-9_-]"
 #rrdtool-1.2.11/src/rrd_format.h:#define DS_NAM_FMT    "%19[a-zA-Z0-9_-]"
@@ -918,7 +966,8 @@ sub _rrd_def {
 	if ($type eq 'mrtg') {
 		my $step = 5; # 5 minutes
 		return {
-				step => $step * 60, heartbeat => $step * 60 * 2,
+				step => $step * 60,
+				heartbeat => $step * 60 * 2,
 				rra => [(
 					{ step => 1, rows => int(4000 / $step) }, # 800
 					{ step => int(  30 / $step), rows => 800 }, # if $step < 30
@@ -930,7 +979,8 @@ sub _rrd_def {
 
 	my $step = 1; # 1 minute highest resolution
 	my $rra = {
-			step => $step * 60, heartbeat => $step * 60 * 2,
+			step => $step * 60,
+			heartbeat => $step * 60 * 2,
 			rra => [(
 				# Actual $step resolution (for 1.25 days retention)
 				{ step => 1, rows => int( _minutes_in('day',125) / $step) },
@@ -1235,9 +1285,17 @@ sub _find_binary {
 
 
 sub _guess_filename {
-	croak('Pardon?!') if ref $_[0];
+	croak('Pardon?!') if !defined $_[0] || ref($_[0]) ne 'HASH';
+	my $stor = shift;
+	return $stor->{file} if defined $stor->{file};
 	my ($basename, $dirname, $extension) = fileparse($0, '\.[^\.]+');
 	return "$dirname$basename.rrd";
+}
+
+
+sub DESTROY {
+	my $self = shift;
+	delete $objstore->{_refaddr($self)};
 }
 
 
@@ -1322,11 +1380,11 @@ RRD::Simple - Simple interface to create and store data in RRD files
  use RRD::Simple ();
  
  # Create an interface object
- my $rrd = RRD::Simple->new();
+ my $rrd = RRD::Simple->new( file => "myfile.rrd" );
  
  # Create a new RRD file with 3 data sources called
  # bytesIn, bytesOut and faultsPerSec.
- $rrd->create("myfile.rrd",
+ $rrd->create(
              bytesIn => "GAUGE",
              bytesOut => "GAUGE",
              faultsPerSec => "COUNTER"
@@ -1334,7 +1392,7 @@ RRD::Simple - Simple interface to create and store data in RRD files
  
  # Put some arbitary data values in the RRD file for same
  # 3 data sources called bytesIn, bytesOut and faultsPerSec.
- $rrd->update("myfile.rrd",
+ $rrd->update(
              bytesIn => 10039,
              bytesOut => 389,
              faultsPerSec => 0.4
@@ -1343,7 +1401,7 @@ RRD::Simple - Simple interface to create and store data in RRD files
  # Generate graphs:
  # /var/tmp/myfile-daily.png, /var/tmp/myfile-weekly.png
  # /var/tmp/myfile-monthly.png, /var/tmp/myfile-annual.png
- my %rtn = $rrd->graph("myfile.rrd",
+ my %rtn = $rrd->graph(
              destination => "/var/tmp",
              title => "Network Interface eth0",
              vertical_label => "Bytes/Faults",
@@ -1352,17 +1410,17 @@ RRD::Simple - Simple interface to create and store data in RRD files
  printf("Created %s\n",join(", ",map { $rtn{$_}->[0] } keys %rtn));
 
  # Return information about an RRD file
- my $info = $rrd->info("myfile.rrd");
+ my $info = $rrd->info;
  require Data::Dumper;
  print Data::Dumper::Dumper($info);
 
  # Get unixtime of when RRD file was last updated
- my $lastUpdated = $rrd->last("myfile.rrd");
+ my $lastUpdated = $rrd->last;
  print "myfile.rrd was last updated at " .
        scalar(localtime($lastUpdated)) . "\n";
  
  # Get list of data source names from an RRD file
- my @dsnames = $rrd->sources("myfile.rrd");
+ my @dsnames = $rrd->sources;
  print "Available data sources: " . join(", ", @dsnames) . "\n";
  
  # And for the ultimately lazy, you could create and update
@@ -1388,10 +1446,15 @@ RRA definitions.
 =head2 new
 
  my $rrd = RRD::Simple->new(
+         file => "myfile.rrd",
          rrdtool => "/usr/local/rrdtool-1.2.11/bin/rrdtool",
          cf => [ qw(AVERAGE MAX) ],
          default_dstype => "GAUGE",
      );
+
+The C<file> parameter is currently optional but will become mandatory in
+future releases, replacing the optional C<$rrdfile> parameters on subsequent
+methods. This parameter specifies the RRD filename to be used.
 
 The C<rrdtool> parameter is optional. It specifically defines where the
 C<rrdtool> binary can be found. If not specified, the module will search for
@@ -1404,7 +1467,7 @@ automatically by the C<update> method, if data point values for a previously
 undefined data source are provided for insertion.
 
 The C<cf> parameter is optional, and defaults to AVERAGE and MAX. The C<cf>
-paramater defines which consolidation functions are used in round robin
+parameter defines which consolidation functions are used in round robin
 archives (RRAs) when creating new RRD files.
 
 The C<default_dstype> parameter is optional. Specifying the default data
@@ -1420,14 +1483,20 @@ See L<$RRD::Simple::DEFAULT_DSTYPE>.
          source_name => "TYPE"
      );
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 C<$period> is optional and will default to C<year>. Valid options are C<day>,
-C<week>, C<month>, C<year>, C<3years> and C<mrtg>. Specifying a retention
+C<week>, C<month>, C<year>, C<3years> and C<mrtg>. Specifying a data retention
 period value will change how long data will be retained for within the RRD
-file. The C<mrtg> scheme will try and mimic the retention period used by
-MRTG (L<http://people.ee.ethz.ch/~oetiker/webtools/mrtg/>.
+file. The C<mrtg> scheme will try and mimic the data retention period used by
+MRTG v2.13.2 (L<http://people.ee.ethz.ch/~oetiker/webtools/mrtg/>.
+
+The C<mrtg> data retention period uses a data stepping resolution of 300
+seconds (5 minutes) and heartbeat of 600 seconds (10 minutes), whereas all the
+other data retention periods use a data stepping resolution of 60 seconds
+(1 minute) and heartbeat of 120 seconds (2 minutes).
 
 RRD::Simple will croak and die if you try to create an RRD file that already
 exists.
@@ -1440,8 +1509,9 @@ exists.
          source_name => "VALUE"
      );
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 C<$unixtime> is optional and will default to C<time()> (the current unixtime).
 Specifying this value will determine the date and time that your data point
@@ -1466,15 +1536,17 @@ you if have perl warnings turned on.
 
  my $unixtime = $rrd->last($rrdfile);
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 =head2 sources
 
  my @sources = $rrd->sources($rrdfile);
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 =head2 add_source
 
@@ -1482,8 +1554,9 @@ the file extension of .rrd).
          source_name => "TYPE"
      );
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 You may add a new data source to an existing RRD file using this method. Only
 one data source name can be added at a time. You must also specify the data
@@ -1496,8 +1569,9 @@ add missing data sources.
 
  $rrd->rename_source($rrdfile, "old_datasource", "new_datasource");
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 You may renames a data source in an existing RRD file using this method.
 
@@ -1518,8 +1592,9 @@ You may renames a data source in an existing RRD file using this method.
          rrd_graph_option => "value"
      );
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 Graph options specific to RRD::Simple are:
 
@@ -1679,8 +1754,9 @@ L<http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/doc/index.en.html>.
 
  my $seconds = $rrd->retention_period($rrdfile);
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 This method will return a maximum period of time (in seconds) that the RRD
 file will store data for.
@@ -1689,8 +1765,9 @@ file will store data for.
 
  my $info = $rrd->info($rrdfile);
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 This method will return a complex data structure containing details about
 the RRD file, including RRA and data source information.
@@ -1700,8 +1777,9 @@ the RRD file, including RRA and data source information.
  my $heartbeat = $rrd->heartbeat($rrdfile, "dsname");
  my @rtn = $rrd->heartbeat($rrdfile, "dsname", 600);
 
-C<$rrdfile> is optional and will default to C<$0.rrd>. (Script basename with
-the file extension of .rrd).
+C<$rrdfile> is optional and will default to using the RRD filename specified
+by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
+extension of .rrd).
 
 This method will return the current heartbeat of a data source, or set a
 new heartbeat of a data source.

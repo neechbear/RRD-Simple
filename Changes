@@ -1,4 +1,41 @@
+Version 1.42 - 28th February 2007
+    + Increased the spacing on the graph between the
+      timestamps in the bottom right hand corner and
+      the legend if the "extended-legend" parameter is
+      NOT specified.
+
+    + Added the "file" parameter to the new() constructor
+      method to specify the RRD filename to be used for
+      by the resulting RRD::Simple object. Eventually
+      this will replace the (now optional) ability to
+      pass the RRD filename as the first parameter to
+      subsequent object methods.
+
+    + Changed the POD to reflect the above changes
+      to the new() constructor method regarding passing
+      of the RRD filename at object creation time.
+
+    + Added new unit text for the above changes
+      to the new() constructor method.
+
+    + Corrected minimum RRD::Simple version for
+      rrd-server.pl as documented in README.
+
+    + Updated the main POD to include data resolution
+      information for each of the 6 different data
+      retention period schemes.
+
+    + Changed to an inside out object. Use the DEBUG
+      environment variable to debug.
+
+    + Updated and renamed RRD::Simple::Examples from
+      a .pm file to a .pod file since it contains no
+      actual code (only documentation).
+
+
 Version 1.41 - 11th February 2007
+    + Added RRD::Simple::Examples POD.
+
     + Added new requirement of POSIX to Build.PL.
 
     + Added new timestamp parameter to the graph()
@@ -7,8 +44,9 @@ Version 1.41 - 11th February 2007
     + Added heartbeat() method and POD and unit
       test for it.
 
-    + Documented some parameters to the new() method
-      that were previously undocumented.
+    + Documented some parameters to the new()
+      constructor method that were previously
+      undocumented.
 
     + Updated version of examples/data_gathering/*
       scripts, as currently used on http://rrd.me.uk
@@ -210,7 +248,7 @@ Version 1.32 - 8th February 2006
       RRD files to be only AVERAGE and MAX. This is to
       reduce the file size and update times. To create
       RRD files with MIN and LAST CFs you can still use
-      the "cf" parameter in the new() method.
+      the "cf" parameter in the new() constructor method.
 
     + Changed the retention schemes to be more uniform
       and added an "mrtg" scheme that mimics the MRTG
@@ -239,11 +277,11 @@ Version 1.31 - 19th January 2006
       MIN, LAST.
 
     + Added (undocumented) "cf" parameter inside the
-      new() method to specify which CFs to use when creating
-      RRAs in a new RRD file. This may be documented later
-      if it's considered useful, and if the paramrter
-      name is correct (ie, shouldn't be named something
-      else), or implemented in another way.
+      new() constructor method to specify which CFs to use
+      when creating RRAs in a new RRD file. This may be
+      documented later if it's considered useful, and if
+      the parameter name is correct (ie, shouldn't be
+      named something else), or implemented in another way.
 
     + Fixed a bug which (until this release) would not
       and should not have been noticed since it only

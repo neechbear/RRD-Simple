@@ -1,4 +1,4 @@
-# $Id$
+# $Id: 21synopsis.t 945 2007-02-11 14:43:10Z nicolaw $
 
 chdir('t') if -d 't';
 my $rrdfile = -d 't' ? 't/21test.rrd' : '21test.rrd';
@@ -14,16 +14,16 @@ BEGIN {
 }
 
 use lib qw(./lib ../lib);
-use RRD::Simple 1.42 ();
+use RRD::Simple 1.35 ();
 
 # Create an interface object
-ok(my $rrd = RRD::Simple->new( file => $rrdfile ),'new');
+ok(my $rrd = RRD::Simple->new(),'new');
 
 # Create a new RRD file with 3 data sources called
 # bytesIn, bytesOut and faultsPerSec. Data retention
 # of a year is specified. (The data retention parameter
 # is optional and not required).
-ok($rrd->create("year",
+ok($rrd->create($rrdfile, "year",
 		bytesIn => 'GAUGE',
 		bytesOut => 'GAUGE',
 		faultsPerSec => 'COUNTER'
@@ -32,21 +32,21 @@ ok($rrd->create("year",
 # Put some arbitary data values in the RRD file for same
 # 3 data sources called bytesIn, bytesOut and faultsPerSec.
 my $updated = time();
-ok($rrd->update(
+ok($rrd->update($rrdfile,
 		bytesIn => 10039,
 		bytesOut => 389,
 		faultsPerSec => 0.4
 	),'update');
 
 # Get unixtime of when RRD file was last updated
-ok($rrd->last - $updated < 5 && $rrd->last,
+ok($rrd->last($rrdfile) - $updated < 5 && $rrd->last($rrdfile),
 	'last');
 
-ok(join(',',sort $rrd->sources) eq 'bytesIn,bytesOut,faultsPerSec',
+ok(join(',',sort $rrd->sources($rrdfile)) eq 'bytesIn,bytesOut,faultsPerSec',
 	'sources');
 
 my %rtn = ();
-ok(%rtn = $rrd->graph(
+ok(%rtn = $rrd->graph($rrdfile,
 		title => "Network Interface eth0",
 		vertical_label => "Bytes/Faults",
 		interlaced => ""

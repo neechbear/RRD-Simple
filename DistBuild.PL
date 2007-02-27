@@ -15,6 +15,7 @@ $build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|_bui
 #$build->do_system('cvs2cl.pl', qw(-r -t -T -P --fsf --no-times))
 #	&& unlink 'ChangeLog.bak';
 
+unlink 'MANIFEST';
 stage('Updating MANIFEST');
 $build->dispatch('manifest');
 
@@ -39,6 +40,7 @@ if ($build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|
 	print "Uncommited files; skipping ...\n";
 } else {
 	$build->dispatch('distcheck');
+	chmod 0644, 'Build.PL';
 	$build->dispatch('dist');
 	$build->dispatch('ppmdist');
 

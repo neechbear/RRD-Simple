@@ -125,7 +125,7 @@ sub may_send_version_information {
 		alarm 0;
 	};
 
-	return $send ? $str : undef;
+	return defined $send && !ref($send) && "$send" eq "1" ? $str : undef;
 }
 
 1;

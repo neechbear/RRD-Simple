@@ -1,3 +1,9 @@
+Version 1.43 - 1st March 2007
+    + Changed Build.PL to be more paranoid defaulting
+      to no while using $build->y_n to work around
+      potential removal of expected method functionality.
+
+
 Version 1.42 - 27th February 2007
     + Increased the spacing on the graph between the
       timestamps in the bottom right hand corner and

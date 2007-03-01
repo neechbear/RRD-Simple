@@ -33,7 +33,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.42' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.43' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -1832,7 +1832,7 @@ details.
 
 L<RRDTool::OO>, L<RRDs>,
 L<http://www.rrdtool.org>, examples/*.pl,
-L<http://search.cpan.org/src/NICOLAW/RRD-Simple-1.41/examples/>,
+L<http://search.cpan.org/src/NICOLAW/RRD-Simple-1.43/examples/>,
 L<http://rrd.me.uk>
 
 =head1 VERSION

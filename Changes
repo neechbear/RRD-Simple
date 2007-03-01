@@ -3,6 +3,12 @@ Version 1.43 - 1st March 2007
       to no while using $build->y_n to work around
       potential removal of expected method functionality.
 
+    + Added README2.
+
+    + Added instructions for installing rrdtool and RRDs
+      under Debian/Ubuntu and Fedora Core to the INSTALL
+      file.
+
 
 Version 1.42 - 27th February 2007
     + Increased the spacing on the graph between the

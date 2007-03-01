@@ -7,9 +7,8 @@ perl Build test
 perl Build install
 
 
-
-Installing RRDtool
-==================
+Installing RRDtool from Source
+==============================
 
 RRD::Simple requires the RRDs module (a part of RRDtool) to
 be available in the Perl @INC path. RRDtool can be downloaded
@@ -27,6 +26,23 @@ is located in "rrdtool-1.2.xx/bindings/perl-shared/".
 	make clean
 	perl Makefile.PL && make && make install
 
-Debian users may need to explicitly install the RRDs package
-as well as the RRDtool and librrd package.
+
+Installing RRDtool on Debian & Ubuntu
+=====================================
+
+Run apt-get as root or with sudo as shown here to install the
+rrdtool and librrds-perl packages:
+
+	sudo apt-get install rrdtool
+	sudo apt-get install librrds-perl
+
+
+Installing RRDtool on Fedore Core
+=================================
+
+Run yum as root or with sudo as shown here to install the
+rrdtool and rrdtool-perl packages:
+
+	sudo yum install rrdtool
+	sudo yum install rrdtool-perl
 

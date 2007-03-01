@@ -21,8 +21,9 @@ BEGIN {
 	}
 }
 
+my $module = 'RRD::Simple';
 $build = Module::Build->new(
-		module_name        => 'RRD::Simple',
+		module_name        => $module,
 		license            => 'open_source',
 		create_makefile_pl => 'passthrough',
 		create_readme      => 1,
@@ -103,7 +104,7 @@ sub may_send_version_information {
 
 	my $str = sprintf('%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s',
 			'http://perlgirl.org.uk/lib/usage.cgi',
-			'name',     $build->dist_name(),
+			'name',     $module,
 			'version',  $build->dist_version(),
 			'osname',   $Config::Config{osname},
 			'archname', $Config::Config{archname},

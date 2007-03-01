@@ -1,4 +1,4 @@
-# $Id: 21synopsis.t 945 2007-02-11 14:43:10Z nicolaw $
+# $Id$
 
 chdir('t') if -d 't';
 my $rrdfile = -d 't' ? 't/21test.rrd' : '21test.rrd';

@@ -1458,7 +1458,7 @@ methods. This parameter specifies the RRD filename to be used.
 
 The C<rrdtool> parameter is optional. It specifically defines where the
 C<rrdtool> binary can be found. If not specified, the module will search for
-the C<rrdtool> binary in your path, an additional location relative where
+the C<rrdtool> binary in your path, an additional location relative to where
 the C<RRDs> module was loaded from, and in /usr/local/rrdtool*.
 
 The C<rrdtool> binary is only used by the C<add_source> method, and only
@@ -1466,9 +1466,11 @@ under certain circumstances. The C<add_source> method may also be called
 automatically by the C<update> method, if data point values for a previously
 undefined data source are provided for insertion.
 
-The C<cf> parameter is optional, and defaults to AVERAGE and MAX. The C<cf>
-parameter defines which consolidation functions are used in round robin
-archives (RRAs) when creating new RRD files.
+The C<cf> parameter is optional, but when specified expects an array
+reference. The C<cf> parameter defines which consolidation functions are
+used in round robin archives (RRAs) when creating new RRD files. Valid
+values are AVERAGE, MIN, MAX and LAST. The default value is AVERAGE and
+MAX.
 
 The C<default_dstype> parameter is optional. Specifying the default data
 source type (DST) through the new() method allows the DST to be localised
@@ -1497,6 +1499,11 @@ The C<mrtg> data retention period uses a data stepping resolution of 300
 seconds (5 minutes) and heartbeat of 600 seconds (10 minutes), whereas all the
 other data retention periods use a data stepping resolution of 60 seconds
 (1 minute) and heartbeat of 120 seconds (2 minutes).
+
+Each data source name should specify the data source type. Valid data source
+types (DSTs) are GAUGE, COUNTER, DERIVE and ABSOLUTE. See the section
+regrading DSTs at L<http://oss.oetiker.ch/rrdtool/doc/rrdcreate.en.html>
+for further information.
 
 RRD::Simple will croak and die if you try to create an RRD file that already
 exists.
@@ -1540,6 +1547,10 @@ C<$rrdfile> is optional and will default to using the RRD filename specified
 by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
 extension of .rrd).
 
+This method returns the last (most recent) data point entry time in the RRD
+file in UNIX time (seconds since the epoch; Jan 1st 1970). This value should
+not be confused with the last modified time of the RRD file.
+
 =head2 sources
 
  my @sources = $rrd->sources($rrdfile);
@@ -1547,6 +1558,9 @@ extension of .rrd).
 C<$rrdfile> is optional and will default to using the RRD filename specified
 by the C<new> constructor method, or C<$0.rrd>. (Script basename with the file
 extension of .rrd).
+
+This method returns a list of all of the data source names contained within
+the RRD file.
 
 =head2 add_source
 

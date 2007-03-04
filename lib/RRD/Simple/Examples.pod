@@ -57,8 +57,8 @@ RRD::Simple::Examples - Examples using RRD::Simple
 =head2 Example 2: Setting Minimum and Maximum Value Limits
 
 This example shows how to set the minimum value to zero on a datasource using
-the RRDs::tune function. Use -i or --minimum to set the minimum value, and -a
-or --maximum to set the maximum value.
+the RRDs::tune function. Use C<-i> or C<--minimum> to set the minimum value,
+and C<-a> or C<--maximum> to set the maximum value.
 
 See L<http://www.rrdtool.org/rrdtool/doc/rrdtune.en.html>.
 
@@ -115,7 +115,7 @@ and heartbeat of 120 seconds (2 minutes).
 
 =head2 Example 4: Drawing an Average Value Horizonal Rule on a Graph
 
-Graph parameters are preserved and should be passed trhgouh to RRDs correctly:
+Graph parameters are preserved and should be passed through to RRDs correctly:
 VDEF, CDEF, DEF, GPRINT, PRINT, COMMENT, HRULE, VRULE, LINE, AREA, TICK, SHIFT
 and STACK. Use the HRULE parameter to draw a horizontal rule on your graph.
 
@@ -160,6 +160,32 @@ and STACK. Use the HRULE parameter to draw a horizontal rule on your graph.
          sources => [ qw(System User IO_Wait Idle) ],
          source_drawtypes => [ qw(AREA STACK STACK STACK) ],
          extended_legend => 1,
+     );
+
+=head2 Example 6: Setting Custom Graph Colours
+
+The C<color> parameter can be used to override the default colours
+for standard elements of the graph. Valid elements are: BACK, CANVAS,
+SHADEA, SHADEB, GRID, MGRID, FONT, AXIS, FRAME and ARROW. See
+L<http://oss.oetiker.ch/rrdtool/doc/rrdgraph.en.html> for further
+information.
+
+ use strict;
+ use RRD::Simple;
+ 
+ my $rrd = new RRD::Simple->new( file => "vmstat-cpu.rrd" );
+ 
+ $rrd->graph(
+         title => "CPU Utilisation",
+         source_colors => {
+                 System  => "ff0000",
+                 User    => "00ff00",
+                 IO_Wait => "0000ff",
+                 Idle    => "ffffff",
+             },
+         color => [ ( "BACK#F5F5FF", "SHADEA#C8C8FF",
+                      "SHADEB#9696BE", "ARROW#61B51B",
+                      "GRID#404852", "MGRID#67C6DE" ) ],
      );
 
 =head1 COPYRIGHT

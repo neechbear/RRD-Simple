@@ -55,12 +55,12 @@ include phone home code in my distribution:
 7) You can't possibly code defensively enough to make it
    always default to "no" and not phoning home.
 
-   In real terms this is correct. It is impossible to
-   account for people overloading parts of any of the
-   modules that is used in the phone home, in the same way
-   that it is impossible for me to know if someone has
-   replaced the perl binary with a copy of lua or patched
-   it to unlink random files from the file system. I have
+   It is impossible to account for people overloading any
+   or all parts modules that are used in the phone home,
+   in the same way that it is impossible for me to know if
+   someone has replaced the perl binary with a copy of lua
+   or patched it to unlink random files from the file
+   system, or overloaded ever core operator. I have
    however written the code to cope with all reasonable
    situations.
 
@@ -69,7 +69,7 @@ include phone home code in my distribution:
    home code, and none said to keep it. You should therefore
    remove it.
 
-   When council tax bands are reevaluated you only head about
+   When council tax bands are reevaluated you only hear about
    the people who are not happy because they will have to
    pay more. That's because the people who benefit or don't
    mind usually don't feel the need to make their opinions
@@ -77,4 +77,21 @@ include phone home code in my distribution:
    happily answer "yes" to allow phoning home. Do hear from
    them to tell me I should keep the phone home code? No,
    of course not.
+
+
+9) I still don't agree. Phone home code is bad!
+
+   Don't use this module and/or run the Build.PL script
+   then.
+
+
+10) I still don't agree. Phone home code is bad!
+
+   Stop complaining. Other consenting adults make the
+   decision to allow Build.PL to phone home, or not to
+   phone home, and are able to do so without complaining.
+   More over they're able to do this without trying to
+   restrict how the author writes the software (which is
+   free) or distributes it.
+
 

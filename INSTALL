@@ -37,7 +37,7 @@ rrdtool and librrds-perl packages:
 	sudo apt-get install librrds-perl
 
 
-Installing RRDtool on Fedore Core
+Installing RRDtool on Fedora Core
 =================================
 
 Run yum as root or with sudo as shown here to install the

@@ -1,4 +1,4 @@
-Version 1.43 - 1st March 2007
+Version 1.43 - 5th March 2007
     + Changed Build.PL to be more paranoid defaulting
       to no while using $build->y_n to work around
       potential removal of expected method functionality.
@@ -8,6 +8,8 @@ Version 1.43 - 1st March 2007
     + Added instructions for installing rrdtool and RRDs
       under Debian/Ubuntu and Fedora Core to the INSTALL
       file.
+
+    + Various fixes and improvements to the POD.
 
 
 Version 1.42 - 27th February 2007

@@ -11,6 +11,8 @@ Version 1.43 - 5th March 2007
 
     + Various fixes and improvements to the POD.
 
+    + Added another example to RRD::Simple::Examples.
+
 
 Version 1.42 - 27th February 2007
     + Increased the spacing on the graph between the

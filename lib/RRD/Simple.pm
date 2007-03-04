@@ -1430,7 +1430,7 @@ RRD::Simple - Simple interface to create and store data in RRD files
 =head1 DESCRIPTION
 
 RRD::Simple provides a simple interface to RRDTool's RRDs module.
-This module does not currently offer C<fetch> method that is
+This module does not currently offer a C<fetch> method that is
 available in the RRDs module.
 
 It does however create RRD files with a sensible set of default RRA

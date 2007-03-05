@@ -6,8 +6,8 @@ Version 1.43 - 5th March 2007
     + Added complain.txt. 
 
     + Added instructions for installing rrdtool and RRDs
-      under Debian/Ubuntu and Fedora Core to the INSTALL
-      file.
+      under Debian/Ubuntu, RHEL and Fedora Core to the
+      INSTALL file.
 
     + Various fixes and improvements to the POD.
 

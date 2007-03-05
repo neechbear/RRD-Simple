@@ -32,6 +32,13 @@ is located in "rrdtool-1.2.xx/bindings/perl-shared/".
 	echo "/usr/local/rrdtool-1.x.xx/lib" >> /etc/ld.so.conf
 	ldconfig
 
+More recent versions of RRDtool will attempt to compile and
+install bindings for TCL, Python and Ruby. If you do not need
+nor want to compile these bindings, you should change the
+./configure command as follows:
+
+	./configure --disable-tcl --disable-python --disable-ruby
+
 
 Installing RRDtool from Source on RHEL
 ======================================

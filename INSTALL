@@ -45,6 +45,14 @@ following the instructions above:
 	libpng-devel
 	libart_lgpl-devel
 
+You may also want to optionally install these development RPMs
+if you wish to compile and install the RRDtool bindings for
+TCL, Python and Ruby:
+
+	tcl-devel
+	python-devel
+	ruby-devel
+
 
 Installing RRDtool on Debian & Ubuntu
 =====================================

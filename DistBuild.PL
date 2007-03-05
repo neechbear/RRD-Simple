@@ -8,6 +8,13 @@ use vars qw($build);
 $build = undef;
 do 'Build.PL';
 
+die unless -f 'Build.PL' && -d 'lib' && -d 't';
+$build->do_system('find . -type f | xargs chmod 644; find . -type d | xargs chmod 755');
+umask 0000;
+chmod 0644, 'Build.PL';
+chmod 0755, 'DistBuild.PL';
+unlink 'MANIFEST';
+
 stage('Checking file statuses in SVN');
 $build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|_build|Build|MANIFEST)"');
 
@@ -15,7 +22,6 @@ $build->do_system('svn status | egrep -v "(META.yml|Makefile.PL|README|blib|_bui
 #$build->do_system('cvs2cl.pl', qw(-r -t -T -P --fsf --no-times))
 #	&& unlink 'ChangeLog.bak';
 
-unlink 'MANIFEST';
 stage('Updating MANIFEST');
 $build->dispatch('manifest');
 

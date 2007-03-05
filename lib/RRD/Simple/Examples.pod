@@ -33,8 +33,9 @@ RRD::Simple::Examples - Examples using RRD::Simple
  use strict;
  use RRD::Simple;
  
+ my $cmd = "/usr/bin/vmstat 2 3";
  my $rrdfile = "vmstat-cpu.rrd";
- my $rrd = new RRD::Simple->new( file => $rrdfile );
+ my $rrd = RRD::Simple->new( file => $rrdfile );
  
  my @keys = ();
  my %update = ();
@@ -149,7 +150,7 @@ and STACK. Use the HRULE parameter to draw a horizontal rule on your graph.
  use RRD::Simple;
  
  my $rrdfile = "vmstat-cpu.rrd";
- my $rrd = new RRD::Simple->new( file => $rrdfile );
+ my $rrd = RRD::Simple->new( file => $rrdfile );
  
  $rrd->graph(
          title => "CPU Utilisation",
@@ -157,7 +158,7 @@ and STACK. Use the HRULE parameter to draw a horizontal rule on your graph.
          upper_limit => 100,
          lower_limit => 0,
          rigid => "",
-         sources => [ qw(System User IO_Wait Idle) ],
+         sources => [ qw(sy us wa id) ],
          source_drawtypes => [ qw(AREA STACK STACK STACK) ],
          extended_legend => 1,
      );
@@ -173,15 +174,15 @@ information.
  use strict;
  use RRD::Simple;
  
- my $rrd = new RRD::Simple->new( file => "vmstat-cpu.rrd" );
+ my $rrd = RRD::Simple->new( file => "vmstat-cpu.rrd" );
  
  $rrd->graph(
          title => "CPU Utilisation",
          source_colors => {
-                 System  => "ff0000",
-                 User    => "00ff00",
-                 IO_Wait => "0000ff",
-                 Idle    => "ffffff",
+                 sy => "ff0000",
+                 us => "00ff00",
+                 wa => "0000ff",
+                 id => "ffffff",
              },
          color => [ ( "BACK#F5F5FF", "SHADEA#C8C8FF",
                       "SHADEB#9696BE", "ARROW#61B51B",

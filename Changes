@@ -13,6 +13,9 @@ Version 1.43 - 5th March 2007
 
     + Added another example to RRD::Simple::Examples.
 
+    + Fixed typos in existing examples 1 to 5 in
+      RRD::Simple::Examples.
+
 
 Version 1.42 - 27th February 2007
     + Increased the spacing on the graph between the

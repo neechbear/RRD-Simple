@@ -973,7 +973,7 @@ sub _parse_netstat {
 sub net_connections_ports {
 	my $cmd = select_cmd(qw(/bin/netstat /usr/bin/netstat /usr/sbin/netstat));
 	return unless -f $cmd;
-	$cmd .= ' -na';
+	$cmd .= ' -na 2>&1';
 
 	my %update = ();
 	my %listening_ports;
@@ -996,7 +996,7 @@ sub net_connections_ports {
 sub net_connections {
 	my $cmd = select_cmd(qw(/bin/netstat /usr/bin/netstat /usr/sbin/netstat));
 	return unless -f $cmd;
-	$cmd .= ' -na';
+	$cmd .= ' -na 2>&1';
 
 	my %update = ();
 	for (@{_parse_netstat($cmd)}) {

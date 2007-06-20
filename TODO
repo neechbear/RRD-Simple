@@ -1,0 +1,6 @@
++ Add a delete_source() method.
+
++ Add a fetch() method.
+
++ Allow disabling of automatic data source addition to RRD files.
+

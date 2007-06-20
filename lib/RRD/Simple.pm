@@ -33,7 +33,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 			 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.43' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.44' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -1390,7 +1390,7 @@ RRD::Simple - Simple interface to create and store data in RRD files
              faultsPerSec => "COUNTER"
          );
  
- # Put some arbitary data values in the RRD file for same
+ # Put some arbitary data values in the RRD file for the same
  # 3 data sources called bytesIn, bytesOut and faultsPerSec.
  $rrd->update(
              bytesIn => 10039,
@@ -1643,7 +1643,7 @@ permissions to write the graph images).
 
 The C<basename> parameter is optional. This parameter specifies the basename
 of the graph image files that will be created. If not specified, it will
-default to the name of the RRD file. For exmaple, if you specify a basename
+default to the name of the RRD file. For example, if you specify a basename
 name of C<mygraph>, the following graph image files will be created in the
 C<destination> directory:
 
@@ -1740,7 +1740,7 @@ may also be drawn as filled areas (AREA). Valid values are, LINE, LINEI<n>
 =item line_thickness
 
 Specifies the thickness of the data lines drawn on the graphs for
-any data sources that have not had a specific line thinkness already
+any data sources that have not had a specific line thickness already
 specified using the C<source_drawtypes> option.
 Valid values are 1, 2 and 3 (pixels).
 
@@ -1861,9 +1861,9 @@ details.
 
 =head1 SEE ALSO
 
-L<RRDTool::OO>, L<RRDs>,
+L<RRD::Simple::Examples>, L<RRDTool::OO>, L<RRDs>,
 L<http://www.rrdtool.org>, examples/*.pl,
-L<http://search.cpan.org/src/NICOLAW/RRD-Simple-1.43/examples/>,
+L<http://search.cpan.org/src/NICOLAW/RRD-Simple-1.44/examples/>,
 L<http://rrd.me.uk>
 
 =head1 VERSION

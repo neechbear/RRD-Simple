@@ -1,3 +1,7 @@
+Version 1.44 - 20th Match 2007
+    + Fixed some small typos in the POD.
+
+
 Version 1.43 - 5th March 2007
     + Changed Build.PL to be more paranoid defaulting
       to no while using $build->y_n to work around

@@ -4,7 +4,7 @@
 #   $Id$
 #   rrd-client.pl - Data gathering script for RRD::Simple
 #
-#   Copyright 2006 Nicola Worthington
+#   Copyright 2006,2007 Nicola Worthington
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -41,10 +41,10 @@ use constant NET_PING_HOSTS => $ENV{NET_PING_HOSTS} ?
 
 use 5.004;
 use strict;
-use warnings;
+#use warnings; # comment out for release
 use vars qw($VERSION);
 
-$VERSION = '1.40' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.41' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 $ENV{PATH} = '/bin:/usr/bin';
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -56,7 +56,7 @@ my @probes = qw(
 		mem_usage mem_swap_activity mem_proc_largest
 		proc_threads proc_state proc_filehandles
 		apache_status apache_logs
-		misc_uptime misc_users misc_ipmi_temp
+		misc_uptime misc_users misc_ipmi_temp misc_entropy
 		db_mysql_activity db_mysql_replication
 		mail_exim_queue mail_postfix_queue mail_sendmail_queue
 		net_traffic net_connections net_ping_host
@@ -67,26 +67,74 @@ my @probes = qw(
 # Get command line options
 my %opt = ();
 eval "require Getopt::Std";
-Getopt::Std::getopts('p:i:x:hv', \%opt) unless $@;
+Getopt::Std::getopts('p:i:x:s:c:V:hvq', \%opt) unless $@;
 (display_help() && exit) if defined $opt{h};
 (display_version() && exit) if defined $opt{v};
 
 
-# Filter on probe include list
-if (defined $opt{i}) {
-	my $inc = join('|',split(/\s*,\s*/,$opt{i}));
-	@probes = grep(/(^|_)($inc)(_|$)/,@probes);
+# Complain if someone uses -s with -i and/or -x
+if (($opt{i} || $opt{x}) && $opt{s}) {
+	warn "Error: -s cannot be used in conjunction with -x or -i.\n\n";
+	display_help() && exit;
 }
 
-# Filter on probe exclude list
-if (defined $opt{x}) {
-	my $exc = join('|',split(/\s*,\s*/,$opt{x}));
-	@probes = grep(!/(^|_)($exc)(_|$)/,@probes);
+# Check to see if we are capable of SNMP queries
+my $oids = {};
+my $snmpget;
+if ($opt{s}) {
+	eval {
+		require Net::SNMP;
+		@probes = 'net_snmp';	
+	};
+	if ($@) {
+		$snmpget = select_cmd(qw(/usr/bin/snmpwalk /usr/local/bin/snmpwalk));
+		die "Error: unable to query via SNMP. Please install Net::SNMP or snmpget.\n"
+			if !defined($snmpget) || !-f $snmpget || !-x $snmpget;
+		@probes = 'snmpget';
+	}
+
+	$opt{c} = 'public' unless defined($opt{c}) && $opt{c} =~ /\S+/;
+	$opt{V} = '2c' unless defined($opt{w}) && $opt{w} =~ /^(1|2c)$/;
+
+	$oids = {
+		# Net-SNMP - http://www.debianhelp.co.uk/linuxoids.htm
+		'cpu.loadavg.1min'       => [ '.1.3.6.1.4.1.2021.10.1.3.1' ],
+		'cpu.loadavg.5min'       => [ '.1.3.6.1.4.1.2021.10.1.3.2' ],
+		'cpu.loadavg.15min'      => [ '.1.3.6.1.4.1.2021.10.1.3.3' ],
+		'cpu.utilisation.Idle'   => [ '.1.3.6.1.4.1.2021.11.11.0' ],
+		'cpu.utilisation.System' => [ '.1.3.6.1.4.1.2021.11.10.0' ],
+		'cpu.utilisation.User'   => [ '.1.3.6.1.4.1.2021.11.9.0' ],
+		'mem.usage.swap.Total'   => [ '.1.3.6.1.4.1.2021.4.3.0' ],
+		'mem.usage.swap.Free'    => [ '.1.3.6.1.4.1.2021.4.4.0' ],
+		'mem.usage.Total'        => [ '.1.3.6.1.4.1.2021.4.5.0' ],
+		'mem.usage.Shared'       => [ '.1.3.6.1.4.1.2021.4.13.0' ],
+		'mem.usage.Buffers'      => [ '.1.3.6.1.4.1.2021.4.14.0' ],
+		'mem.usage.Cached'       => [ '.1.3.6.1.4.1.2021.4.15.0' ],
+		'mem.usage.Free'         => [ '.1.3.6.1.4.1.2021.4.11.0' ],
+		'mem.usage.Used'         => [ '.1.3.6.1.4.1.2021.4.6.0' ],
+		'misc.uptime.DaysUp',    => [ '.1.3.6.1.2.1.1.3.0' => sub { return $_[0]/100/60/60/24 } ],
+		# Windows NT - http://www.wtcs.org/snmp4tpc/testing.htm
+		};
+
+# The -i/-x and -s options are mutually exclusive.
+# -s for SNMP will take priority.
+} else {
+	# Filter on probe include list
+	if (defined $opt{i}) {
+		my $inc = join('|',split(/\s*,\s*/,$opt{i}));
+		@probes = grep(/(^|_)($inc)(_|$)/,@probes);
+	}
+
+	# Filter on probe exclude list
+	if (defined $opt{x}) {
+		my $exc = join('|',split(/\s*,\s*/,$opt{x}));
+		@probes = grep(!/(^|_)($exc)(_|$)/,@probes);
+	}
 }
 
 
 # Run the probes one by one
-die "Nothing to probe!\n" unless @probes;
+die "Error: nothing to probe!\n" unless @probes;
 my $post = '';
 my %update_cache;
 for my $probe (@probes) {
@@ -99,10 +147,10 @@ for my $probe (@probes) {
 		} else {
 			print $str;
 		}
-		warn "$probe: $@" if $@;
+		warn "Warning [$probe]: $@" if !$opt{q} && $@;
 		alarm 0;
 	};
-	warn "$probe: $@" if $@;
+	warn "Warning [$probe]: $@" if !$opt{q} && $@;
 }
 
 
@@ -119,11 +167,17 @@ exit;
 # Report the data
 sub report {
 	(my $probe = shift) =~ s/[_-]/\./g;
-	my %data = @_;
+	my %data = @_ % 2 ? (@_,undef) : @_;
 	my $str = '';
 	for my $k (sort keys %data) {
-		$str .= sprintf("%s.%s.%s %s\n", time(),
-			$probe, $k, $data{$k});
+		#$data{$k} = 0 unless defined($data{$k});
+		next unless defined($data{$k});
+		if ($probe eq 'net.snmp' || $probe eq 'snmpget') {
+			$str .= sprintf("%s.%s %s\n", time(), $k, $data{$k});
+		} else {
+			$str .= sprintf("%s.%s.%s %s\n", time(),
+				$probe, $k, $data{$k});
+		}
 	}
 	return $str;
 }
@@ -131,12 +185,23 @@ sub report {
 
 # Display help
 sub display_help {
-	print qq{Syntax: $0 [-i probe1,probe2,..|-x probe1,probe2,..] [-p url] [-h|-v]
-     -i <probes>     Include a list of comma seperated probes
-     -x <probes>     Exclude a list of comma seperated probes
-     -p <url>        HTTP POST data to the specified URL
-     -v              Display version information
-     -h              Display this help\n};
+	print qq{Syntax: rrd-client.pl [-i probe1,probe2,..|-x probe1,probe2,..|-s host]
+                      [-c community] [-V 1|2c] [-p URL] [-h|-v]
+   -i <probes>     Include a list of comma seperated probes
+   -x <probes>     Exclude a list of comma seperated probes
+   -s <host>       Specify hostname to probe via SNMP
+   -c <community>  Specify SNMP community name (defaults to public)
+   -V <version>    Specify SNMP version to use (1 or 2c, defaults to 2c)
+   -p <URL>        HTTP POST data to the specified URL
+   -q              Suppress all warning messages
+   -v              Display version information
+   -h              Display this help
+
+Examples:
+   rrd-client.pl -x apache_status -q -p http://rrd.me.uk/cgi-bin/rrd-server.pl
+   rrd-client.pl -s localhost -p http://rrd.me.uk/cgi-bin/rrd-server.pl
+   rrd-client.pl -s server1.company.com | rrd-server.pl -u server1.company.com
+\n};
 }
 
 
@@ -189,14 +254,15 @@ sub basic_http {
 
 		my $body = 0;
 		while (local $_ = <SOCK>) {
-			$str .= $_ if $body;
+			s/[\n\n]+//g;
+			$str .= $_ if $_ && $body;
 			$body = 1 if /^\s*$/;
 		}
 		close(SOCK);
 		alarm 0;
 	};
 
-	warn "basic_http: $@" if $@ && $post;
+	warn "Warning [basic_http]: $@" if !$opt{q} && $@ && $post;
 	return wantarray ? split(/\n/,$str) : "$str";
 }
 
@@ -219,6 +285,71 @@ sub select_cmd {
 #
 # Probes
 #
+
+sub _parse_snmp_results {
+	my $result = shift;
+	my %update;
+
+	for my $key (sort(keys(%{$oids}))) {
+		my $oid = $oids->{$key}->[0];
+		my $sub = $oids->{$key}->[1];
+		my $value = $result->{$oid};
+		next unless exists $result->{$oid};
+		$value = &$sub($value) if defined($sub) && ref($sub) eq 'CODE';
+		$update{$key} = $value;
+	}
+
+	return %update;
+}
+
+
+
+sub snmpget {
+	return unless defined($oids) && ref($oids) eq 'HASH';
+
+	my $oidStr = join(' ', map { $oids->{$_}->[0] } keys %{$oids});
+	my $cmd = "$snmpget -O n -v $opt{V} -c $opt{c} $opt{s} $oidStr";
+	my $result = {};
+
+	open(PH,'-|',"$cmd 2>&1") || die "Unable to open file handle PH for command '$cmd': $!\n";
+	while (local $_ = <PH>) {
+		if (/^(\.[\.0-9]+)\s*=\s*(?:([A-Z]+):?\s+)?(\S+)/) {
+			my ($oid,$type,$value) = ($1,$2,$3);
+			#print "$oid -> $type -> $value\n";
+			$result->{$oid} = $value;
+		} else {
+			warn "Warning [snmpget]: $_\n";
+		}
+	}
+        close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
+
+	return _parse_snmp_results($result);
+}
+
+
+
+sub net_snmp {
+	return unless defined($oids) && ref($oids) eq 'HASH';
+
+	my ($session, $error) = Net::SNMP->session(
+			-hostname  => $opt{s},
+			-community => $opt{c},
+			-version   => $opt{V},
+			-port      => 161,
+			-translate => [ -timeticks => 0x0 ],
+		);
+	die $error if !defined($session);
+
+	my $result = $session->get_request(
+			-varbindlist => [ map { $oids->{$_}->[0] } keys %{$oids} ]
+		);
+	$session->close;
+	die $session->error if !defined($result);
+
+	return _parse_snmp_results($result);
+}
+
+
 
 sub net_ping_host {
 	return unless defined NET_PING_HOSTS() && scalar NET_PING_HOSTS() > 0;
@@ -488,12 +619,15 @@ sub cpu_temp {
 	return unless -f $cmd;
 	my %update = ();
 
-	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!\n";
+	open(PH,'-|',"$cmd 2>&1") || die "Unable to open file handle PH for command '$cmd': $!\n";
 	while (local $_ = <PH>) {
 		if (my ($k,$v) = $_ =~ /^([^:]*\b(?:CPU|temp)\d*\b.*?):\s*\S*?([\d\.]+)\S*\s*/i) {
 			$k =~ s/\W//g; $k =~ s/Temp$//i;
 			$update{$k} = $v;
-		}
+                } elsif (/(no sensors found|kernel driver|sensors-detect|error|warning)/i
+				&& !$opt{q}) {
+                        warn "Warning [cpu_temp]: $_";
+                }
 	}
 	close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
 
@@ -547,8 +681,8 @@ sub apache_status {
 			my $response = $ua->get($url);
 			if ($response->is_success) {
 				@data = split(/\n+|\r+/,$response->content);
-			} else {
-				warn "apache_status: failed to get $url; ". $response->status_line ."\n";
+			} elsif (!$opt{q}) {
+				warn "Warning [apache_status]: failed to get $url; ". $response->status_line ."\n";
 			}
 		};
 	}
@@ -789,7 +923,7 @@ sub hdd_temp {
 		}
 	}
 
-	$cmd .= "  -q @devs";
+	$cmd .= " -q @devs 2>&1";
 	my %update = ();
 	return %update unless @devs;
 
@@ -797,6 +931,8 @@ sub hdd_temp {
 	while (local $_ = <PH>) {
 		if (my ($dev,$temp) = $_ =~ m,^/dev/([a-z]+):\s+.+?:\s+(\d+)..?C,) {
 			$update{$dev} = $temp;
+		} elsif (!/^\s*$/ && !$opt{q}) {
+			warn "Warning [hdd_temp]: $_";
 		}
 	}
 	close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
@@ -837,9 +973,27 @@ sub hdd_capacity {
 			next if ($data{fs} eq 'none' || $data{mount} =~ m#^/dev/#);
 			$data{capacity} =~ s/\%//;
 			(my $ds = $data{mount}) =~ s/[^a-z0-9]/_/ig; $ds =~ s/__+/_/g;
+
+                        # McAfee SCM 4.2 bodge-o-rama fix work around
+                        next if $ds =~ /^_var_jails_d_spam_/;
+
 			$update{"${variant}$ds"} = $data{capacity};
 		}
 	}
+
+	return %update;
+}
+
+
+
+sub misc_entropy {
+	my $file = '/proc/sys/kernel/random/entropy_avail';
+	return unless -f $file;
+	my %update = ();
+
+	open(FH,'<',$file) || die "Unable to open '$file': $!\n";
+	chomp($update{entropy_avail} = <FH>);
+	close(FH) || die "Unable to close '$file': $!\n";
 
 	return %update;
 }

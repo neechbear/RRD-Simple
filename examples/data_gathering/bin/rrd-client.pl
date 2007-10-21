@@ -82,7 +82,7 @@ if ($opt{s}) {
 	if ($@) {
 		my $c = 'snmpwalk'; # snmpget
 		my $cmd = select_cmd("/usr/bin/$c","/usr/local/bin/$c");
-		die "Error: unable to query via SNMP. Please install Net::SNMP or $c.\n" unless defined($cmd);
+		die "Error: unable to query via SNMP. Please install Net::SNMP or $c.\n" unless $cmd;
 		$snmpClient = $cmd;
 	}
 	$opt{c} = 'public' unless defined($opt{c}) && $opt{c} =~ /\S+/;

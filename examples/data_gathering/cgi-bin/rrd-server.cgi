@@ -22,7 +22,7 @@
 # vim:ts=4:sw=4:tw=78
 
 # User defined constants
-use constant BASEDIR => '/home/system/rrd';
+use constant BASEDIR => '/home/nicolaw/webroot/www/rrd.me.uk';
 
 
 
@@ -57,16 +57,14 @@ my $ip = host2ip($host);
 	unless "$ip" eq "$remote_addr";
 
 # Custom hostname flanges
-$host = 'merry.tfb.net' if $ip eq (split(/\s+/,`host router.ntl.tfb.net 2>/dev/null`))[3];
-$host = 'arwen.tfb.net' if $host eq 'nicolaw.arwen.tfb.net';
-$host = 'aragorn' if $ip eq '62.189.112.129' || $ip eq '161.69.135.243';
-$host = 'isle-of-cats.etla.org' if $ip eq '82.71.23.88';
-$host = 'pandora' if $ip eq '10.163.10.200';
-$host = 'tmgc.gametrust.com' if $ip eq '207.97.225.213';
+$host = 'legolas.wd.tfb.net'    if $host eq 'bb-87-80-233-47.ukonline.co.uk' || $ip eq '87.80.233.47';
+$host = 'pippin.wd.tfb.net'     if $host eq '82.153.185.41' || $ip eq '82.153.185.41';
+$host = 'pippin.wd.tfb.net'     if $host eq '82.153.185.40' || $ip eq '82.153.185.40';
+$host = 'isle-of-cats.etla.org' if $ip   eq '82.71.23.88';
 
 if (open(PH,'|-', BASEDIR."/bin/rrd-server.pl -u $host")) {
 	while (<>) {
-		warn "$host $_";
+		#warn "$host $_";
 		next unless /^[\w\.\-\_\d]+\s+[\d\.]+\s*$/;
 		print PH $_;
 	}

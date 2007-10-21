@@ -72,64 +72,34 @@ Getopt::Std::getopts('p:i:x:s:c:V:hvq', \%opt) unless $@;
 (display_version() && exit) if defined $opt{v};
 
 
-# Complain if someone uses -s with -i and/or -x
-if (($opt{i} || $opt{x}) && $opt{s}) {
-	warn "Error: -s cannot be used in conjunction with -x or -i.\n\n";
-	display_help() && exit;
-}
-
 # Check to see if we are capable of SNMP queries
-my $oids = {};
-my $snmpget;
+my $snmpClient;
 if ($opt{s}) {
 	eval {
 		require Net::SNMP;
-		@probes = 'net_snmp';	
+		$snmpClient = 'Net::SNMP';
 	};
 	if ($@) {
-		$snmpget = select_cmd(qw(/usr/bin/snmpwalk /usr/local/bin/snmpwalk));
-		die "Error: unable to query via SNMP. Please install Net::SNMP or snmpget.\n"
-			if !defined($snmpget) || !-f $snmpget || !-x $snmpget;
-		@probes = 'snmpget';
+		my $c = 'snmpwalk'; # snmpget
+		my $cmd = select_cmd("/usr/bin/$c","/usr/local/bin/$c");
+		die "Error: unable to query via SNMP. Please install Net::SNMP or $c.\n" unless defined($cmd);
+		$snmpClient = $cmd;
 	}
-
 	$opt{c} = 'public' unless defined($opt{c}) && $opt{c} =~ /\S+/;
-	$opt{V} = '2c' unless defined($opt{w}) && $opt{w} =~ /^(1|2c)$/;
+	$opt{V} = '2c' unless defined($opt{V}) && $opt{V} =~ /^(1|2c)$/;
+	$opt{P} = 161 unless defined($opt{P}) && $opt{P} =~ /^[0-9]+$/;
+}
 
-	$oids = {
-		# Net-SNMP - http://www.debianhelp.co.uk/linuxoids.htm
-		'cpu.loadavg.1min'       => [ '.1.3.6.1.4.1.2021.10.1.3.1' ],
-		'cpu.loadavg.5min'       => [ '.1.3.6.1.4.1.2021.10.1.3.2' ],
-		'cpu.loadavg.15min'      => [ '.1.3.6.1.4.1.2021.10.1.3.3' ],
-		'cpu.utilisation.Idle'   => [ '.1.3.6.1.4.1.2021.11.11.0' ],
-		'cpu.utilisation.System' => [ '.1.3.6.1.4.1.2021.11.10.0' ],
-		'cpu.utilisation.User'   => [ '.1.3.6.1.4.1.2021.11.9.0' ],
-		'mem.usage.swap.Total'   => [ '.1.3.6.1.4.1.2021.4.3.0' ],
-		'mem.usage.swap.Free'    => [ '.1.3.6.1.4.1.2021.4.4.0' ],
-		'mem.usage.Total'        => [ '.1.3.6.1.4.1.2021.4.5.0' ],
-		'mem.usage.Shared'       => [ '.1.3.6.1.4.1.2021.4.13.0' ],
-		'mem.usage.Buffers'      => [ '.1.3.6.1.4.1.2021.4.14.0' ],
-		'mem.usage.Cached'       => [ '.1.3.6.1.4.1.2021.4.15.0' ],
-		'mem.usage.Free'         => [ '.1.3.6.1.4.1.2021.4.11.0' ],
-		'mem.usage.Used'         => [ '.1.3.6.1.4.1.2021.4.6.0' ],
-		'misc.uptime.DaysUp',    => [ '.1.3.6.1.2.1.1.3.0' => sub { return $_[0]/100/60/60/24 } ],
-		# Windows NT - http://www.wtcs.org/snmp4tpc/testing.htm
-		};
+# Filter on probe include list
+if (defined $opt{i}) {
+	my $inc = join('|',split(/\s*,\s*/,$opt{i}));
+	@probes = grep(/(^|_)($inc)(_|$)/,@probes);
+}
 
-# The -i/-x and -s options are mutually exclusive.
-# -s for SNMP will take priority.
-} else {
-	# Filter on probe include list
-	if (defined $opt{i}) {
-		my $inc = join('|',split(/\s*,\s*/,$opt{i}));
-		@probes = grep(/(^|_)($inc)(_|$)/,@probes);
-	}
-
-	# Filter on probe exclude list
-	if (defined $opt{x}) {
-		my $exc = join('|',split(/\s*,\s*/,$opt{x}));
-		@probes = grep(!/(^|_)($exc)(_|$)/,@probes);
-	}
+# Filter on probe exclude list
+if (defined $opt{x}) {
+	my $exc = join('|',split(/\s*,\s*/,$opt{x}));
+	@probes = grep(!/(^|_)($exc)(_|$)/,@probes);
 }
 
 
@@ -171,13 +141,8 @@ sub report {
 	my $str = '';
 	for my $k (sort keys %data) {
 		#$data{$k} = 0 unless defined($data{$k});
-		next unless defined($data{$k});
-		if ($probe eq 'net.snmp' || $probe eq 'snmpget') {
-			$str .= sprintf("%s.%s %s\n", time(), $k, $data{$k});
-		} else {
-			$str .= sprintf("%s.%s.%s %s\n", time(),
-				$probe, $k, $data{$k});
-		}
+		next unless defined($data{$k}) && $data{$k} =~ /^[0-9\.]*$/;
+		$str .= sprintf("%s.%s.%s %s\n", time(), $probe, $k, $data{$k});
 	}
 	return $str;
 }
@@ -185,8 +150,8 @@ sub report {
 
 # Display help
 sub display_help {
-	print qq{Syntax: rrd-client.pl [-i probe1,probe2,..|-x probe1,probe2,..|-s host]
-                      [-c community] [-V 1|2c] [-p URL] [-h|-v]
+	print qq{Syntax: rrd-client.pl [-i probe1,probe2,..|-x probe1,probe2,..]
+                      [-s host] [-c community] [-V 1|2c] [-p URL] [-h|-v]
    -i <probes>     Include a list of comma seperated probes
    -x <probes>     Exclude a list of comma seperated probes
    -s <host>       Specify hostname to probe via SNMP
@@ -198,8 +163,8 @@ sub display_help {
    -h              Display this help
 
 Examples:
-   rrd-client.pl -x apache_status -q -p http://rrd.me.uk/cgi-bin/rrd-server.pl
-   rrd-client.pl -s localhost -p http://rrd.me.uk/cgi-bin/rrd-server.pl
+   rrd-client.pl -x apache_status -q -p http://rrd.me.uk/cgi-bin/rrd-server.cgi
+   rrd-client.pl -s localhost -p http://rrd.me.uk/cgi-bin/rrd-server.cgi
    rrd-client.pl -s server1.company.com | rrd-server.pl -u server1.company.com
 \n};
 }
@@ -286,72 +251,55 @@ sub select_cmd {
 # Probes
 #
 
-sub _parse_snmp_results {
-	my $result = shift;
-	my %update;
 
-	for my $key (sort(keys(%{$oids}))) {
-		my $oid = $oids->{$key}->[0];
-		my $sub = $oids->{$key}->[1];
-		my $value = $result->{$oid};
-		next unless exists $result->{$oid};
-		$value = &$sub($value) if defined($sub) && ref($sub) eq 'CODE';
-		$update{$key} = $value;
-	}
-
-	return %update;
-}
-
-
-
-sub snmpget {
-	return unless defined($oids) && ref($oids) eq 'HASH';
-
-	my $oidStr = join(' ', map { $oids->{$_}->[0] } keys %{$oids});
-	my $cmd = "$snmpget -O n -v $opt{V} -c $opt{c} $opt{s} $oidStr";
+sub _snmp {
+	my $oid = [@_];
 	my $result = {};
 
-	open(PH,'-|',"$cmd 2>&1") || die "Unable to open file handle PH for command '$cmd': $!\n";
-	while (local $_ = <PH>) {
-		if (/^(\.[\.0-9]+)\s*=\s*(?:([A-Z]+):?\s+)?(\S+)/) {
-			my ($oid,$type,$value) = ($1,$2,$3);
-			#print "$oid -> $type -> $value\n";
-			$result->{$oid} = $value;
-		} else {
-			warn "Warning [snmpget]: $_\n";
+	# Net::SNMP
+	if ($snmpClient eq 'Net::SNMP') {
+		my ($session, $error) = Net::SNMP->session(
+				-hostname  => $opt{s},
+				-community => $opt{c},
+				-version   => $opt{V},
+				-port      => $opt{P},
+				-translate => [ -timeticks => 0x0 ],
+			);
+		die $error if !defined($session);
+
+		$result = $session->get_request(-varbindlist => $oid);
+
+		$session->close;
+		die $session->error if !defined($result);
+
+	# snmpget / snmpwalk
+	} else {
+		my $oidStr = join(' ', @{$oid});
+		my $cmd = "$snmpClient -O n -O t -v $opt{V} -c $opt{c} $opt{s} $oidStr";
+		#my $cmd = "$snmpClient -O t -v $opt{V} -c $opt{c} $opt{s} $oidStr";
+
+		open(PH,'-|',"$cmd 2>&1") || die "Unable to open file handle PH for command '$cmd': $!\n";
+		while (local $_ = <PH>) {
+			s/[\r\n]+//g; s/^(?:\s+|\s+)$//g;
+			if (/^(\.[\.0-9]+|[A-Za-z:\-\.0-9]+)\s*=\s*(?:([A-Za-z0-9]+):\s*)?["']?(\S*)["']?/) {
+				my ($oid,$type,$value) = ($1,$2,$3);
+				$oid = ".$oid" if $oid =~ /^[0-9][0-9\.]+$/;
+				$result->{$oid} = $value;
+			} else {
+				warn "Warning [_snmp]: $_\n" unless $opt{q};
+			}
 		}
+	        close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
 	}
-        close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
 
-	return _parse_snmp_results($result);
-}
-
-
-
-sub net_snmp {
-	return unless defined($oids) && ref($oids) eq 'HASH';
-
-	my ($session, $error) = Net::SNMP->session(
-			-hostname  => $opt{s},
-			-community => $opt{c},
-			-version   => $opt{V},
-			-port      => 161,
-			-translate => [ -timeticks => 0x0 ],
-		);
-	die $error if !defined($session);
-
-	my $result = $session->get_request(
-			-varbindlist => [ map { $oids->{$_}->[0] } keys %{$oids} ]
-		);
-	$session->close;
-	die $session->error if !defined($result);
-
-	return _parse_snmp_results($result);
+	return $result->{(keys(%{$result}))[0]} if !wantarray && keys(%{$result}) == 1;
+	return $result;
 }
 
 
 
 sub net_ping_host {
+	return if $opt{s};
 	return unless defined NET_PING_HOSTS() && scalar NET_PING_HOSTS() > 0;
 	my $cmd = select_cmd(qw(/bin/ping /usr/bin/ping /sbin/ping /usr/sbin/ping));
 	return unless -f $cmd;
@@ -384,6 +332,7 @@ sub net_ping_host {
 
 
 sub mem_proc_largest {
+	return if $opt{s};
 	my $cmd = select_cmd(qw(/bin/ps /usr/bin/ps));
 	return unless -f $cmd;
 	$cmd .= ' -eo vsize';
@@ -406,8 +355,15 @@ sub mem_proc_largest {
 
 
 sub proc_threads {
+	if ($opt{s}) {
+		my $procs = _snmp('.1.3.6.1.2.1.25.1.6.0'); # hrSystemProcesses
+		return unless defined($procs) && $procs =~ /^[0-9]+$/;
+		return ('Processes' => $procs, 'Threads' => 0, 'MultiThreadProcs' => 0);
+	}
+
+	return if $opt{s};
 	return unless ($^O eq 'linux' && `/bin/uname -r 2>&1` =~ /^2\.6\./) ||
-					($^O eq 'solaris' && `/bin/uname -r 2>&1` =~ /^5\.9/);
+			($^O eq 'solaris' && `/bin/uname -r 2>&1` =~ /^5\.9/);
 	my %update = ();
 	my $cmd = '/bin/ps -eo pid,nlwp';
 
@@ -427,6 +383,7 @@ sub proc_threads {
 
 
 sub mail_exim_queue {
+	return if $opt{s};
 	my $spooldir = '/var/spool/exim/input';
 	return unless -d $spooldir && -x $spooldir && -r $spooldir;
 
@@ -444,6 +401,7 @@ sub mail_exim_queue {
 
 
 sub mail_sendmail_queue {
+	return if $opt{s};
 	my $spooldir = '/var/spool/mqueue';
 	return unless -d $spooldir && -x $spooldir && -r $spooldir;
 
@@ -462,6 +420,7 @@ sub mail_sendmail_queue {
 
 
 sub mail_postfix_queue {
+	return if $opt{s};
 	my @spooldirs = qw(
 			/var/spool/postfix/incoming
 			/var/spool/postfix/active
@@ -487,6 +446,7 @@ sub mail_postfix_queue {
 
 # DO NOT ENABLE THIS ONE YET
 sub mail_queue {
+	return if $opt{s};
 	my $cmd = select_cmd(qw(/usr/bin/mailq /usr/sbin/mailq /usr/local/bin/mailq
 			/usr/local/sbin/mailq /bin/mailq /sbin/mailq
 			/usr/local/exim/bin/mailq /home/system/exim/bin/mailq));
@@ -510,6 +470,7 @@ sub mail_queue {
 
 
 sub db_mysql_activity {
+	return if $opt{s};
 	my %update = ();
 	return %update unless (defined DB_MYSQL_DSN && defined DB_MYSQL_USER);
 
@@ -534,6 +495,7 @@ sub db_mysql_activity {
 
 
 sub db_mysql_replication {
+	return if $opt{s};
 	my %update = ();
 	return %update unless (defined DB_MYSQL_DSN && defined DB_MYSQL_USER);
 
@@ -554,6 +516,13 @@ sub db_mysql_replication {
 
 
 sub misc_users {
+	if ($opt{s}) {
+		my $users = _snmp('.1.3.6.1.2.1.25.1.5.0'); # hrSystemNumUsers
+		return unless defined($users) && $users =~ /^[0-9]+$/;
+		return ('Users' => $users, 'Unique' => 0);
+	}
+
+	return if $opt{s};
 	my $cmd = select_cmd(qw(/usr/bin/who /bin/who /usr/bin/w /bin/w));
 	return unless -f $cmd;
 	my %update = ();
@@ -584,6 +553,12 @@ sub misc_users {
 
 
 sub misc_uptime {
+	if ($opt{s}) {
+		my $ticks = _snmp('.1.3.6.1.2.1.25.1.1.0'); # hrSystemUptime
+		return unless defined($ticks) && $ticks =~ /^[0-9]+$/;
+		return ('DaysUp' => $ticks/100/60/60/24);
+	}
+
 	my $cmd = select_cmd(qw(/usr/bin/uptime /bin/uptime));
 	return unless -f $cmd;
 	my %update = ();
@@ -615,6 +590,7 @@ sub misc_uptime {
 
 
 sub cpu_temp {
+	return if $opt{s};
 	my $cmd = '/usr/bin/sensors';
 	return unless -f $cmd;
 	my %update = ();
@@ -637,6 +613,7 @@ sub cpu_temp {
 
 
 sub apache_logs {
+	return if $opt{s};
 	my $dir = '/var/log/httpd';
 	return unless -d $dir;
 	my %update = ();
@@ -660,6 +637,7 @@ sub apache_logs {
 
 
 sub apache_status {
+	return if $opt{s};
 	my @data = ();
 	my %update = ();
 
@@ -734,13 +712,41 @@ sub _darwin_cpu_utilisation {
 
 
 sub cpu_utilisation {
+	my %update = ();
+	if ($opt{s}) {
+		$update{'User'}    = _snmp('.1.3.6.1.4.1.2021.11.9.0');
+		$update{'System'}  = _snmp('.1.3.6.1.4.1.2021.11.10.0');
+		$update{'Idle'}    = _snmp('.1.3.6.1.4.1.2021.11.11.0');
+		#$update{'IO_Wait'} = 100 - $update{'User'} - $update{'System'} - $update{'Idle'};
+		$update{'IO_Wait'} = 0;
+
+		# Try querying the Windows thingie instead
+		unless (grep(/^[0-9\.]{1,3}$/, values(%update)) == 4) {
+			# hrProcessorLoad
+			# .1.3.6.1.2.1.25.3.3.1.2.1 - CPU 1
+			# .1.3.6.1.2.1.25.3.3.1.2.2 - CPU 2 ...
+			my $total; my $cpu;
+			for ($cpu = 1; $cpu <= 16; $cpu++) {
+				my $load = _snmp(".1.3.6.1.2.1.25.3.3.1.2.$cpu");
+				if (defined($load) && !ref($load) && $load =~ /^[0-9\.]{1,3}$/) {
+					$total += $load;
+				} else {
+					last;
+				}
+			}
+			return unless $total && $cpu-1;
+			%update = ('User' => int($total / $cpu-1), 'System' => 0, 'Idle' => 0, 'IO_Wait' => 0);
+		}
+		return %update;
+	}
+
 	if ($^O eq 'darwin') {
 		return _darwin_cpu_utilisation();
 	}
 
 	my $cmd = '/usr/bin/vmstat';
 	return unless -f $cmd;
-	my %update = _parse_vmstat("$cmd 1 2");
+	%update = _parse_vmstat("$cmd 1 2");
 	my %labels = (wa => 'IO_Wait', id => 'Idle', sy => 'System', us => 'User');
 
 	$update{$_} ||= 0 for keys %labels;
@@ -750,6 +756,7 @@ sub cpu_utilisation {
 
 
 sub cpu_interrupts {
+	return if $opt{s};
 	my $cmd = '/usr/bin/vmstat';
 	return unless -f $cmd;
 
@@ -764,6 +771,7 @@ sub cpu_interrupts {
 
 
 sub mem_swap_activity {
+	return if $opt{s};
 	my $cmd = '/usr/bin/vmstat';
 	return unless -f $cmd;
 
@@ -827,6 +835,7 @@ sub _parse_ipmitool_sensor {
 
 
 sub misc_ipmi_temp {
+	return if $opt{s};
 	my $cmd = select_cmd(qw(/usr/bin/ipmitool));
 	return unless -f $cmd;
 
@@ -844,6 +853,7 @@ sub misc_ipmi_temp {
 
 
 sub hdd_io {
+	return if $opt{s};
 	my $cmd = select_cmd(qw(/usr/bin/iostat /usr/sbin/iostat));
 	return unless -f $cmd;
 	return unless $^O eq 'linux';
@@ -866,6 +876,7 @@ sub hdd_io {
 
 
 sub mem_usage {
+	return if $opt{s};
 	my %update = ();
 	my $cmd = select_cmd(qw(/usr/bin/free /bin/free));
 	my @keys = ();
@@ -913,6 +924,7 @@ sub mem_usage {
 
 
 sub hdd_temp {
+	return if $opt{s};
 	my $cmd = select_cmd(qw(/usr/sbin/hddtemp /usr/bin/hddtemp));
 	return unless -f $cmd;
 
@@ -943,6 +955,44 @@ sub hdd_temp {
 
 
 sub hdd_capacity {
+	if ($opt{s}) {
+		return;
+
+		my $snmp = _snmp('.1.3.6.1.4.1.2021.9.1'); # dskTable
+		return unless defined($snmp) && ref($snmp) eq 'HASH';
+
+		my %disks;
+#.1.3.6.1.4.1.2021.9.1.1.1 = INTEGER: 1
+#.1.3.6.1.4.1.2021.9.1.2.1 = STRING: /
+#.1.3.6.1.4.1.2021.9.1.3.1 = STRING: /dev/sda1
+#.1.3.6.1.4.1.2021.9.1.4.1 = INTEGER: 100000
+#.1.3.6.1.4.1.2021.9.1.5.1 = INTEGER: -1
+#.1.3.6.1.4.1.2021.9.1.6.1 = INTEGER: 7850996
+#.1.3.6.1.4.1.2021.9.1.7.1 = INTEGER: 3153808
+#.1.3.6.1.4.1.2021.9.1.8.1 = INTEGER: 4298376
+#.1.3.6.1.4.1.2021.9.1.9.1 = INTEGER: 58
+#.1.3.6.1.4.1.2021.9.1.10.1 = INTEGER: 16
+#.1.3.6.1.4.1.2021.9.1.100.1 = INTEGER: 0
+#.1.3.6.1.4.1.2021.9.1.101.1 = STRING: 
+
+#'UCD-SNMP-MIB::dskMinimum.1' => '100000',
+#'UCD-SNMP-MIB::dskErrorMsg.1' => '',
+#'UCD-SNMP-MIB::dskIndex.1' => '1',
+#'UCD-SNMP-MIB::dskPath.1' => '/',
+#'UCD-SNMP-MIB::dskPercentNode.1' => '16',
+#'UCD-SNMP-MIB::dskErrorFlag.1' => '0',
+#'UCD-SNMP-MIB::dskAvail.1' => '3153784',
+#'#UCD-SNMP-MIB::dskPercent.1' => '58',
+#'UCD-SNMP-MIB::dskMinPercent.1' => '-1',
+#'UCD-SNMP-MIB::dskDevice.1' => '/dev/sda1',
+#'UCD-SNMP-MIB::dskUsed.1' => '4298400',
+#'UCD-SNMP-MIB::dskTotal.1' => '7850996'
+
+#use Data::Dumper;
+#warn Dumper($snmp);
+		return;
+	}
+
 	my $cmd = select_cmd(qw(/bin/df /usr/bin/df));
 	return unless -f $cmd;
 
@@ -987,6 +1037,7 @@ sub hdd_capacity {
 
 
 sub misc_entropy {
+	return if $opt{s};
 	my $file = '/proc/sys/kernel/random/entropy_avail';
 	return unless -f $file;
 	my %update = ();
@@ -1001,6 +1052,7 @@ sub misc_entropy {
 
 
 sub net_traffic {
+	return if $opt{s};
 	return unless -f '/proc/net/dev';
 	my @keys = ();
 	my %update = ();
@@ -1031,6 +1083,7 @@ sub net_traffic {
 
 
 sub proc_state {
+	return if $opt{s};
 	my $cmd = select_cmd(qw(/bin/ps /usr/bin/ps));
 	my %update = ();
 	my %keys = ();
@@ -1075,8 +1128,14 @@ sub proc_state {
 
 sub cpu_loadavg {
 	my %update = ();
-	my @data = ();
+	if ($opt{s}) {
+		$update{'1min'} = _snmp('.1.3.6.1.4.1.2021.10.1.3.1');
+		$update{'5min'} = _snmp('.1.3.6.1.4.1.2021.10.1.3.2');
+		$update{'15min'} = _snmp('.1.3.6.1.4.1.2021.10.1.3.3');
+		return %update;
+	}
 
+	my @data = ();
 	if (-f '/proc/loadavg') {
 		open(FH,'<','/proc/loadavg') || die "Unable to open '/proc/loadavg': $!\n";
 		my $str = <FH>;
@@ -1125,6 +1184,7 @@ sub _parse_netstat {
 
 
 sub net_connections_ports {
+	return if $opt{s};
 	my $cmd = select_cmd(qw(/bin/netstat /usr/bin/netstat /usr/sbin/netstat));
 	return unless -f $cmd;
 	$cmd .= ' -na 2>&1';
@@ -1148,6 +1208,7 @@ sub net_connections_ports {
 
 
 sub net_connections {
+	return if $opt{s};
 	my $cmd = select_cmd(qw(/bin/netstat /usr/bin/netstat /usr/sbin/netstat));
 	return unless -f $cmd;
 	$cmd .= ' -na 2>&1';
@@ -1163,6 +1224,7 @@ sub net_connections {
 
 
 sub proc_filehandles {
+	return if $opt{s};
 	return unless -f '/proc/sys/fs/file-nr';
 	my %update = ();
 

@@ -23,7 +23,7 @@
 
 BEGIN {
 	# User defined constants
-	use constant BASEDIR => '/home/system/rrd';
+	use constant BASEDIR => '/home/nicolaw/webroot/www/rrd.me.uk';
 }
 
 
@@ -41,7 +41,7 @@ use 5.004;
 use strict;
 use warnings;
 use lib qw(../lib);
-use RRD::Simple 1.39;
+use RRD::Simple 1.41;
 use RRDs;
 use Memoize;
 use Getopt::Std qw();
@@ -133,6 +133,7 @@ sub create_graphs {
 
 				write_txt($rrd->graph($rrdfile,
 						destination => $destination,
+						timestamp => 'both',
 						@colour_theme,
 						@options,
 						@graph_opts,
@@ -378,7 +379,7 @@ sub write_txt {
 		}
 		if (open(FH,'>',"$filename.txt")) {
 			printf FH "%s (%dx%d) %dK\n\n", basename($filename),
-			$data->[1], $data->[2], (stat($filename))[7]/1024;
+				$data->[1], $data->[2], (stat($filename))[7]/1024;
 			for (sort keys %values) {
 				printf FH "%-${max_len}s     min: %s, max: %s, last: %s\n", $_,
 				$values{$_}->{min}, $values{$_}->{max}, $values{$_}->{last};

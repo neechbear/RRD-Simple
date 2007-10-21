@@ -120,6 +120,16 @@
 	extended_legend         Yes
 </graph>
 
+<graph mail_traffic>
+	title                   "MTA Traffic"
+	vertical_label          "messages/min"
+	source_drawtypes        "AREA STACK STACK STACK STACK STACK"
+	sources                 "sent received rejected bounced virus spam"
+	source_labels           "Sent Received Rejected Bounced Virus Spam"
+	source_colours          "000099 009900 AA0000 000000 DDBB00 999999"
+	extended_legend         Yes
+</graph>
+
 <graph mail_postfix_traffic>
 	title                   "Postfix Traffic"
 	vertical_label          "messages/min"
@@ -140,6 +150,15 @@
 	source_colours          "ffaaaa cc7777 0000aa bb00bb"
 </graph>
 
+<graph misc_entropy>
+	extended_legend         Yes
+	title                   "Available Entropy"
+	vertical_label          "Entropy"
+	extended_legend         Yes
+	sources			"entropy_avail"
+	source_labels		"Entropy"
+</graph>
+
 <graph misc_ipmi_temp>
 	extended_legend         Yes
 	title                   "IPMI Temperature Probes"
@@ -149,7 +168,22 @@
 	rigid
 </graph>
 
-<graph hdd_temp>
+<graph misc_fan_rpm>
+	extended_legend         Yes
+	title                   "Fan RPM"
+	vertical_label          "RPM"
+</graph>
+
+<graph hdd_temp_f>
+	extended_legend         Yes
+	title                   "Hard Disk Temperature"
+	vertical_label          "Fahrenheit"
+	lower_limit             60
+	upper_limit             140
+	rigid
+</graph>
+
+<graph hdd_temp(_c)?>
 	extended_legend         Yes
 	title                   "Hard Disk Temperature"
 	vertical_label          "Celsius"
@@ -165,6 +199,8 @@
 	vertical_label          "% used"
 	units_exponent          0
 	upper_limit             100
+	lower_limit             0
+	rigid
 </graph>
 
 <graph hdd_capacity_inodes>
@@ -198,6 +234,7 @@
 	title				"Threads"
 	vertical_label		"n"
 	sources				"Threads Processes MultiThreadProcs"
+	source_labels		"Threads Processes ThreadProcs"
 	source_drawtypes	"AREA LINE1 LINE1"
 	source_colours		"9999ff 007700 cc0000"
 </graph>
@@ -331,4 +368,27 @@
 	source_drawtypes	"AREA LINE"
 	source_colors		"00dd00 0000dd"
 </graph>
+
+<graph "switch_traffic(?:_([^_]+))?">
+    extended_legend     Yes
+    title               "Network Traffic: $1"
+    vertical_label      "bits/sec"
+    sources             "ifOutOctets ifInOctets"
+    source_drawtypes    "AREA LINE"
+    source_colors       "00dd00 0000dd"
+</graph>
+
+<graph "net_lvs_ipvsadm_connections_inactive_(\S+)">
+    extended_legend     Yes
+    title               "Inactive LVS Connections for $1"
+    vertical_label      "Connections"
+</graph>
+
+<graph "net_lvs_ipvsadm_connections_active_(\S+)">
+    extended_legend     Yes
+    title               "Active LVS Connections for $1"
+    vertical_label      "Connections"
+</graph>
+
+
 

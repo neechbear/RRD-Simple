@@ -95,12 +95,12 @@ my %opt = ();
 eval "require Getopt::Std";
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
-Getopt::Std::getopts('p:i:x:s:c:V:hvqP?', \%opt) unless $@;
+Getopt::Std::getopts('p:i:x:s:c:V:hvqlP:?', \%opt) unless $@;
 (HELP_MESSAGE() && exit) if defined $opt{h} || defined $opt{'?'};
 (VERSION_MESSAGE() && exit) if defined $opt{v};
 
 # Display a list of available probe names
-if ($opt{P}) {
+if ($opt{l}) {
 	print "Available probes:\n";
 	printf "   %-24s %s\n",'PROBE','DESCRIPTION';
 	for (sort keys %probes) {
@@ -191,15 +191,16 @@ sub report {
 # Display help
 sub HELP_MESSAGE {
 	print qq{Syntax: rrd-client.pl [-i probe1,probe2,..|-x probe1,probe2,..]
-                      [-s host] [-c community] [-V 1|2c] [-p URL] [-h|-v]
+                      [-s host] [-c community] [-P port] [-V 1|2c] [-p URL] [-h|-v]
    -i <probes>     Include a list of comma seperated probes
    -x <probes>     Exclude a list of comma seperated probes
    -s <host>       Specify hostname to probe via SNMP
    -c <community>  Specify SNMP community name (defaults to public)
    -V <version>    Specify SNMP version to use (1 or 2c, defaults to 2c)
+   -P <port>       Specify SNMP port to use
    -p <URL>        HTTP POST data to the specified URL
    -q              Suppress all warning messages
-   -P              Display a list of available probe names
+   -l              Display a list of available probe names
    -v              Display version information
    -h              Display this help
 

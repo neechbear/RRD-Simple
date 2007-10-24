@@ -32,15 +32,43 @@
       em {
         font-weight: bold;
       }
-      a {
-        color: #000077;
-      }
       img {
         border: none;
+      }
+      div.thumbnail {
+        border: 1px dotted #ddddff;
+        background-color: #ddddff;
+        margin: 1px 1px 1px 1px;
+        font-size: 7pt;
+        text-align: center;
+        float: left;
+        width: 125px;
+        color: #000022;
+      }
+      div.host, div.vertspace, hr {
+        float: none;
+        clear: both;
+      }
+      td.graph_detail {
+        padding-left: 7px;
+        padding-top: 10px;
+      }
+      body,BODY {
+        margin: 0px;
+        background-color: #ffffff;
+      }
+      pre {
+        font-size: 8pt;
       }
       img.thumbnail {
         width: 125px;
         height: 32px;
+      }
+
+
+/* COMMENT OUT FROM HERE FOR NAGIOS THEME */
+      a {
+        color: #000077;
       }
       h1 {
         font-size: 14pt;
@@ -67,38 +95,20 @@
         padding: 1px 7px 4px 7px;
         border-top: 1px solid #9999ff;
       }
-      div.thumbnail {
-        border: 1px dotted #ddddff;
-        background-color: #ddddff;
-        margin: 1px 1px 1px 1px;
-        font-size: 7pt;
-        text-align: center;
-        float: left;
-        width: 125px;
-        color: #000022;
-      }
-      div.host, div.vertspace, hr {
-        float: none;
-        clear: both;
-      }
-      body,BODY {
-        margin: 0px;
-        background-color: #ffffff;
-      }
       body,BODY,ul,li,table,div,p {
         font-family: Tahoma, sans-serif;
         font-size: 10pt;
       }
-      pre {
-        font-size: 8pt;
-      }
-      td.graph_detail {
-        padding-left: 7px;
-        padding-top: 10px;
-      }
       div.contents {
         margin: 0px 10px 0px 10px;
       }
+/* COMMENT OUT UNTIL HERE FOR NAGIOS THEME */
+
+
+/* NAGIOS THEME ONLY
+< TMPL_INCLUDE css/common.css >
+< TMPL_INCLUDE css/status.css >
+*/
     </style>
   </head>
-  <body>
+  <body class="status">

@@ -50,27 +50,64 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 
 # Default list of probes
-my @probes = qw(
-		cpu_utilisation cpu_loadavg cpu_temp cpu_interrupts
-		hdd_io hdd_temp hdd_capacity
-		mem_usage mem_swap_activity mem_proc_largest
-		proc_threads proc_state proc_filehandles
-		apache_status apache_logs
-		misc_uptime misc_users misc_ipmi_temp misc_entropy
-		db_mysql_activity db_mysql_replication
-		mail_exim_queue mail_postfix_queue mail_sendmail_queue
-		net_traffic net_connections net_ping_host
+my %probes = (
+		cpu_utilisation      => 'CPU Utilisation',
+		cpu_loadavg          => 'Load Average',
+		cpu_temp             => 'CPU Temperature',
+		cpu_interrupts       => 'CPU Interrupts',
+
+		hdd_io               => 'Hard Disk I/O',
+		hdd_temp             => 'Hard Disk Temperature',
+		hdd_capacity         => 'Disk Capacity',
+
+		mem_usage            => 'Memory Usage & Swap Usage',
+		mem_swap_activity    => 'Swap Activity',
+		mem_proc_largest     => 'Largest Process',
+
+		proc_threads         => 'Threads',
+		proc_state           => 'Processes',
+		proc_filehandles     => 'File Handles',
+
+		apache_status        => 'Apache Scoreboard & Apache Activity',
+		apache_logs          => 'Apache Log Activity',
+
+		misc_uptime          => 'Server Uptime',
+		misc_users           => 'Users Logged In',
+		misc_ipmi_temp       => 'IPMI Temperature Probes',
+		misc_entropy         => 'Available Entropy',
+
+		db_mysql_activity    => 'MySQL Database Activity',
+		db_mysql_replication => 'MySQL Database Replication',
+
+		mail_exim_queue      => 'Exim Mail Queue',
+		mail_postfix_queue   => 'Postfix Mail Queue',
+		mail_sendmail_queue  => 'Sendmail Mail Queue',
+
+		net_traffic          => 'Network Traffic',
+		net_connections      => 'Network Connections',
+		net_ping_host        => 'Ping',
+		# net_connections_ports => 'Service Connections',
 	);
-# net_connections_ports
 
 
 # Get command line options
 my %opt = ();
 eval "require Getopt::Std";
-Getopt::Std::getopts('p:i:x:s:c:V:hvq', \%opt) unless $@;
+Getopt::Std::getopts('p:i:x:s:c:V:hvqP', \%opt) unless $@;
 (display_help() && exit) if defined $opt{h};
 (display_version() && exit) if defined $opt{v};
 
+# Display a list of available probe names
+if ($opt{P}) {
+	print "Available probes:\n";
+	printf "   %-24s %s\n",'PROBE','DESCRIPTION';
+	for (sort keys %probes) {
+		my $str = sprintf("   %-24s %s\n", $_, $probes{$_});
+		$str =~ s/(\S+) (\s+) /$_ = "$1 ". '.' x length($2) ." ";/e;
+		print "$str";
+	}
+	exit;
+}
 
 # Check to see if we are capable of SNMP queries
 my $snmpClient;
@@ -91,6 +128,7 @@ if ($opt{s}) {
 }
 
 # Filter on probe include list
+my @probes = sort keys %probes;
 if (defined $opt{i}) {
 	my $inc = join('|',split(/\s*,\s*/,$opt{i}));
 	@probes = grep(/(^|_)($inc)(_|$)/,@probes);
@@ -159,6 +197,7 @@ sub display_help {
    -V <version>    Specify SNMP version to use (1 or 2c, defaults to 2c)
    -p <URL>        HTTP POST data to the specified URL
    -q              Suppress all warning messages
+   -P              Display a list of available probe names
    -v              Display version information
    -h              Display this help
 

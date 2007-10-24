@@ -50,15 +50,17 @@ use File::Path qw();
 use Config::General qw();
 use vars qw($VERSION);
 
-$VERSION = '1.39' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.42' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 # Get command line options
 my %opt = ();
-Getopt::Std::getopts('u:gthvf', \%opt);
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+Getopt::Std::getopts('u:gthvf?', \%opt);
 
 # Display help or version
-(display_version() && exit) if defined $opt{v};
-(display_help() && exit) if defined $opt{h} ||
+(VERSION_MESSAGE() && exit) if defined $opt{v};
+(HELP_MESSAGE() && exit) if defined $opt{h} || defined $opt{'?'} ||
 	!(defined $opt{u} || defined $opt{g} || defined $opt{t});
 
 # cd to the righr location and define directories
@@ -276,8 +278,8 @@ sub create_rrd {
 	}
 }
 
-sub display_help {
-	print qq{Syntax: $0 <-u hostname,-g,-t|-h|-v> [inputfile]
+sub HELP_MESSAGE {
+	print qq{Syntax: rrd-server.pl <-u hostname,-g,-t|-h|-v> [inputfile]
      -u <hostname>   Update RRD data for <hostname>
      -g              Create graphs from RRD data
      -t              Create thumbnails from RRD data
@@ -286,7 +288,8 @@ sub display_help {
 }
 
 # Display version
-sub display_version {
+sub VERSION { &VERSION_MESSAGE; }
+sub VERSION_MESSAGE {
 	print "$0 version $VERSION ".'($Id$)'."\n";
 }
 

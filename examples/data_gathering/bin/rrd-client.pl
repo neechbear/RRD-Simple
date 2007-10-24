@@ -44,7 +44,7 @@ use strict;
 #use warnings; # comment out for release
 use vars qw($VERSION);
 
-$VERSION = '1.41' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.42' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 $ENV{PATH} = '/bin:/usr/bin';
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -93,9 +93,11 @@ my %probes = (
 # Get command line options
 my %opt = ();
 eval "require Getopt::Std";
-Getopt::Std::getopts('p:i:x:s:c:V:hvqP', \%opt) unless $@;
-(display_help() && exit) if defined $opt{h};
-(display_version() && exit) if defined $opt{v};
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+Getopt::Std::getopts('p:i:x:s:c:V:hvqP?', \%opt) unless $@;
+(HELP_MESSAGE() && exit) if defined $opt{h} || defined $opt{'?'};
+(VERSION_MESSAGE() && exit) if defined $opt{v};
 
 # Display a list of available probe names
 if ($opt{P}) {
@@ -187,7 +189,7 @@ sub report {
 
 
 # Display help
-sub display_help {
+sub HELP_MESSAGE {
 	print qq{Syntax: rrd-client.pl [-i probe1,probe2,..|-x probe1,probe2,..]
                       [-s host] [-c community] [-V 1|2c] [-p URL] [-h|-v]
    -i <probes>     Include a list of comma seperated probes
@@ -210,7 +212,8 @@ Examples:
 
 
 # Display version
-sub display_version {
+sub VERSION { &VERSION_MESSAGE; }
+sub VERSION_MESSAGE {
 	print "$0 version $VERSION ".'($Id$)'."\n";
 }
 

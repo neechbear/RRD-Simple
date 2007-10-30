@@ -48,6 +48,7 @@ use Getopt::Std qw();
 use File::Basename qw(basename);
 use File::Path qw();
 use Config::General qw();
+use File::Spec::Functions qw(catfile catdir);
 use vars qw($VERSION);
 
 $VERSION = '1.42' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
@@ -112,12 +113,37 @@ sub create_graphs {
 			my $rrdfile = "$dir->{data}/$hostname/$file";
 			my $graph = basename($file,'.rrd');
 			my $gdef = graph_def($gdefs,$graph);
+
+			# Wrap the RRD::Simple calls in an eval() block just in case
+			# the explode in a big nasty smelly heap!
 			eval {
+
+				# Anything that doesn't start with ^source(?:s|_) should just
+				# be pushed on to the RRD::Simple->graph option stack (So this
+				# would NOT include the "sources" option).
 				my @graph_opts = map { ($_ => $gdef->{$_}) }
 						grep(!/^source(s|_)/,keys %{$gdef});
-				push @graph_opts, map { ($_ => [ split(/\s+/,$gdef->{$_}) ]) }
-						grep(/^source_/,keys %{$gdef});
 
+				# Anything that starts with ^source_ should be split up and passed
+				# as a hash reference in to the RRD::Simple->graph option stack
+				# (This would NOT include the "sources" option).
+				push @graph_opts, map {
+						# If we see a value from a key/value pair that looks
+						# like it might be quoted and comma seperated,
+						# "like this", 'then we should','split especially'
+						if ($gdef->{$_} =~ /["']\s*,\s*["']/) {
+							($_ => [ split(/\s*["']\s*,\s*["']\s*/,$gdef->{$_}) ])
+
+						# Otherwise just split on whitespace like the old
+						# version of rrd-server.pl used to do.
+						} else {
+							($_ => [ split(/\s+/,$gdef->{$_}) ])
+						}
+					} grep(/^source_/,keys %{$gdef});
+
+				# By default we want to tell RRDtool to be lazy and only generate
+				# graphs when it's actually necessary. If we have the -f for force
+				# flag then we won't let RRDtool be economical.
 				push @graph_opts, ('lazy','') unless exists $opt{f};
 
 				# Only draw the sources we've been told to, and only
@@ -133,6 +159,8 @@ sub create_graphs {
 					push @graph_opts, ('sources', [ sort @rrd_sources ]);
 				}
 
+				# Generate the graph and capture the results to
+				# write the text file output in the same directory
 				write_txt($rrd->graph($rrdfile,
 						destination => $destination,
 						timestamp => 'both',
@@ -140,8 +168,13 @@ sub create_graphs {
 						@options,
 						@graph_opts,
 					));
+				
+				my $glob = catfile($destination,"$graph*.png");
+				my @images = glob($glob);
+				warn "[Warning] $rrdfile: Looks like \$rrd->graph() failed to generate any images in '$glob'\n."
+					unless @images;
 			};
-			warn "$rrdfile => $@" if $@;
+			warn "[Warning] $rrdfile: => $@" if $@;
 		}
 	}
 }
@@ -201,7 +234,7 @@ sub update_rrd {
 
 	# Open the input file if specified
 	if (defined $filename) {
-		open(FH,'<',$filename) || die "Unable to open file handle for file '$filename': $!";
+		open(FH,'<',$filename) || die "[Error] $rrd: Unable to open file handle for file '$filename': $!";
 		select FH;
 	};
 
@@ -233,14 +266,14 @@ sub update_rrd {
 					unless -f $rrdfile;
 				$rrd->update($rrdfile, $time, %{$data{$rrdfile}->{$time}});
 			};
-			warn $@ if $@;
+			warn "[Warning] $rrdfile: $@" if $@;
 		}
 	}
 
 	# Close the input file if specified
 	if (defined $filename) {
 		select STDOUT;
-		close(FH) || warn "Unable to close file handle for file '$filename': $!";
+		close(FH) || warn "[Warning] $rrd: Unable to close file handle for file '$filename': $!";
 	}
 
 	return $hostname;
@@ -317,7 +350,7 @@ sub read_graph_data {
 		);
 		%config = $conf->getall;
 	};
-	warn $@ if $@;
+	warn "[Warning] $@" if $@;
 
 	return \%config;
 }
@@ -377,6 +410,7 @@ sub write_txt {
 		my $max_len = 0;
 		for (@{$data->[0]}) {
 			my ($ds,$k,$v) = split(/\s+/,$_);
+			next unless defined($ds) && length($ds) && defined($k);
 			$values{$ds}->{$k} = $v;
 			$max_len = length($ds) if length($ds) > $max_len;
 		}

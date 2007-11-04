@@ -4,7 +4,7 @@
 #   $Id$
 #   rrd-browse.cgi - Graph browser CGI script for RRD::Simple
 #
-#   Copyright 2006 Nicola Worthington
+#   Copyright 2006,2007 Nicola Worthington
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -23,8 +23,9 @@
 
 # User defined constants
 use constant BASEDIR => '/home/nicolaw/webroot/www/rrd.me.uk';
-use constant RRDURL => '';
-use constant DEFAULT_EXPIRES => '120 minutes';
+use constant RRDURL  => '';
+use constant CACHE   => 1;
+use constant DEFAULT_EXPIRES => '60 minutes';
 
 
 
@@ -36,28 +37,39 @@ use CGI::Carp qw(fatalsToBrowser);
 use HTML::Template::Expr;
 use File::Basename qw(basename);
 use Config::General qw();
-use Memoize;
-#use Time::HiRes;
-#use Data::Dumper;
+use File::Spec::Functions qw(tmpdir catdir catfile);
+use vars qw(%LIST_CACHE %GRAPH_CACHE %SLURP_CACHE
+	$CACHE_ROOT $CACHE $FRESHEN_CACHE);
 
-# Speed things up a little :)
-my %list_cache = ();
-memoize('list_dir', LIST_CACHE => [HASH => \%list_cache]);
-my %graph_cache = ();
-memoize('graph_def', SCALAR_CACHE => [HASH => \%graph_cache]);
+# Enable some basic caching.
+# See notes about $tmpl_cache a little further
+# down in this code.
+if (CACHE) {
+	# Cache calls to list_dir() and graph_def()
+	require Memoize;
+	Memoize::memoize('list_dir',  LIST_CACHE   => [HASH => \%LIST_CACHE]);
+	Memoize::memoize('graph_def', SCALAR_CACHE => [HASH => \%GRAPH_CACHE]);
+	
+	# This isn't really necessary unless you're viewing the same page many
+	# times over in defail view - i don't think that the extra memory utilisation
+	# is worth the small improvement in rendering time.
+	#Memoize::memoize('slurp',     SCALAR_CACHE => [HASH => \%SLURP_CACHE]);
 
-# Cache some more if we can
-my $cache;
-my $cache_root;
-my $freshen_cache = 0;
-eval {
-	require File::Spec::Functions;
-	require Cache::File;
-	$cache_root = File::Spec::Functions::catdir(
-			File::Spec::Functions::tmpdir, 'rrd-browse.cgi');
-	mkdir($cache_root) unless -d $cache_root;
-	$cache = Cache::File->new( cache_root => $cache_root, default_expires => DEFAULT_EXPIRES );
-};
+	# Try some caching on disk
+	unless (defined($CACHE) && ref($CACHE)) {
+		$CACHE_ROOT = catdir(tmpdir(), 'rrd-browse.cgi');
+		mkdir($CACHE_ROOT,0700) unless -d $CACHE_ROOT;
+		eval {
+			require Cache::File;
+			$CACHE = Cache::File->new(
+					cache_root => $CACHE_ROOT,
+					default_expires => DEFAULT_EXPIRES
+				);
+		};
+		warn $@ if $@;
+	};
+}
+
 
 # Grab CGI paramaters
 my $cgi = new CGI;
@@ -70,10 +82,10 @@ chdir $dir{'cgi-bin'} || die sprintf("Unable to chdir to '%s': %s", $dir{'cgi-bi
 # Create the initial %tmpl data hash
 my %tmpl = %ENV;
 $tmpl{template} = defined $q{template} && -f $q{template} ? $q{template} : 'index.tmpl';
-$tmpl{PERIOD} = defined $q{PERIOD} ? $q{PERIOD} : 'daily';
-$tmpl{title} = ucfirst(basename($tmpl{template},'.tmpl')); $tmpl{title} =~ s/[_\-]/ /g;
+$tmpl{PERIOD}   = defined $q{PERIOD} ? $q{PERIOD} : 'daily';
+$tmpl{title}    = ucfirst(basename($tmpl{template},'.tmpl')); $tmpl{title} =~ s/[_\-]/ /g;
 $tmpl{self_url} = $cgi->self_url(-absolute => 1, -query_string => 0, -path_info => 0);
-$tmpl{rrd_url} = RRDURL;
+$tmpl{rrd_url}  = RRDURL;
 
 # Go read a bunch of stuff from disk to pump in to %tmpl in a moment
 my $gdefs = read_graph_data("$dir{etc}/graph.defs");
@@ -99,21 +111,27 @@ my $tmpl_cache = {
 
 # Pull in the HTML cache (mentioned above)
 my $html = { last_update => 0, html => '' };
-eval { $html = $cache->thaw($cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1)); };
 
 # Check if we should force an update on the cache
-while (my ($k,$dir) = each %dir) {
-	if (!defined $html->{last_update} || (stat($dir))[9] > $html->{last_update}) {
-		$freshen_cache = 1;
-		warn "$k($dir) has been modified since the cache was last updated; forcing an update now\n";
+$FRESHEN_CACHE = 1 if $q{FRESHEN_CACHE};
+if (!defined($FRESHEN_CACHE) && !$FRESHEN_CACHE) {
+	while (my ($k,$dir) = each %dir) {
+		if (!defined $html->{last_update} || (stat($dir))[9] > $html->{last_update}) {
+			$FRESHEN_CACHE = 1;
+			warn "$k($dir) has been modified since the cache was last updated; forcing an update now\n";
+		}
 	}
 }
 
 # Output from the cache if possible
-if ($html && !$freshen_cache) {
-	#warn "Using cached version '".$cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1)."'\n";
-	print $cgi->header(-content => 'text/html'), $html->{html};
-	exit;
+if (!$FRESHEN_CACHE) {
+	eval { $html = $CACHE->thaw($cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1)); };
+	warn $@ if $@;
+	if ($html->{html}) {
+		#warn "Using cached version '".$cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1)."'\n";
+		print $cgi->header(-content => 'text/html'), $html->{html};
+		exit;
+	}
 }
 
 
@@ -131,6 +149,7 @@ if ($html && !$freshen_cache) {
 #######################################
 for my $host (sort by_domain list_dir($dir{data})) {
 
+	# NEECHI-HACK!
 	# This is removing some templating logic from the HTML::Template .tmpl file
 	# themsevles and bringing it in to this loop in order to save a number of
 	# loop cycles and speed up the pre-processing before we render the HTML.
@@ -145,12 +164,25 @@ for my $host (sort by_domain list_dir($dir{data})) {
 		for (qw(thumbnails graphs)) {
 			eval {
 				my @ary = ();
-				for my $img (sort alpha_period list_dir("$dir{$_}/$host")) {
+				for my $img (sort alpha_period 
+						grep(/\.(png|jpe?g|gif)$/i,list_dir("$dir{$_}/$host"))) {
+					my ($graph) = ($img =~ /^(.+)\-\w+\.\w+$/);
+
+					# NEECHI-HACK!
+					# This is another nasty hack that removed some of the logic from the
+					# HTML::Template code by pre-excluding specific data from the template
+					# data and thereby speeding up the rendering of the HTML.	
+					next if defined($q{GRAPH}) && $q{GRAPH} ne $graph;
+					next if defined($q{LIKE})
+						&& $tmpl{template} =~ /^by_graph\.[^\.]+$/i
+						&& $graph !~ /$q{LIKE}/i;
+
 					my %hash = (
-						src => "$tmpl{rrd_url}/$_/$host/$img",
-						period => ($img =~ /.*-(\w+)\.\w+$/),
-						graph => ($img =~ /^(.+)\-\w+\.\w+$/),
-					);
+							src => "$tmpl{rrd_url}/$_/$host/$img",
+							period => ($img =~ /.*-(\w+)\.\w+$/),
+							graph => $graph,
+						);
+
 					my $gdef = graph_def($gdefs,$hash{graph});
 					$hash{title} = defined $gdef->{title} ? $gdef->{title} : $hash{graph};
 					$hash{txt} = "$dir{graphs}/$host/$img.txt" if $_ eq 'graphs';
@@ -172,11 +204,6 @@ for my $host (sort by_domain list_dir($dir{data})) {
 	}
 }
 
-
-# Nuke the memoize caches in case we're in mod_perl
-%list_cache = ();
-%graph_cache = ();
-
 # Merge cache data in
 $tmpl{hosts} = $tmpl_cache->{hosts};
 
@@ -184,23 +211,35 @@ $tmpl{hosts} = $tmpl_cache->{hosts};
 for (sort keys %{$tmpl_cache->{graph_tmpl}}) {
 	my ($graph,$title) = split(/\t/,$_);
 	push @{$tmpl{graphs}}, {
-			graph => $graph,
+			graph       => $graph,
 			graph_title => $title,
 			total_hosts => @{$tmpl_cache->{graph_tmpl}->{$_}}+0,
-			thumbnails => $tmpl_cache->{graph_tmpl}->{$_},
+			thumbnails  => $tmpl_cache->{graph_tmpl}->{$_},
 		};
 }
 
 # Render the output
-#$tmpl{DEBUG} = Dumper(\%tmpl);
+if (exists $q{DEBUG} && $q{DEBUG} eq 'insecure') {
+	require Data::Dumper;
+	$tmpl{DEBUG} = Data::Dumper::Dumper(\%tmpl);
+}
 my $template = HTML::Template::Expr->new(
-		filename => $tmpl{template},
-		associate => $cgi,
-		case_sensitive => 1,
-		loop_context_vars => 1,
-		max_includes => 5,
-		global_vars => 1,
-		die_on_bad_params => 0,
+		filename            => $tmpl{template},
+
+		# This caching doesn't work properly with
+		# HTML::Template::Expr
+		#cache               => 1,
+		#shared_cache        => 1,
+		#file_cache          => 1,
+		#file_cache_dir      => $CACHE_ROOT,
+		#file_cache_dir_mode => 0700,
+
+		associate           => $cgi,
+		case_sensitive      => 1,
+		loop_context_vars   => 1,
+		max_includes        => 5,
+		global_vars         => 1,
+		die_on_bad_params   => 0,
 		functions => {
 				slurp => \&slurp,
 				like => sub { return defined($_[0]) && defined($_[1]) && $_[0] =~ /$_[1]/i ? 1 : 0; },
@@ -216,7 +255,8 @@ $template->param(\%tmpl);
 
 $html->{html} = $template->output();
 $html->{last_update} = time;
-eval { $cache->freeze($cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1), $html); };
+eval { $CACHE->freeze($cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1), $html); };
+warn $@ if $@;
 print $cgi->header(-content => 'text/html'), $html->{html};
 
 exit;
@@ -264,12 +304,9 @@ sub alpha_period {
 # Return a list of items in a directory
 sub list_dir {
 	my $dir = shift;
-	my @items = ();
-
 	opendir(DH,$dir) || die "Unable to open file handle for directory '$dir': $!";
-	@items = grep(!/^\./,readdir(DH));
+	my @items = grep(!/^\./,readdir(DH));
 	closedir(DH) || die "Unable to close file handle for directory '$dir': $!";
-
 	return @items;
 }
 
@@ -301,15 +338,15 @@ sub read_graph_data {
 	my %config = ();
 	eval {
 		my $conf = new Config::General(
-			-ConfigFile				=> $filename,
-			-LowerCaseNames			=> 1,
-			-UseApacheInclude		=> 1,
-			-IncludeRelative		=> 1,
-#			-DefaultConfig			=> \%default,
+			-ConfigFile		=> $filename,
+			-LowerCaseNames		=> 1,
+			-UseApacheInclude	=> 1,
+			-IncludeRelative	=> 1,
+#			-DefaultConfig		=> \%default,
 			-MergeDuplicateBlocks	=> 1,
-			-AllowMultiOptions		=> 1,
+			-AllowMultiOptions	=> 1,
 			-MergeDuplicateOptions	=> 1,
-			-AutoTrue				=> 1,
+			-AutoTrue		=> 1,
 		);
 		%config = $conf->getall;
 	};

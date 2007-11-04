@@ -15,19 +15,30 @@
     If you are using a <a href="http://www.perl.org/get.html">recent 5.8.x version of Perl</a>,
     only the following additional modules are required to run the rrd-browse.cgi web interface:
     <ul>
-      <li><a href="http://search.cpan.org/~tlinden/Config-General/">Config-General-2.31.tar.gz</a></li>
-      <li><a href="http://search.cpan.org/~samtregar/HTML-Template/">HTML-Template-2.8.tar.gz</a></li>
-      <li><a href="http://search.cpan.org/~samtregar/HTML-Template-Expr/">HTML-Template-Expr-0.07.tar.gz</a></li>
-      <li><a href="http://search.cpan.org/~dconway/Parse-RecDescent/">Parse-RecDescent-1.94.tar.gz</a></li>
+      <li><a href="http://search.cpan.org/~tlinden/Config-General/">Config::General</a></li>
+      <li><a href="http://search.cpan.org/~samtregar/HTML-Template/">HTML::Template</a></li>
+      <li><a href="http://search.cpan.org/~samtregar/HTML-Template-Expr/">HTML::Template::Expr</a></li>
+      <li><a href="http://search.cpan.org/~dconway/Parse-RecDescent/">Parse::RecDescent</a></li>
     </ul>
   </p>
-
+  <p>
+    You can enable the caching functionality of the rrd-browse.cgi web interface
+    (and thereby improve performance for larger installations) by simply
+    installing the following additional modules:
+    <ul>
+      <li><a href="http://search.cpan.org/~cleishman/Cache/">Cache</a></li>
+      <li><a href="http://search.cpan.org/~pmqs/DB_File/">DB_File</a></li>
+      <li><a href="http://search.cpan.org/~bbb/File-NFSLock/">File::NFSLock</a></li>
+      <li><a href="http://search.cpan.org/~jmm/Heap/">Heap</a></li>
+      <li><a href="http://search.cpan.org/~gaas/IO-String/">IO::String</a></li>
+    </ul>
+  </p>
   <p>
     Likewise, if you are running a recent version of Perl, the following modules
     are required to run the rrd-server.pl script (which is called by rrd-server.cgi):
     <ul>
-      <li><a href="http://search.cpan.org/~kwilliams/Module-Build/">Module-Build-0.2801.tar.gz</a></li>
-      <li><a href="http://search.cpan.org/~nicolaw/RRD-Simple/">RRD-Simple-1.39.tar.gz</a>
+      <li><a href="http://search.cpan.org/~kwilliams/Module-Build/">Module::Build</a></li>
+      <li><a href="http://search.cpan.org/~nicolaw/RRD-Simple/">RRD::Simple</a>
         - RRD::Simple requires RRDtool to be installed. See the RRD::Simple
         <a href="http://search.cpan.org/~nicolaw/RRD-Simple/INSTALL">INSTALL</a> document for details. You will need to install RRDtool version 1.2.x or higher.</li>
     </ul>

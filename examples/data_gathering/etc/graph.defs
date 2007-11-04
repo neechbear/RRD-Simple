@@ -125,7 +125,7 @@
 	vertical_label          "messages/min"
 	source_drawtypes        "AREA STACK STACK STACK STACK STACK"
 	sources                 "sent received rejected bounced virus spam"
-	source_labels           "Sent Email","Received Email","Rejected","Bounced", "Virus", "Spam"
+	source_labels           "Sent","Received","Rejected","Bounced", "Virus", "Spam Email"
 	source_colours          "000099 009900 AA0000 000000 DDBB00 999999"
 	extended_legend         Yes
 </graph>

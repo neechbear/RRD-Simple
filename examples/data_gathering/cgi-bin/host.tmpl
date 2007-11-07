@@ -23,6 +23,19 @@
   <table border="0">
 <TMPL_LOOP hosts>
   <TMPL_IF EXPR="HOST eq host">
+
+    <TMPL_IF include_html>
+      <tr><td colspan="2">
+      <TMPL_VAR EXPR="slurp(include_html)">
+      </td></tr>
+    </TMPL_IF>
+
+    <TMPL_IF include_css>
+      <style type="text/css">
+      <TMPL_VAR EXPR="slurp(include_css)">
+      </style>
+    </TMPL_IF>
+
     <TMPL_LOOP graphs>
       <TMPL_IF GRAPH>
         <TMPL_IF EXPR="GRAPH eq graph">
@@ -34,7 +47,7 @@
       <TMPL_ELSE>
         <TMPL_IF EXPR="PERIOD eq period">
     <tr>
-      <td<a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a></td>
+      <td><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a></td>
       <td valign="top" class="graph_detail"><pre><TMPL_VAR EXPR="slurp(txt)"></pre></td>
     </tr>
         </TMPL_IF>

@@ -8,6 +8,9 @@
     <link rel="shortcut icon" href="/favicon.ico" >
     <meta http-equiv="refresh" content="240">
     <style type="text/css">
+      table.host_include td, table.host_include th {
+        text-align: left;
+      }
       span.tooltip {
         position: relative;
         border-bottom: 1px #000077 dashed;
@@ -35,15 +38,21 @@
       img {
         border: none;
       }
-      div.thumbnail {
-        border: 1px dotted #ddddff;
-        background-color: #ddddff;
+      div.thumbnail, div.stale_thumbnail {
         margin: 1px 1px 1px 1px;
         font-size: 7pt;
         text-align: center;
         float: left;
         width: 125px;
         color: #000022;
+      }
+      div.thumbnail { 
+        border: 1px dotted #ddddff;
+        background-color: #ddddff;
+      }
+      div.stale_thumbnail { 
+        border: 1px dotted #ffdddd;
+        background-color: #ffdddd;
       }
       div.host, div.vertspace, hr {
         float: none;

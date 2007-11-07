@@ -12,10 +12,13 @@
 <TMPL_LOOP hosts>
   <TMPL_IF EXPR="equal_or_like(host,HOST,LIKE)">
 <div class="host">
-<h2><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>"><TMPL_VAR host></a></h2>
+<h2><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>"><TMPL_VAR host></a><TMPL_IF include_summary_txt> - <TMPL_VAR EXPR="slurp(include_summary_txt)"></TMPL_IF></h2>
+  <TMPL_IF include_overview_html>
+    <TMPL_VAR EXPR="slurp(include_overview_html)">
+  </TMPL_IF>
   <TMPL_LOOP thumbnails>
     <TMPL_IF EXPR="period eq 'daily'">
-<div class="thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" class="thumbnail" /></a><br /><TMPL_VAR title></div>
+<div class="<TMPL_IF stale>stale_</TMPL_IF>thumbnail"><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" class="thumbnail" /></a><br /><TMPL_VAR title></div>
     </TMPL_IF>
   </TMPL_LOOP>
   <TMPL_IF no_graphs>

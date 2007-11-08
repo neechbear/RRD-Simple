@@ -49,8 +49,11 @@
   <h3>Selecting an Installation Location</h3>
   <p>
     Select a location where you want to install the RRD monitoring software. By default,
-    the software is configured to be installed under <code>/home/system/rrd/</code>. The
-    directory structure under that installation location should look like the following:
+    the software is configured to be installed under <code>/home/system/rrd/</code>,
+    <code>/home/nicolaw/webroot/www/rrd.me.uk/</code> or some other randomly bizarre
+    location. You will most likely want to change this to something more sane like
+    <code>/usr/local/rrd-server/</code>. The directory structure under that
+    installation location should look like the following:
     <ul>
       <li><code>./bin/</code> - should contain rrd-server.pl and rrd-client.pl</li>
       <li><code>./cgi-bin/</code> - should contain rrd-server.cgi, rrd-browse.cgi and *.tmpl templates</li>

@@ -51,6 +51,8 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 # Default list of probes
 my %probes = (
+		hw_irq_interrupts    => 'Hardward IRQ Interrupts',
+
 		cpu_utilisation      => 'CPU Utilisation',
 		cpu_loadavg          => 'Load Average',
 		cpu_temp             => 'CPU Temperature',
@@ -410,7 +412,7 @@ sub proc_threads {
 	my %update = ();
 	my $cmd = '/bin/ps -eo pid,nlwp';
 
-	open(PH,'-|',$cmd) || die "Unable to open file handle for command '$cmd': $!";
+	open(PH,'-|',$cmd) || die "Unable to open file handle PH for command '$cmd': $!";
 	while (local $_ = <PH>) {
 		if (my ($pid,$nlwp) = $_ =~ /^\s*(\d+)\s+(\d+)\s*$/) {
 			$update{Processes}++;
@@ -418,7 +420,7 @@ sub proc_threads {
 			$update{MultiThreadProcs}++ if $nlwp > 1;
 		}
 	}
-	close(PH) || die "Unable to close file handle for command '$cmd': $!";
+	close(PH) || die "Unable to close file handle PH for command '$cmd': $!";
 
 	return %update;
 }
@@ -798,6 +800,44 @@ sub cpu_utilisation {
 
 
 
+sub hw_irq_interrupts {
+	return if $opt{s};
+
+	my @update;
+	if (open(FH,'<','/proc/interrupts')) {
+		local $_ = <FH>;
+		return unless /^\s+(CPU[0-9]+.*)/;
+		my @cpus = split(/\s+/,$1);
+		$_ = lc($_) for @cpus;
+
+		my %data;
+		while (local $_ = <FH>) {
+			if (/^\s*([0-9]{1,2}):\s+([\s0-9]+)\s+(\S+)\s+(.+?)\s*$/) {
+				my ($irq,$ints,$path,$src) = ($1,$2,$3,$4);
+				my @ints = split(/\s+/,$ints);
+				for (my $i = 0; $i <= @cpus; $i++) {
+					my $cpu = $cpus[$i];
+					my $int = $ints[$i];
+					next unless defined $cpu && defined $int;
+					$data{$cpu}->{"$cpu.irq$irq"} = $int;
+				}
+			}
+		}
+
+		for my $cpu (keys %data) {
+			if (grep(/[1-9]/,values %{$data{$cpu}})) {
+				push @update, %{$data{$cpu}};
+			}
+		}
+
+		close(FH) || warn "Unable to close file handle FH for file '/proc/interrupts': $!";
+	}
+
+	return @update;
+}
+
+
+
 sub cpu_interrupts {
 	return if $opt{s};
 	my $cmd = '/usr/bin/vmstat';
@@ -1152,7 +1192,7 @@ sub proc_state {
 				$update{$keys{$state}||$state}++ if $state;
 			}
 		}
-		close(PH) || die "Unable to close file handle for command '$cmd': $!\n";
+		close(PH) || die "Unable to close file handle PH for command '$cmd': $!\n";
 		$update{$_} ||= 0 for values %keys;
 
 	} else {
@@ -1180,9 +1220,9 @@ sub cpu_loadavg {
 
 	my @data = ();
 	if (-f '/proc/loadavg') {
-		open(FH,'<','/proc/loadavg') || die "Unable to open '/proc/loadavg': $!\n";
+		open(FH,'<','/proc/loadavg') || die "Unable to open file handle FH for file '/proc/loadavg': $!\n";
 		my $str = <FH>;
-		close(FH) || die "Unable to close '/proc/loadavg': $!\n";
+		close(FH) || die "Unable to close file handle FH for file '/proc/loadavg': $!\n";
 		@data = split(/\s+/,$str);
 
 	} else {
@@ -1271,9 +1311,9 @@ sub proc_filehandles {
 	return unless -f '/proc/sys/fs/file-nr';
 	my %update = ();
 
-	open(FH,'<','/proc/sys/fs/file-nr') || die "Unable to open '/proc/sys/fs/file-nr': $!\n";
+	open(FH,'<','/proc/sys/fs/file-nr') || die "Unable to open file handle FH for file '/proc/sys/fs/file-nr': $!\n";
 	my $str = <FH>;
-	close(FH) || die "Unable to close '/proc/sys/fs/file-nr': $!\n";
+	close(FH) || die "Unable to close file handle FH for file '/proc/sys/fs/file-nr': $!\n";
 	@update{qw(Allocated Free Maximum)} = split(/\s+/,$str);
 	$update{Used} = $update{Allocated} - $update{Free};
 

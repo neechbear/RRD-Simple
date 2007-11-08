@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/bin/env perl
 ############################################################
 #
 #   $Id$
@@ -51,13 +51,13 @@ use Config::General qw();
 use File::Spec::Functions qw(catfile catdir);
 use vars qw($VERSION);
 
-$VERSION = '1.42' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.43' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 # Get command line options
 my %opt = ();
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
-Getopt::Std::getopts('u:gthvf?', \%opt);
+Getopt::Std::getopts('u:gthvVf?', \%opt);
 
 # Display help or version
 (VERSION_MESSAGE() && exit) if defined $opt{v};
@@ -91,8 +91,8 @@ sub create_graphs {
 	my ($rrd,$dir,$hostname,@options) = @_;
 
 	my ($caller) = ((caller(1))[3] || '') =~ /.*::(.+)$/;
-	my $destdir = defined $caller && $caller eq 'create_thumbnails'
-			? $dir->{thumbnails} : $dir->{graphs};
+	my $thumbnails = defined $caller && $caller eq 'create_thumbnails' ? 1 : 0;
+	my $destdir = $thumbnails ? $dir->{thumbnails} : $dir->{graphs};
 
 	my @colour_theme = (color => [ (
 			'BACK#F5F5FF','SHADEA#C8C8FF','SHADEB#9696BE',
@@ -100,7 +100,8 @@ sub create_graphs {
 		) ] );
 
 	my $gdefs = read_graph_data("$dir->{etc}/graph.defs");
-	my @hosts = defined $hostname ? ($hostname) : list_dir("$dir->{data}");
+	my @hosts = defined $hostname ? ($hostname)
+			: grep { -d catdir($dir->{data}, $_) } list_dir("$dir->{data}");
 
 	# For each hostname
 	for my $hostname (sort @hosts) {
@@ -109,8 +110,10 @@ sub create_graphs {
 		File::Path::mkpath($destination) unless -d $destination;
 
 		# For each RRD
-		for my $file (list_dir("$dir->{data}/$hostname")) {
-			my $rrdfile = "$dir->{data}/$hostname/$file";
+		for my $file (grep { $_ =~ /\.rrd$/i && !-d catfile($dir->{data},$hostname,$_) }
+				list_dir(catdir($dir->{data},$hostname))
+			) {
+			my $rrdfile = catfile($dir->{data},$hostname,$file);
 			my $graph = basename($file,'.rrd');
 			my $gdef = graph_def($gdefs,$graph);
 
@@ -158,6 +161,11 @@ sub create_graphs {
 				} else {
 					push @graph_opts, ('sources', [ sort @rrd_sources ]);
 				}
+
+				printf "Generating %s for %s/%s ...\n",
+					($thumbnails ? 'thumbnails' : 'graphs'),
+					$hostname,
+					$graph if $opt{V};
 
 				# Generate the graph and capture the results to
 				# write the text file output in the same directory
@@ -211,7 +219,7 @@ sub list_dir {
 
 sub create_thumbnails {
 	my ($rrd,$dir,$hostname) = @_;
-	my @thumbnail_options = (only_graph => "", width => 125, height => 32);
+	my @thumbnail_options = (only_graph => '', width => 125, height => 32);
 	create_graphs($rrd,$dir,$hostname,@thumbnail_options);
 }
 
@@ -230,7 +238,7 @@ sub update_rrd {
 		if $hostname =~ /[^\w\-\.\d]/ || $hostname =~ /^\.|\.$/;
 
 	# Create the data directory for the RRD file if it doesn't exist
-	File::Path::mkpath("$dir->{data}/$hostname") unless -d "$dir->{data}/$hostname";
+	File::Path::mkpath(catdir($dir->{data},$hostname)) unless -d catdir($dir->{data},$hostname);
 
 	# Open the input file if specified
 	if (defined $filename) {
@@ -254,7 +262,7 @@ sub update_rrd {
 		}
 		next if $bogus;
 
-		my $rrdfile = "$dir->{data}/$hostname/".join('_',@path).".rrd";
+		my $rrdfile = catfile($dir->{data},$hostname,join('_',@path).'.rrd');
 		$data{$rrdfile}->{$time}->{$key} = $value;
 	}
 
@@ -281,7 +289,7 @@ sub update_rrd {
 
 sub create_rrd {
 	my ($rrd,$dir,$rrdfile,$data) = @_;
-	my $defs = read_create_data("$dir->{etc}/create.defs");
+	my $defs = read_create_data(catfile($dir->{etc},'create.defs'));
 
 	# Figure out what DS types to use
 	my %create = map { ($_ => 'GAUGE') } sort keys %{$data};
@@ -312,10 +320,11 @@ sub create_rrd {
 }
 
 sub HELP_MESSAGE {
-	print qq{Syntax: rrd-server.pl <-u hostname,-g,-t|-h|-v> [inputfile]
+	print qq{Syntax: rrd-server.pl <-u hostname,-g,-t,-V|-h|-v> [inputfile]
      -u <hostname>   Update RRD data for <hostname>
      -g              Create graphs from RRD data
      -t              Create thumbnails from RRD data
+     -V              Display verbose progress information
      -v              Display version information
      -h              Display this help\n};
 }
@@ -360,15 +369,17 @@ sub read_create_data {
 	my %defs = ();
 	
 	# Open the input file if specified
+	my @data;
 	if (defined $filename && -f $filename) {
 		open(FH,'<',$filename) || die "Unable to open file handle for file '$filename': $!";
-		select FH;
+		@data = <FH>;
+		close(FH) || warn "Unable to close file handle for file '$filename': $!";
 	} else {
-		select DATA;
+		@data = <DATA>;
 	}
 
-	# Parse the file
-	while (local $_ = <DATA>) {
+	# Parse the file that you've just selected
+	for (@data) {
 		last if /^__END__\s*$/;
 		next if /^\s*$/ || /^\s*#/;
 
@@ -392,12 +403,6 @@ sub read_create_data {
 			};
 	}
 
-	# Close the input file if specified
-	select STDOUT;
-	if (defined $filename && -f $filename) {
-		close(FH) || warn "Unable to close file handle for file '$filename': $!";
-	}
-
 	return \%defs;
 }
 
@@ -406,6 +411,7 @@ sub write_txt {
 	while (my ($period,$data) = each %rtn) {
 		my $filename = shift @{$data};
 		last if $filename =~ m,/thumbnails/,;
+
 		my %values = ();
 		my $max_len = 0;
 		for (@{$data->[0]}) {
@@ -414,9 +420,14 @@ sub write_txt {
 			$values{$ds}->{$k} = $v;
 			$max_len = length($ds) if length($ds) > $max_len;
 		}
+
 		if (open(FH,'>',"$filename.txt")) {
-			printf FH "%s (%dx%d) %dK\n\n", basename($filename),
-				$data->[1], $data->[2], (stat($filename))[7]/1024;
+			printf FH "%s (%dx%d) %dK\n\n",
+				basename($filename),
+				(defined($data->[1]) ? $data->[1] : -1),
+				(defined($data->[2]) ? $data->[2] : -1),
+				(-e $filename ? (stat($filename))[7]/1024 : 0);
+
 			for (sort keys %values) {
 				printf FH "%-${max_len}s     min: %s, max: %s, last: %s\n", $_,
 				$values{$_}->{min}, $values{$_}->{max}, $values{$_}->{last};
@@ -441,6 +452,8 @@ __DATA__
 ^net_traffic_.+	Receive	DERIVE	0	-
 
 ^hdd_io_.+	*	DERIVE	0	-
+
+^hw_irq_interrupts_cpu\d+$	*	DERIVE	0	-
 
 ^apache_status$	ReqPerSec	DERIVE	0	-
 ^apache_status$	BytesPerSec	DERIVE	0	-

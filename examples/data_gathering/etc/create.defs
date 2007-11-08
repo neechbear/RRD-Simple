@@ -16,6 +16,9 @@
 ^switch_traffic_port\d+$	ifOutOctets	COUNTER		0	1000000000
 
 # rrdfile			ds		type		min	max
+^hw_irq_interrupts_cpu\d+$	*		DERIVE		0	-
+
+# rrdfile			ds		type		min	max
 ^hdd_io_.+			*		DERIVE		0	-
 
 # rrdfile			ds		type		min	max

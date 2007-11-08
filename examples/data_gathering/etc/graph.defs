@@ -70,7 +70,15 @@
 	vertical_label          "interrupts/sec"
 	source_drawtypes        "AREA"
 	source_colors           "ff0000"
-	lower_limit			0
+	lower_limit		0
+	rigid
+</graph>
+
+<graph hw_irq_interrupts_cpu\d+>
+	extended_legend         Yes
+	title                   "IRQ Interrupts for $1"
+	vertical_label          "interrupts/sec"
+	lower_limit		0
 	rigid
 </graph>
 

@@ -1,9 +1,9 @@
 <TMPL_INCLUDE header.tmpl>
 <h1><a href="<TMPL_VAR self_url>">Index</a> &gt; 
-    <a href="<TMPL_VAR self_url>?template=by_host.tmpl">By host</a> &gt; 
+    <a href="<TMPL_VAR self_url>?template=by_host.tmpl&PERIOD=<TMPL_VAR PERIOD>">By host</a> &gt; 
 <TMPL_IF GRAPH>
-    <a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>"><TMPL_VAR HOST></a> &gt;
-    <a href="<TMPL_VAR self_url>?template=by_graph.tmpl&GRAPH=<TMPL_VAR GRAPH>"><TMPL_VAR GRAPH></a>
+    <a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=<TMPL_VAR PERIOD>"><TMPL_VAR HOST></a> &gt;
+    <a href="<TMPL_VAR self_url>?template=by_graph.tmpl&GRAPH=<TMPL_VAR GRAPH>&PERIOD=<TMPL_VAR PERIOD>"><TMPL_VAR GRAPH></a>
 <TMPL_ELSE>
     <TMPL_VAR HOST> &gt;
     <TMPL_VAR PERIOD>
@@ -13,11 +13,11 @@
 <div class="contents">
 <TMPL_UNLESS GRAPH>
   <h3>
-    [ <a href="<TMPL_VAR self_url>?template=by_host.tmpl&HOST=<TMPL_VAR HOST>">overview</a> ]
-    [ <TMPL_IF EXPR="PERIOD eq 'daily'">daily<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=daily">daily</a></TMPL_IF>
-    | <TMPL_IF EXPR="PERIOD eq 'weekly'">weekly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=weekly">weekly</a></TMPL_IF>
-    | <TMPL_IF EXPR="PERIOD eq 'monthly'">monthly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=monthly">monthly</a></TMPL_IF>
-    | <TMPL_IF EXPR="PERIOD eq 'annual'">annual<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=annual">annual</a></TMPL_IF> ]
+    [ <a href="<TMPL_VAR self_url>?template=by_host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=<TMPL_VAR PERIOD>">Overview</a> ]
+    [ <TMPL_IF EXPR="PERIOD eq 'daily'">Daily<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=daily">Daily</a></TMPL_IF>
+    | <TMPL_IF EXPR="PERIOD eq 'weekly'">Weekly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=weekly">Weekly</a></TMPL_IF>
+    | <TMPL_IF EXPR="PERIOD eq 'monthly'">Monthly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=monthly">Monthly</a></TMPL_IF>
+    | <TMPL_IF EXPR="PERIOD eq 'annual'">Annual<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=annual">Annual</a></TMPL_IF> ]
   </h3>
 </TMPL_UNLESS>
   <table border="0">
@@ -47,7 +47,7 @@
       <TMPL_ELSE>
         <TMPL_IF EXPR="PERIOD eq period">
     <tr>
-      <td><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>"><img src="<TMPL_VAR src>" /></a></td>
+      <td><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>&PERIOD=<TMPL_VAR PERIOD>"><img src="<TMPL_VAR src>" /></a></td>
       <td valign="top" class="graph_detail"><pre><TMPL_VAR EXPR="slurp(txt)"></pre></td>
     </tr>
         </TMPL_IF>

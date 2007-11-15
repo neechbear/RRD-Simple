@@ -31,19 +31,30 @@
     support will improve over time. To get the best results by monitoring as much
     as possible, you should make sure that you have the following programs installed:
 
-    <ul>
-      <li>/usr/bin/iostat - Required to monitor hard disk IO</li>
-      <li>/usr/bin/vmstat - Required to monitor CPU utilisation</li>
-      <li>/usr/bin/sensors - Required to monitor CPU temperature</li>
-      <li>/usr/bin/hddtemp - Required to monitor hard disk temperature</li>
-    </ul>
+    <br /><br />
+    <table border="0" cellspacing="0" cellpadding="0"><tr>
+      <td align="left" valign="top" style="padding-right: 30px;">
+        <ul>
+          <li>/usr/bin/iostat - Monitors hard disk IO</li>
+          <li>/usr/bin/vmstat - Monitors CPU utilisation</li>
+          <li>/usr/bin/sensors - Monitor CPU temperature</li>
+          <li>/usr/bin/hddtemp - Monitor hard disk temperature</li>
+        </ul>
+      </td>
+      <td align="left" valign="top" style="background: #eeeeff; padding: 2px 6px 4px 6px;">
+        Tree-hugging Debian &amp; Ubuntu users can install these using:<br />
+        <code>sudo apt-get install sysstat hddtemp lm-sensors procps</code><br /><br />
+        Clever-clogs Fedora, RedHat &amp; CentOS users can install these using:<br />
+        <code>yum install sysstat hddtemp lm-sensors procps</code>
+      </td>
+    </tr></table>
+    <br />
 
-    Tree-hugging debian users can install these using the following command:<br /><br />
-    <code>sudo apt-get install sysstat hddtemp lm-sensors procps</code><br /><br />
-
-    Once you have downloaded rrd-client.pl and tested that it generates output, you
-    should add it to your crontab to HTTP POST the data to our server run every 4 or
-    5 minutes. A typical crontab entry might be:<br /><br />
+    Once you have downloaded rrd-client.pl and tested that it generates output, (try
+    running: <code> wget -O - -q http://<TMPL_VAR HTTP_HOST>/rrd-client.pl | perl -w</code> to
+    see if rrd-client.pl will work on your system without actually installing it on
+    disk) you should add it to your crontab to HTTP POST the data to our server run
+    every 4 or 5 minutes. A typical crontab entry might be:<br /><br />
 
     <code><span class="tooltip">*/4<span>If you are not using a Vixie complaint
       cron daemon, or which to offset execution another minute, you may wish to
@@ -61,8 +72,8 @@
     (version 1.39 or higher), and follow
     <a href="<TMPL_VAR self_url>?template=instructions.tmpl">these instructions</a>.
     You can find the very latest version of the RRD::Simple Monitoring software that
-    is in live use on rrd.me.uk,
-    <a href="http://rrd.me.uk/rrd-simple-monitoring.tar.gz">here</a>.</b>
+    is in live use on <TMPL_VAR HTTP_HOST>,
+    <a href="http://<TMPL_VAR HTTP_HOST>/rrd-simple-monitoring.tar.gz">here</a>.</b>
   </p>
 
   <p>

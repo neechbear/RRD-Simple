@@ -109,6 +109,14 @@
 	source_labels           "Queries"
 </graph>
 
+<graph db_mysql_activity_com>
+	title                   "MySQL Database Command Activity"
+	vertical_label          "queries/sec"
+	source_drawtypes        "AREA STACK STACK STACK STACK"
+	sources                 "Com_select Com_insert Com_update Com_replace Com_delete"
+	source_labels           "SELECT INSERT UPDATE REPLACE DELETE"
+</graph>
+
 <graph mail_sendmail_queue>
 	title                   "Sendmail Mail Queue"
 	vertical_label          "Messages"

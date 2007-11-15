@@ -11,43 +11,57 @@
 </h1>
 
 <div class="contents">
-<TMPL_UNLESS GRAPH>
+<TMPL_IF GRAPH>
+  <h3>
+    [ <TMPL_IF COMBINED>Combined<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR GRAPH>&COMBINED=1&PERIOD=<TMPL_VAR PERIOD>">Combined</a></TMPL_IF> ]
+    [ <TMPL_IF EXPR="(not(COMBINED)) && (PERIOD eq 'daily')">Daily<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR GRAPH>&PERIOD=daily">Daily</a></TMPL_IF>
+    | <TMPL_IF EXPR="(not(COMBINED)) && (PERIOD eq 'weekly')">Weekly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR GRAPH>&PERIOD=weekly">Weekly</a></TMPL_IF>
+    | <TMPL_IF EXPR="(not(COMBINED)) && (PERIOD eq 'monthly')">Monthly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR GRAPH>&PERIOD=monthly">Monthly</a></TMPL_IF>
+    | <TMPL_IF EXPR="(not(COMBINED)) && (PERIOD eq 'annual')">Annual<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR GRAPH>&PERIOD=annual">Annual</a></TMPL_IF> ]
+  </h3>
+<TMPL_ELSE>
   <h3>
     [ <a href="<TMPL_VAR self_url>?template=by_host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=<TMPL_VAR PERIOD>">Overview</a> ]
-    [ <TMPL_IF EXPR="PERIOD eq 'daily'">Daily<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=daily">Daily</a></TMPL_IF>
-    | <TMPL_IF EXPR="PERIOD eq 'weekly'">Weekly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=weekly">Weekly</a></TMPL_IF>
-    | <TMPL_IF EXPR="PERIOD eq 'monthly'">Monthly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=monthly">Monthly</a></TMPL_IF>
-    | <TMPL_IF EXPR="PERIOD eq 'annual'">Annual<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR HOST>&PERIOD=annual">Annual</a></TMPL_IF> ]
+    [ <TMPL_IF EXPR="PERIOD eq 'daily'">Daily<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&PERIOD=daily">Daily</a></TMPL_IF>
+    | <TMPL_IF EXPR="PERIOD eq 'weekly'">Weekly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&PERIOD=weekly">Weekly</a></TMPL_IF>
+    | <TMPL_IF EXPR="PERIOD eq 'monthly'">Monthly<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&PERIOD=monthly">Monthly</a></TMPL_IF>
+    | <TMPL_IF EXPR="PERIOD eq 'annual'">Annual<TMPL_ELSE><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&PERIOD=annual">Annual</a></TMPL_IF> ]
   </h3>
-</TMPL_UNLESS>
+</TMPL_IF>
   <table border="0">
 <TMPL_LOOP hosts>
   <TMPL_IF EXPR="HOST eq host">
 
     <TMPL_IF include_html>
       <tr><td colspan="2">
+      <!-- BEGIN INCLUDE_HTML -->
       <TMPL_VAR EXPR="slurp(include_html)">
+      <!-- END INCLUDE_HTML -->
       </td></tr>
     </TMPL_IF>
 
     <TMPL_IF include_css>
       <style type="text/css">
+      /* BEGIN INCLUDE_CSS */
       <TMPL_VAR EXPR="slurp(include_css)">
+      /* END INCLUDE_CSS */
       </style>
     </TMPL_IF>
 
     <TMPL_LOOP graphs>
       <TMPL_IF GRAPH>
         <TMPL_IF EXPR="GRAPH eq graph">
+          <TMPL_IF EXPR="(PERIOD eq period) || (COMBINED)">
     <tr>
       <td><a href="<TMPL_VAR src>"><img src="<TMPL_VAR src>" /></a></td>
       <td valign="top" class="graph_detail"><pre><TMPL_VAR EXPR="slurp(txt)"></pre></td>
     </tr>
+          </TMPL_IF>
         </TMPL_IF>
       <TMPL_ELSE>
         <TMPL_IF EXPR="PERIOD eq period">
     <tr>
-      <td><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>&PERIOD=<TMPL_VAR PERIOD>"><img src="<TMPL_VAR src>" /></a></td>
+      <td><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>&COMBINED=1&PERIOD=<TMPL_VAR PERIOD>"><img src="<TMPL_VAR src>" /></a></td>
       <td valign="top" class="graph_detail"><pre><TMPL_VAR EXPR="slurp(txt)"></pre></td>
     </tr>
         </TMPL_IF>

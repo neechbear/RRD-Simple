@@ -24,6 +24,8 @@
 BEGIN {
 	# User defined constants
 	use constant BASEDIR => '/home/nicolaw/webroot/www/rrd.me.uk';
+	use constant THEME  => ('BACK#F5F5FF','SHADEA#C8C8FF','SHADEB#9696BE',
+				'ARROW#61B51B','GRID#404852','MGRID#67C6DE');
 }
 
 
@@ -57,7 +59,10 @@ $VERSION = '1.43' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 my %opt = ();
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
-Getopt::Std::getopts('u:gthvVf?', \%opt);
+Getopt::Std::getopts('u:G:T:gthvVf?', \%opt);
+
+$opt{g} ||= $opt{G};
+$opt{t} ||= $opt{T};
 
 # Display help or version
 (VERSION_MESSAGE() && exit) if defined $opt{v};
@@ -66,7 +71,7 @@ Getopt::Std::getopts('u:gthvVf?', \%opt);
 
 # cd to the righr location and define directories
 chdir BASEDIR || die sprintf("Unable to chdir to '%s': %s", BASEDIR, $!);
-my %dir = map { ( $_ => BASEDIR."/$_" ) } qw(bin spool data etc graphs cgi-bin thumbnails);
+my %dir = map { ( $_ => BASEDIR."/$_" ) } qw(bin data etc graphs cgi-bin thumbnails);
 
 # Create an RRD::Simple object
 my $rrd = RRD::Simple->new(rrdtool => "$dir{bin}/rrdtool");
@@ -77,10 +82,23 @@ memoize('read_graph_data');
 memoize('basename');
 memoize('graph_def');
 
-# Go and do some work
+# Update the RRD if we've been asked to
 my $hostname = defined $opt{u} ? update_rrd($rrd,\%dir,$opt{u}) : undef;
-create_thumbnails($rrd,\%dir,$hostname) if defined $opt{t};
-create_graphs($rrd,\%dir,$hostname) if defined $opt{g};
+
+# Generate some graphs
+my @hosts;
+for my $host (($hostname, $opt{G}, $opt{T})) {
+	next unless defined $host;
+	for (split(/\s*[,:]\s*/,$host)) {
+		push(@hosts, $_) if defined($_) && length($_);
+	}
+}
+@hosts = list_dir($dir{data}) unless @hosts;
+
+for my $hostname (@hosts) {
+	create_thumbnails($rrd,\%dir,$hostname) if defined $opt{t};
+	create_graphs($rrd,\%dir,$hostname) if defined $opt{g};
+}
 
 exit;
 
@@ -94,11 +112,7 @@ sub create_graphs {
 	my $thumbnails = defined $caller && $caller eq 'create_thumbnails' ? 1 : 0;
 	my $destdir = $thumbnails ? $dir->{thumbnails} : $dir->{graphs};
 
-	my @colour_theme = (color => [ (
-			'BACK#F5F5FF','SHADEA#C8C8FF','SHADEB#9696BE',
-			'ARROW#61B51B','GRID#404852','MGRID#67C6DE',
-		) ] );
-
+	my @colour_theme = (color => [ THEME ]);
 	my $gdefs = read_graph_data("$dir->{etc}/graph.defs");
 	my @hosts = defined $hostname ? ($hostname)
 			: grep { -d catdir($dir->{data}, $_) } list_dir("$dir->{data}");
@@ -162,9 +176,9 @@ sub create_graphs {
 					push @graph_opts, ('sources', [ sort @rrd_sources ]);
 				}
 
-				printf "Generating %s for %s/%s ...\n",
-					($thumbnails ? 'thumbnails' : 'graphs'),
+				printf "Generating %s/%s/%s ...\n",
 					$hostname,
+					($thumbnails ? 'thumbnails' : 'graphs'),
 					$graph if $opt{V};
 
 				# Generate the graph and capture the results to
@@ -351,7 +365,6 @@ sub read_graph_data {
 			-LowerCaseNames		=> 1,
 			-UseApacheInclude	=> 1,
 			-IncludeRelative	=> 1,
-#			-DefaultConfig		=> \%default,
 			-MergeDuplicateBlocks	=> 1,
 			-AllowMultiOptions	=> 1,
 			-MergeDuplicateOptions	=> 1,
@@ -460,6 +473,7 @@ __DATA__
 ^apache_logs$	*	DERIVE	0	-
 
 ^db_mysql_activity$	*	DERIVE	0	-
+^db_mysql_activity_com$	*	DERIVE	0	-
 
 __END__
 

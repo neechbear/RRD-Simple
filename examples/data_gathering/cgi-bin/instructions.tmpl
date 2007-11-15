@@ -6,8 +6,8 @@
     These instructions will help you install and configure your own RRD::Simple Monitoring
     server, using rrd-server.pl and rrd-server.cgi.
     You can find the very latest version of the RRD::Simple Monitoring software that
-    is in live use on rrd.me.uk,
-    <a href="http://rrd.me.uk/rrd-simple-monitoring.tar.gz">here</a>.
+    is in live use on <TMPL_VAR HTTP_HOST>,
+    <a href="http://<TMPL_VAR HTTP_HOST>/rrd-simple-monitoring.tar.gz">here</a>.
   </p>
 
   <h3>Pre-requisite Software (see <a href="#pre-built-rpms">pre-built RPMs</a>)</h3>
@@ -50,7 +50,7 @@
   <p>
     Select a location where you want to install the RRD monitoring software. By default,
     the software is configured to be installed under <code>/home/system/rrd/</code>,
-    <code>/home/nicolaw/webroot/www/rrd.me.uk/</code> or some other randomly bizarre
+    <code><TMPL_VAR DOCUMENT_ROOT>/</code> or some other randomly bizarre
     location. You will most likely want to change this to something more sane like
     <code>/usr/local/rrd-server/</code>. The directory structure under that
     installation location should look like the following:

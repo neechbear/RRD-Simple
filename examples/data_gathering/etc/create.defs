@@ -28,6 +28,7 @@
 
 # rrdfile			ds		type		min	max
 ^db_mysql_activity$		*		DERIVE		0	-
+^db_mysql_activity_com$		*		DERIVE		0	-
 
 # rrdfile			ds		type		min	max
 ^mail_postfix_traffic$		*		ABSOLUTE	0	-

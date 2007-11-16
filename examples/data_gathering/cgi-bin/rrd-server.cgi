@@ -4,7 +4,7 @@
 #   $Id$
 #   rrd-server.cgi - Data gathering CGI script for RRD::Simple
 #
-#   Copyright 2006 Nicola Worthington
+#   Copyright 2006, 2007 Nicola Worthington
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -24,6 +24,9 @@
 # User defined constants
 use constant BASEDIR => '/home/nicolaw/webroot/www/rrd.me.uk';
 
+############################################################
+
+
 
 
 use 5.6.1;
@@ -31,51 +34,100 @@ use warnings;
 use strict;
 use Socket;
 
+# We'll need to print a header unless we're in MOD_PERL land
 print "Content-type: plain/text\n\n" unless exists $ENV{MOD_PERL};
 
+my $host;
+my $param = get_query($ENV{QUERY_STRING});
 my $remote_addr = $ENV{REMOTE_ADDR};
-for (qw(HTTP_X_FORWARDED_FOR HTTP_VIA HTTP_CLIENT_IP HTTP_PROXY_CONNECTION
-		FORWARDED_FOR X_FORWARDED_FOR X_HTTP_FORWARDED_FOR HTTP_FORWARDED)) {
-	if (defined $ENV{$_} && $ENV{$_} =~ /([\d\.]+)/) {
-		my $ip = $1;
-		if (isIP($ip)) {
-			$remote_addr = $ip;
-			last;
+
+# Take the host from the "target" if they know the "secret"
+if (defined($ENV{RRD_SECRET}) && defined($param->{secret} && defined($param->{target}))
+		&& "$ENV{RRD_SECRET}" eq "$param->{secret}") {
+	$host = $param->{target};
+
+} else {
+	# Check for HTTP proxy source addresses
+	for (qw(HTTP_X_FORWARDED_FOR HTTP_VIA HTTP_CLIENT_IP HTTP_PROXY_CONNECTION
+			FORWARDED_FOR X_FORWARDED_FOR X_HTTP_FORWARDED_FOR HTTP_FORWARDED)) {
+		if (defined $ENV{$_} && $ENV{$_} =~ /([\d\.]+)/) {
+			my $ip = $1;
+			if (isIP($ip)) {
+				$remote_addr = $ip;
+				last;
+			}
 		}
 	}
-}
 
-unless ($remote_addr) {
-	print "FAILED - NO REMOTE_ADDR\n";
-	exit;
-}
-
-my $host = ip2host($remote_addr);
-my $ip = host2ip($host);
-
-(print "FAILED - FORWARD AND REVERSE DNS DO NOT MATCH\n" && exit)
-	unless "$ip" eq "$remote_addr";
-
-# Custom hostname flanges
-$host = 'legolas.wd.tfb.net'    if $host eq 'bb-87-80-233-47.ukonline.co.uk' || $ip eq '87.80.233.47';
-$host = 'pippin.wd.tfb.net'     if $host eq '82.153.185.41' || $ip eq '82.153.185.41';
-$host = 'pippin.wd.tfb.net'     if $host eq '82.153.185.40' || $ip eq '82.153.185.40';
-$host = 'isle-of-cats.etla.org' if $ip   eq '82.71.23.88';
-
-if (open(PH,'|-', BASEDIR."/bin/rrd-server.pl -u $host")) {
-	while (<>) {
-		#warn "$host $_";
-		next unless /^[\w\.\-\_\d]+\s+[\d\.]+\s*$/;
-		print PH $_;
+	# Fail if we can't see who is sending us this data
+	unless ($remote_addr) {
+		print "FAILED - NO REMOTE_ADDR\n";
+		exit;
 	}
-	close(PH);
-	print "OKAY - $host\n";
+
+	$host = ip2host($remote_addr);
+	my $ip = host2ip($host);
+
+	# Fail if we don't believe they are who their DNS says they are
+	if ("$ip" ne "$remote_addr") {
+		print "FAILED - FORWARD AND REVERSE DNS DO NOT MATCH\n";
+		exit;
+	}
+
+	# Custom hostname flanges
+	$host = 'legolas.wd.tfb.net'    if $host eq 'bb-87-80-233-47.ukonline.co.uk' || $ip eq '87.80.233.47';
+	$host = 'pippin.wd.tfb.net'     if $host eq '82.153.185.41' || $ip eq '82.153.185.41';
+	$host = 'pippin.wd.tfb.net'     if $host eq '82.153.185.40' || $ip eq '82.153.185.40';
+	$host = 'isle-of-cats.etla.org' if $ip   eq '82.71.23.88';
+}
+
+# Build a list of valid pairs
+my @pairs;
+while (<>) {
+	#warn "$host $_";
+	next unless /^\d+\.[\w\.\-\_\d]+\s+[\d\.]+\s*$/;
+	push @pairs, $_;
+}
+
+# Don't bother opening a pipe if there's nothing to sent
+unless (@pairs) {
+	printf("OKAY - %s - no valid pairs\n", $host);
+
 } else {
-	print "FAILED - UNABLE TO EXECUTE\n";
+	# Simply open a handle to the rrd-server.pl and send in the data
+	if (open(PH,'|-', BASEDIR."/bin/rrd-server.pl -u $host")) {
+		print PH $_ for @pairs;
+		close(PH);
+		printf("OKAY - %s - received %d pairs\n", $host, scalar(@pairs));
+
+	# Say if we failed the customer :)
+	} else {
+		print "FAILED - UNABLE TO EXECUTE\n";
+	}
 }
 
 exit;
 
+sub get_query {
+	my $str = shift;
+	my $kv = {};
+	$str =~ tr/&;/&/s;
+	$str =~ s/^[&;]+//, $str =~ s/[&;]+$//;
+	for (split /[&;]/, $str) {
+		my ($k,$v) = split(/=/, $_, 2);
+		next if $k eq '';
+		$kv->{url_decode($k)} = url_decode($v);
+	}
+	return $kv;
+} 
+
+sub url_decode {
+	local $_ = @_ ? shift : $_;
+	defined or return;
+	tr/+/ /;
+	s/%([a-fA-F0-9]{2})/pack "H2", $1/eg;
+	return $_;
+} 
 
 sub ip2host {
 	my $ip = shift;
@@ -115,5 +167,4 @@ sub host2ip {
 }
 
 1;
-
 

@@ -48,13 +48,23 @@
       </style>
     </TMPL_IF>
 
+    <TMPL_IF stale>
+      <div class="warning">
+      <b>Note:</b> The data for all of the graphs stored against this host appear to be stale
+      and out of date. You should check that this host is still being polled or is posting
+      data to <TMPL_VAR HTTP_HOST>.
+      </div>
+    </TMPL_IF>
+
     <TMPL_LOOP graphs>
       <TMPL_IF GRAPH>
         <TMPL_IF EXPR="GRAPH eq graph">
           <TMPL_IF EXPR="(PERIOD eq period) || (COMBINED)">
     <tr>
       <td><a href="<TMPL_VAR src>"><img src="<TMPL_VAR src>" /></a></td>
-      <td valign="top" class="graph_detail"><pre><TMPL_VAR EXPR="slurp(txt)"></pre></td>
+      <td valign="top" class="graph_detail">
+        <pre><TMPL_VAR EXPR="slurp(txt)"></pre>
+      </td>
     </tr>
           </TMPL_IF>
         </TMPL_IF>
@@ -62,7 +72,13 @@
         <TMPL_IF EXPR="PERIOD eq period">
     <tr>
       <td><a href="<TMPL_VAR self_url>?template=<TMPL_VAR template>&HOST=<TMPL_VAR HOST>&GRAPH=<TMPL_VAR graph>&COMBINED=1&PERIOD=<TMPL_VAR PERIOD>"><img src="<TMPL_VAR src>" /></a></td>
-      <td valign="top" class="graph_detail"><pre><TMPL_VAR EXPR="slurp(txt)"></pre></td>
+      <td valign="top" class="graph_detail">
+          <TMPL_IF stale>
+        <font color="#ff0000"><b>Note:</b> The data in this graph is considered stale because it has
+        not been updated since <TMPL_VAR stale>.</font><br />
+          </TMPL_IF>
+        <pre><TMPL_VAR EXPR="slurp(txt)"></pre>
+      </td>
     </tr>
         </TMPL_IF>
       </TMPL_IF>

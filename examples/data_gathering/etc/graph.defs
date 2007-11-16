@@ -94,6 +94,14 @@
 	source_colors           "ff0000 00ff00 0000ff ffffff"
 </graph>
 
+<graph nagios_perfdata_(?:host|service)_.+>
+	title                   "Nagios PerfData: $1"
+	vertical_label          "Seconds"
+	sources			latency execution
+	source_drawtypes        "AREA STACK"
+	source_labels           "Latency Execution"
+</graph>
+
 <graph db_mysql_replication>
 	title                   "MySQL Database Replication"
 	vertical_label          "sec behind master"

@@ -30,7 +30,7 @@ use constant CACHE   => 1;
 use constant DEFAULT_EXPIRES => '120 minutes';
 
 # When is an RRD file regarded as stale?
-use constant STALE_THRESHOLD => 60*60; # 30 minutes
+use constant STALE_THRESHOLD => 60*60; # 60 minutes
 
 ############################################################
 
@@ -249,7 +249,14 @@ for my $host (sort by_domain list_dir($dir{data})) {
 					# By graph later
 					if ($_ eq 'thumbnails' && defined $hash{graph}) {
 							# && defined $hash{period} && $hash{period} eq 'daily') {
-						my %hash2 = %hash; delete $hash2{title}; $hash2{host} = $host;
+						my %hash2 = %hash;
+						delete $hash2{title};
+						$hash2{host} = $host;
+						if (defined $hash{period} && $hash{period} eq 'daily') {	
+							$tmpl_cache->{hosts_per_graph}->{$hash{graph}} = 0
+								unless defined $tmpl_cache->{hosts_per_graph}->{$hash{graph}};
+							$tmpl_cache->{hosts_per_graph}->{$hash{graph}}++;
+						}
 						push @{$tmpl_cache->{graph_tmpl}->{"$hash{graph}\t$hash{title}"}}, \%hash2;
 					}
 				}
@@ -275,7 +282,7 @@ for (sort keys %{$tmpl_cache->{graph_tmpl}}) {
 	push @{$tmpl{graphs}}, {
 			graph       => $graph,
 			graph_title => $title,
-			total_hosts => @{$tmpl_cache->{graph_tmpl}->{$_}}+0,
+			total_hosts => $tmpl_cache->{hosts_per_graph}->{$graph},
 			thumbnails  => $tmpl_cache->{graph_tmpl}->{$_},
 		};
 }

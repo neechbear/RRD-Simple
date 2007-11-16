@@ -255,12 +255,12 @@ sub basic_http {
 		print SOCK "$method $path HTTP/1.1\n";
 		print SOCK "Host: $host". ("$port" ne "80" ? ":$port" : '') ."\n";
 		print SOCK "User-Agent: $0 version $VERSION ".'($Id$)'."\n";
-		if ($post && $method eq 'POST') {
-			print SOCK "Content-Length: ". length($post) ."\n";
+		if ($data && $method eq 'POST') {
+			print SOCK "Content-Length: ". length($data) ."\n";
 			print SOCK "Content-Type: application/x-www-form-urlencoded\n";
 		}
 		print SOCK "\n";
-		print SOCK $post if $post && $method eq 'POST';
+		print SOCK $data if $data && $method eq 'POST';
 
 		my $body = 0;
 		while (local $_ = <SOCK>) {
@@ -272,7 +272,7 @@ sub basic_http {
 		alarm 0;
 	};
 
-	warn "Warning [basic_http]: $@" if !$opt{q} && $@ && $post;
+	warn "Warning [basic_http]: $@" if !$opt{q} && $@ && $data;
 	return wantarray ? split(/\n/,$str) : "$str";
 }
 

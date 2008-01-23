@@ -35,6 +35,12 @@ umask 0000;
 chmod 0644, 'Build.PL';
 chmod 0755, 'DistBuild.PL';
 
+#
+# TODO
+# Copy the latest versions of rrd-client.pl etc in to the examples
+# directory from the webroot/www/rrd.me.uk directory automagically.
+#
+
 check_repository();
 
 if ($ENV{CVSROOT} && -d 'CVS' && !-d '.svn' && `which cvs2cl.pl`) {

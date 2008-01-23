@@ -1,5 +1,16 @@
-Version 1.44 - 20th Match 2007
+Version 1.44 - 23rd Janurary 2008
     + Fixed some small typos in the POD.
+
+    + Added "on_missing_ds" parameter to the new()
+      constructor method to detemine what action should
+      be taken when the user tries to update or insert
+      new data point values in an RRD for a data source
+      name that does not exist.
+
+    + Added "tmpdir" parameter to the new() constructor
+      method to force any temporary files to be created
+      in the specified directory. This is only used in
+      the add_source() / _modify_source code.
 
 
 Version 1.43 - 5th March 2007

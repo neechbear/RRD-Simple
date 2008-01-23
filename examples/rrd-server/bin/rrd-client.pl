@@ -4,7 +4,7 @@
 #   $Id$
 #   rrd-client.pl - Data gathering script for RRD::Simple
 #
-#   Copyright 2006,2007 Nicola Worthington
+#   Copyright 2006,2007,2008 Nicola Worthington
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.

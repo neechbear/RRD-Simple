@@ -1,0 +1,16 @@
+div.host div.faramir_rbsov_tfb_net h2 {
+  background-color: #fdd99b;
+  /* background: url('/images/Ubuntu-Titlebar2.png'); */
+}
+
+div.host div.faramir_rbsov_tfb_net a {
+  color: #986601;
+  /* color: #ffffff; */
+}
+
+div.host div.faramir_rbsov_tfb_net div.thumbnail {
+	color: #481601;
+	border: 1px dotted #fdd99b;
+	background-color: #fdd99b;
+}
+

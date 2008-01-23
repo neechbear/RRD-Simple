@@ -89,9 +89,20 @@
 	upper_limit             100
 	lower_limit             0
 	rigid
+##	sources "User"
 	sources                 "System User IO_Wait Idle"
 	source_drawtypes        "AREA STACK STACK STACK"
 	source_colors           "ff0000 00ff00 0000ff ffffff"
+##	CDEF			"mycdef1=User,100,*"
+##	CDEF			"mycdef2=User,2,*"
+##	CDEF			"mycdef3=User,300,*"
+##	LINE1			"mycdef2\#00ff00:MyCDef2"
+##	PRINT			"mycdef2:MIN:mycdef2 min %1.2lf"
+##	PRINT			"mycdef2:MAX:mycdef2 max %1.2lf"
+##	PRINT			"mycdef2:LAST:mycdef2 last %1.2lf"
+##	GPRINT			"mycdef2:MIN:   min\:%10.2lf\g"
+##	GPRINT			"mycdef2:MAX:   max\:%10.2lf\g"
+##	GPRINT			"mycdef2:LAST:   last\:%10.2lf\l"
 </graph>
 
 <graph nagios_perfdata_(?:host|service)_.+>

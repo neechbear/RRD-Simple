@@ -21,7 +21,7 @@
 <div class="host"><div class="<TMPL_VAR host2>">
 <h2<TMPL_IF stale> class="stale"</TMPL_IF>><a href="<TMPL_VAR self_url>?template=host.tmpl&HOST=<TMPL_VAR host>&PERIOD=<TMPL_VAR PERIOD>"><TMPL_VAR host></a><TMPL_IF include_summary_txt> - <TMPL_VAR EXPR="slurp(include_summary_txt)"></TMPL_IF></h2>
   <TMPL_IF include_overview_html>
-     <!-- BEGIN INCLUDE_OVERVIEW_HTML -->
+    <!-- BEGIN INCLUDE_OVERVIEW_HTML -->
     <TMPL_VAR EXPR="slurp(include_overview_html)">
     <!-- END INLUDE_OVERVIEW_HTML -->
   </TMPL_IF>
@@ -38,7 +38,7 @@
     </TMPL_UNLESS>
   </TMPL_IF>
 </div></div>
-<div class="vertspace"></div>
+<div class="vertspace">&nbsp;</div>
   </TMPL_IF>
 </TMPL_LOOP>
 </div>

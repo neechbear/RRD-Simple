@@ -27,7 +27,7 @@ use constant RRDURL  => '';
 
 # Caching
 use constant CACHE   => 1;
-use constant DEFAULT_EXPIRES => '120 minutes';
+use constant DEFAULT_EXPIRES => '60 minutes';
 
 # When is an RRD file regarded as stale?
 use constant STALE_THRESHOLD => 60*60; # 60 minutes
@@ -83,6 +83,7 @@ if (CACHE) {
 # Grab CGI paramaters
 my $cgi = new CGI;
 my %q = $cgi->Vars;
+my $cache_key = $cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1);
 
 # cd to the righr location and define directories
 my %dir = map { ( $_ => BASEDIR."/$_" ) } qw(data etc graphs cgi-bin thumbnails);
@@ -139,10 +140,11 @@ if (!defined($FRESHEN_CACHE) && !$FRESHEN_CACHE) {
 
 # Output from the cache if possible
 if (!$FRESHEN_CACHE) {
-	eval { $html = $CACHE->thaw($cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1)); };
+	eval { $html = $CACHE->thaw($cache_key); };
 	warn $@ if $@;
 	if ($html->{html}) {
-		#warn "Using cached version '".$cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1)."'\n";
+		#warn "Using cached version '$cache_key'\n";
+		$html->{html} =~ s/[ \t][ \t]+/ /g unless $q{DEBUG};
 		print $cgi->header(-content => 'text/html'), $html->{html};
 		exit;
 	}
@@ -167,7 +169,8 @@ if (!$FRESHEN_CACHE) {
 #
 #######################################
 for my $host (sort by_domain list_dir($dir{data})) {
-	next unless -d catfile($dir{data},$host);
+	my $path = catfile($dir{data},$host);
+	next unless -d $path || (-l $path && -d readlink($path));
 
 	# NEECHI-HACK!
 	# This is removing some templating logic from the HTML::Template .tmpl file
@@ -325,8 +328,9 @@ my $template = HTML::Template::Expr->new(
 $template->param(\%tmpl);
 
 $html->{html} = $template->output();
+$html->{html} =~ s/[ \t][ \t]+/ /g unless $q{DEBUG};
 $html->{last_update} = time;
-eval { $CACHE->freeze($cgi->self_url(-absolute => 1, -query_string => 1, -path_info => 1), $html); };
+eval { $CACHE->freeze($cache_key, $html); };
 warn $@ if $@;
 print $cgi->header(-content => 'text/html'), $html->{html};
 

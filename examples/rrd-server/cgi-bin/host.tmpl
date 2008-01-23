@@ -63,7 +63,7 @@
     <tr>
       <td><a href="<TMPL_VAR src>"><img src="<TMPL_VAR src>" /></a></td>
       <td valign="top" class="graph_detail">
-        <pre><TMPL_VAR EXPR="slurp(txt)"></pre>
+        <pre class="graph_detail"><TMPL_VAR EXPR="slurp(txt)"></pre>
       </td>
     </tr>
           </TMPL_IF>
@@ -77,7 +77,7 @@
         <font color="#ff0000"><b>Note:</b> The data in this graph is considered stale because it has
         not been updated since <TMPL_VAR stale>.</font><br />
           </TMPL_IF>
-        <pre><TMPL_VAR EXPR="slurp(txt)"></pre>
+        <pre class="graph_detail"><TMPL_VAR EXPR="slurp(txt)"></pre>
       </td>
     </tr>
         </TMPL_IF>

@@ -2,16 +2,17 @@
 <h1><TMPL_VAR title></h1>
 
 <div class="contents">
-  <p>Welcome to <TMPL_VAR HTTP_HOST>.</p>
+  <div class="index">
+  <p class="welcome">Welcome to <TMPL_VAR HTTP_HOST>.</p>
 
-  <table border="0"><tr><td valign="top">
+  <table border="0"><tr><td valign="top" width="50%">
     <ul>
       <li><a href="<TMPL_VAR self_url>?template=by_host.tmpl">Browse by host</a> - overview of all monitored hosts</li>
       <li><a href="<TMPL_VAR self_url>?template=list_hosts.tmpl">List of hosts</a> - list of all monitored hosts</li>
       <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl">Browse by graph</a> - overview of all monitors</li>
       <li><a href="<TMPL_VAR self_url>?template=list_graphs.tmpl">List of graphs</a> - list of all monitors</li>
     </ul>
-  </td><td valign="top">
+  </td><td valign="top" width="50%">
     <ul>
       <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl&LIKE=connections|state|loadavg|cpu_util|mem|net_traffic_eth">View most popular graphs</a></li>
       <li><a href="<TMPL_VAR self_url>?template=by_graph.tmpl&LIKE=cpu_">View all CPU graphs</a></li>
@@ -22,6 +23,7 @@
     </ul>
   </td></tr></table>
 
+  <div class="index_introduction">
   <p>
     If you would like your server to be monitored by <TMPL_VAR HTTP_HOST>, you will
     need to download a copy of the data gathering client script (rrd-client.pl).
@@ -81,6 +83,8 @@
     author something nice from her
     <a href="http://www.amazon.co.uk/gp/registry/1VZXC59ESWYK0?sort=priority">Amazon wishlist</a>?</em>
   </p>
+  </div>
+  </div>
 </div>
 
 <TMPL_INCLUDE footer.tmpl>

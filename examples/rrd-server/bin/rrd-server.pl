@@ -127,9 +127,36 @@ sub create_graphs {
 		for my $file (grep { $_ =~ /\.rrd$/i && !-d catfile($dir->{data},$hostname,$_) }
 				list_dir(catdir($dir->{data},$hostname))
 			) {
+
+			# next unless $file =~ /cpu_utilisation/;
+
 			my $rrdfile = catfile($dir->{data},$hostname,$file);
 			my $graph = basename($file,'.rrd');
 			my $gdef = graph_def($gdefs,$graph);
+
+			# Make sure we parse these raw commands with care
+			my @raw_cmd_list = qw(DEF CDEF VDEF TEXTALIGN AREA STACK LINE\d* HRULE\d* VRULE\d* TICK SHIFT GPRINT PRINT COMMENT);
+			my $raw_cmd_regex = '('.join('|',@raw_cmd_list).')';
+			# my $raw_cmd_regex = qr/^(?:[VC]?DEF|G?PRINT|COMMENT|[HV]RULE\d*|LINE\d*|AREA|TICK|SHIFT|STACK|TEXTALIGN)$/i;
+			my @raw_commands;
+			my @def_sources;
+			my @def_sources_draw;
+
+			# Allow users to put raw commands in the graph.defs file
+			for my $raw_cmd (@raw_cmd_list) {
+				for my $cmd (grep(/^$raw_cmd$/i, keys %{$gdef})) {
+					my $values = $gdef->{$cmd};
+					$values = [($values)] unless ref($values);
+					for my $v (@{$values}) {
+						push @raw_commands, (sprintf('%s:%s', uc($cmd), $v) => '');
+						if ($cmd =~ /^[CV]?DEF$/i && $v =~ /^([a-z0-9\_\-]{1,30})=/) {
+							push @def_sources, $1;
+						} elsif ($cmd =~ /^(?:LINE\d*|AREA|G?PRINT|TICK|STACK)$/i && $v =~ /^([a-z0-9\_\-]{1,30})[#:]/) {
+							push @def_sources_draw, $1;
+						}
+					}
+				}
+			}
 
 			# Wrap the RRD::Simple calls in an eval() block just in case
 			# the explode in a big nasty smelly heap!
@@ -139,7 +166,7 @@ sub create_graphs {
 				# be pushed on to the RRD::Simple->graph option stack (So this
 				# would NOT include the "sources" option).
 				my @graph_opts = map { ($_ => $gdef->{$_}) }
-						grep(!/^source(s|_)/,keys %{$gdef});
+						grep(!/^source(s|_)/ && !/^$raw_cmd_regex$/i, keys %{$gdef});
 
 				# Anything that starts with ^source_ should be split up and passed
 				# as a hash reference in to the RRD::Simple->graph option stack
@@ -172,7 +199,7 @@ sub create_graphs {
 						push @sources, $ds if grep(/^$ds$/,@rrd_sources);
 					}
 					push @graph_opts, ('sources',\@sources);
-				} else {
+				} elsif (!@def_sources && !@def_sources_draw) {
 					push @graph_opts, ('sources', [ sort @rrd_sources ]);
 				}
 
@@ -183,13 +210,14 @@ sub create_graphs {
 
 				# Generate the graph and capture the results to
 				# write the text file output in the same directory
-				write_txt($rrd->graph($rrdfile,
-						destination => $destination,
-						timestamp => 'both',
-						@colour_theme,
-						@options,
-						@graph_opts,
-					));
+				my @stack = ($rrdfile);
+				push @stack, @raw_commands if @raw_commands;
+				push @stack, ( destination => $destination );
+				push @stack, ( timestamp => 'both' );
+				push @stack, @colour_theme if @colour_theme;
+				push @stack, @options if @options;
+				push @stack, @graph_opts if @graph_opts;
+				write_txt($rrd->graph(@stack));
 				
 				my $glob = catfile($destination,"$graph*.png");
 				my @images = glob($glob);
@@ -367,7 +395,6 @@ sub read_graph_data {
 			-IncludeRelative	=> 1,
 			-MergeDuplicateBlocks	=> 1,
 			-AllowMultiOptions	=> 1,
-			-MergeDuplicateOptions	=> 1,
 			-AutoTrue		=> 1,
 		);
 		%config = $conf->getall;
@@ -419,6 +446,16 @@ sub read_create_data {
 	return \%defs;
 }
 
+
+
+
+##
+## This processing and robustness of this routine is pretty
+## bloody dire and awful. It needs to be rewritten with crap
+## input data in mind rather than patching it every time I
+## find a new scenario for the data to not be as expected!! ;-)
+##
+
 sub write_txt {
 	my %rtn = @_;
 	while (my ($period,$data) = each %rtn) {
@@ -441,14 +478,20 @@ sub write_txt {
 				(defined($data->[2]) ? $data->[2] : -1),
 				(-e $filename ? (stat($filename))[7]/1024 : 0);
 
-			for (sort keys %values) {
-				printf FH "%-${max_len}s     min: %s, max: %s, last: %s\n", $_,
-				$values{$_}->{min}, $values{$_}->{max}, $values{$_}->{last};
+			for my $ds (sort keys %values) {
+				for (qw(min max last)) {
+					$values{$ds}->{$_} = ''
+						unless defined $values{$ds}->{$_};
+				}
+				printf FH "%-${max_len}s     min: %s, max: %s, last: %s\n", $ds,
+				$values{$ds}->{min}, $values{$ds}->{max}, $values{$ds}->{last};
 			}
 			close(FH);
 		}
 	}
 }
+
+
 
 
 1;

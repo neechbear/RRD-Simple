@@ -194,13 +194,15 @@ sub create_graphs {
 				# those that actually exist in the RRD file
 				my @rrd_sources = $rrd->sources($rrdfile);
 				if (defined $gdef->{sources}) {
-					my @sources = ();
-					for my $ds (split(/\s+/,$gdef->{sources})) {
+					my @sources;
+					for my $ds (split(/(?:\s+|\s*,\s*)/,$gdef->{sources})) {
 						push @sources, $ds if grep(/^$ds$/,@rrd_sources);
 					}
 					push @graph_opts, ('sources',\@sources);
 				} elsif (!@def_sources && !@def_sources_draw) {
 					push @graph_opts, ('sources', [ sort @rrd_sources ]);
+				} else {
+					push @graph_opts, ('sources', undef);
 				}
 
 				printf "Generating %s/%s/%s ...\n",

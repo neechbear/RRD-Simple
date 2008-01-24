@@ -118,7 +118,8 @@ and heartbeat of 120 seconds (2 minutes).
 
 Graph parameters are preserved and should be passed through to RRDs correctly:
 VDEF, CDEF, DEF, GPRINT, PRINT, COMMENT, HRULE, VRULE, LINE, AREA, TICK, SHIFT
-and STACK. Use the HRULE parameter to draw a horizontal rule on your graph.
+and STACK. Use the VDEF and HRULE parameters to draw a horizontal rule on your
+graph.
 
  use strict;
  use RRD::Simple;
@@ -141,6 +142,7 @@ and STACK. Use the HRULE parameter to draw a horizontal rule on your graph.
  
  $rrd->graph(
          sources => [ qw(Frequency) ],
+         "VDEF:FrequencyAVERAGE=Frequency,AVERAGE" => "",
          "HRULE:FrequencyAVERAGE#00ff77:Average" => "",
      );
 
@@ -189,9 +191,33 @@ information.
                       "GRID#404852", "MGRID#67C6DE" ) ],
      );
 
+=head2 Example 7: Capacity Planning Predictions
+
+ use strict;
+ use RRD::Simple 1.44;
+ 
+ my $rrd = RRD::Simple->new( file => "memory_usage.rrd" );
+ 
+ $rrd->graph(
+         periods => [ qw(week month) ],
+         title => "Memory Utilisation",
+         base => 1024,
+         vertical_label => "bytes",
+         sources => [ qw(Total Used) ],
+         source_drawtypes => [ qw(AREA LINE) ],
+         source_colors => [ qw(dddddd 0000dd) ],
+         lower_limit => 0,
+         rigid => "",
+         "VDEF:D=Used,LSLSLOPE" => "",
+         "VDEF:H=Used,LSLINT" => "",
+         "VDEF:F=Used,LSLCORREL" => "",
+         "CDEF:Proj=Used,POP,D,COUNT,*,H,+" => "",
+         "LINE2:Proj#800000: Projection" => "",
+     );
+
 =head1 COPYRIGHT
 
-Copyright 2005,2006,2007 Nicola Worthington.
+Copyright 2005,2006,2007,2008 Nicola Worthington.
 
 This software is licensed under The Apache Software License, Version 2.0.
 

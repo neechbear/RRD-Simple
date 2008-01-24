@@ -37,6 +37,7 @@ for (my $t = $start; $t <= $end; $t += 60) {
 
 $rrd->graph($rrdfile,
 		sources => [ qw(knickers) ],
+		'VDEF:knickersAVERAGE=knickers,AVERAGE' => '',
 		'HRULE:knickersAVERAGE#00ff77:KnickersAvg' => '',
 	);
 

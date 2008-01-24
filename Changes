@@ -1,4 +1,4 @@
-Version 1.44 - 23rd Janurary 2008
+Version 1.44 - 24th Janurary 2008
     + Fixed some small typos in the POD.
 
     + Added "on_missing_ds" parameter to the new()
@@ -11,6 +11,44 @@ Version 1.44 - 23rd Janurary 2008
       method to force any temporary files to be created
       in the specified directory. This is only used in
       the add_source() / _modify_source code.
+
+    + Added a number of additional TRACE() statements
+      in the code to aid debugging with the DEBUG=1
+      environment variable.
+
+    + Changed graph() so that there is no longer an
+      AVERAGE VDEF vname generated for each data source
+      by default. See the updated example on drawing
+      average lines in RRD::Simple::Examples.
+
+    + Changed graph() method to allow undef or ''
+      (empty) values to be passed in for the sources
+      parameter. This is useful if you do not want to
+      draw and data source values directly on the graph
+      but instead only want to plot CDEF values. As a
+      result and requirement of this change, the DEF
+      statements for each and every data source in the
+      RRD file are always defined early on in the
+      commands passed on to RRDs.pm.
+
+    + Added a new example to RRD::Simple::Examples
+      to show how to generate predictive graphs to
+      provide basic capacity planning. See
+      examples/mem_usage-monthly.png for the example
+      output.
+
+    + Added a new "periods" parameter to the graph()
+      method to restrict which graphs will be
+      generated. For example, "weekly, month" could
+      be specified to only generate those two graphs.
+      This is useful if you want to use the SHIFT
+      command to produce a capacity planning graph
+      based on the last 6 months projecting in to the
+      next 6 months in an annual graphing period.
+
+    + Updated version of rrd.me.uk in the examples
+      sub-directory of this distribution, inside the
+      "rrd-server" directory.
 
 
 Version 1.43 - 5th March 2007

@@ -38,6 +38,7 @@ $build = Module::Build->new(
 			'RRDs'           => 0, # 1.2013
 			'Carp'           => 0, # 1.04
 			'POSIX'          => 0,
+			'Exporter'       => 0,
 		},
 
 		build_requires => {

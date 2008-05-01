@@ -1,7 +1,7 @@
 ############################################################
 #
 #   $Id$
-#   RRD::Simple - Simple interface to create and store data in RRD files
+#   RRD::Simple - Simple interface to store and graph data in RRD files
 #
 #   Copyright 2005,2006,2007,2008 Nicola Worthington
 #
@@ -33,7 +33,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 	 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.44' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.45' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -70,8 +70,10 @@ sub new {
 	# - Added "file" support in 1.42 - see sub _guess_filename.
 	# - Added "on_missing_ds"/"on_missing_source" support in 1.44
 	# - Added "tmpdir" support in 1.44
+	# - Added "allow_empty_sources" support in 1.45
 	my @validkeys = qw(rrdtool cf default_dstype default_dst tmpdir
-			file on_missing_ds on_missing_source);
+			file on_missing_ds on_missing_source
+			allow_empty_sources);
 	my $validkeys = join('|', @validkeys);
 
 	cluck('Unrecognised parameters passed: '.
@@ -80,6 +82,13 @@ sub new {
 
 	$stor->{rrdtool} = _find_binary(exists $stor->{rrdtool} ?
 				$stor->{rrdtool} : 'rrdtool');
+
+	# Added in 1.45 - simply ensure allow_empty_sources is a nicely
+	# defined boolean so we don't need to do fancy test logic on it
+	# later on in the graph() method (which is an ugly method)
+	$stor->{allow_empty_sources} =
+		defined $stor->{allow_empty_sources} && $stor->{allow_empty_sources}
+		? 1 : 0;
 
 	# Check that "default_dstype" isn't complete rubbish (validation from v1.44+)
 	# GAUGE | COUNTER | DERIVE | ABSOLUTE | COMPUTE 
@@ -786,6 +795,7 @@ sub _create_graph {
 	my $rrdfile = shift;
 	my $type = _valid_scheme(shift) || 'day';
 	my $cf = shift || 'AVERAGE';
+	my $stor = $objstore->{_refaddr($self)};
 
 	my $command_regex = qr/^([VC]?DEF|G?PRINT|COMMENT|[HV]RULE\d*|LINE\d*|AREA|TICK|SHIFT|STACK):.+/;
 	$command_regex = qr/^([VC]?DEF|G?PRINT|COMMENT|[HV]RULE\d*|LINE\d*|AREA|TICK|SHIFT|STACK|TEXTALIGN):.+/
@@ -837,8 +847,8 @@ sub _create_graph {
 	delete $param{'timestamp'};
 
 	# Specify extended legend - new for version 1.35
-	my $extended_legend = defined $param{'extended-legend'} &&
-				$param{'extended-legend'} ? 1 : 0;
+	my $extended_legend = defined $param{'extended-legend'} && $param{'extended-legend'}
+				? $param{'extended-legend'} : 0;
 	delete $param{'extended-legend'};
 
 	# Define how thick the graph lines should be
@@ -868,14 +878,14 @@ sub _create_graph {
 	delete $param{'source-colors'};
 
 	# Define which data sources we should plot
+	# Logic changed in 1.45 to support "allow_empty_sources"
 	my @rrd_sources = $self->sources($rrdfile);
-	my @ds = !exists $param{'sources'}
-			? @rrd_sources
-			#: defined $param{'sources'} && ref($param{'sources'}) eq 'ARRAY'
-				#? @{$param{'sources'}}
-			: defined $param{'sources'}
-				? _convert_to_array($param{'sources'})
-				: ();
+	my @ds = ();
+	if (!exists $param{'sources'} || !defined $param{'sources'} || $param{'sources'} =~ /^\s*$/) {
+		@ds = $stor->{'allow_empty_sources'} ? () : @rrd_sources;
+	} else {
+		@ds = _convert_to_array($param{'sources'});
+	}
 
 	# Allow source legend source_labels to be set
 	my %source_labels = ();
@@ -1039,16 +1049,22 @@ sub _create_graph {
 
 		# New for version 1.35
 		if ($extended_legend) {
+
+			# New for version 1.45 - allow users to set their printf format
+			# for extended_legends
+			my $fmt = $extended_legend =~ /%/ ? $extended_legend : '%10.2lf';
+			$fmt =~ s/%/%%/g;
+
 			if ($RRDs::VERSION >= 1.2) {
 				# Moved the VDEFs to the block of code above which is
 				# always run, regardless of the extended legend
-				push @cmd, sprintf('GPRINT:%sMIN:   min\:%%10.2lf\g',$ds);
-				push @cmd, sprintf('GPRINT:%sMAX:   max\:%%10.2lf\g',$ds);
-				push @cmd, sprintf('GPRINT:%sLAST:   last\:%%10.2lf\l',$ds);
+				push @cmd, sprintf('GPRINT:%sMIN:   min\:'.$fmt.'\g',$ds);
+				push @cmd, sprintf('GPRINT:%sMAX:   max\:'.$fmt.'\g',$ds);
+				push @cmd, sprintf('GPRINT:%sLAST:   last\:'.$fmt.'\l',$ds);
 			} else {
-				push @cmd, sprintf('GPRINT:%s:MIN:   min\:%%10.2lf\g',$ds);
-				push @cmd, sprintf('GPRINT:%s:MAX:   max\:%%10.2lf\g',$ds);
-				push @cmd, sprintf('GPRINT:%s:LAST:   last\:%%10.2lf\l',$ds);
+				push @cmd, sprintf('GPRINT:%s:MIN:   min\:'.$fmt.'\g',$ds);
+				push @cmd, sprintf('GPRINT:%s:MAX:   max\:'.$fmt.'\g',$ds);
+				push @cmd, sprintf('GPRINT:%s:LAST:   last\:'.$fmt.'\l',$ds);
 			}
 		}
 	}
@@ -1704,6 +1720,7 @@ RRA definitions.
          cf => [ qw(AVERAGE MAX) ],
          default_dstype => "GAUGE",
          on_missing_ds => "add",
+         allow_empty_sources => 1,
      );
 
 The C<file> parameter is currently optional but will become mandatory in
@@ -1741,6 +1758,13 @@ The C<on_missing_ds> parameter is optional and will default to "add" when
 not defined. This parameter will determine what will happen if you try
 to insert or update data for a data source name that does not exist in
 the RRD file. Valid values are "add", "ignore" and "die".
+
+The C<allow_empty_sources> parameter is optional and will default to 0
+(boolean false). Setting this parameter to 1 (boolean true) will disable all
+validation of the C<sources> parameter in the C<graph> method. This is
+useful if you do not want RRD::Simple to automatically graph all data
+sources (as if the default behaviour), but instead want to manually define
+your own LINE, AREA and/or STACK drawing defintions.
 
 =head2 create
 
@@ -2026,6 +2050,17 @@ If set to boolean true, prints more detailed information in the graph legend
 by adding the minimum, maximum and last values recorded on the graph for each
 data source.
 
+If a % percent symbol is found in the parameter value, then
+RRD::Simple will interpret the value as the printf format that should be used
+for each extended legend line item.
+
+The default printf format that is used when the C<extended_legend> paramater
+is true is the following:
+
+ %10.2lf
+
+See the C<printf> man page for further format information.
+
 =back
 
 Common RRD graph options are:
@@ -2139,7 +2174,7 @@ details.
 
 L<RRD::Simple::Examples>, L<RRDTool::OO>, L<RRDs>,
 L<http://www.rrdtool.org>, examples/*.pl,
-L<http://search.cpan.org/src/NICOLAW/RRD-Simple-1.44/examples/>,
+L<http://search.cpan.org/src/NICOLAW/RRD-Simple-1.45/examples/>,
 L<http://rrd.me.uk>
 
 =head1 VERSION
@@ -2151,6 +2186,8 @@ $Id$
 Nicola Worthington <nicolaw@cpan.org>
 
 L<http://perlgirl.org.uk>
+
+L<http://www.tfbtechnology.ltd.uk>
 
 If you like this software, why not show your appreciation by sending the
 author something nice from her

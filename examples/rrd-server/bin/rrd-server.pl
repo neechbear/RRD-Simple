@@ -43,7 +43,7 @@ use 5.004;
 use strict;
 use warnings;
 use lib qw(../lib);
-use RRD::Simple 1.41;
+use RRD::Simple 1.45;
 use RRDs;
 use Memoize;
 use Getopt::Std qw();
@@ -74,7 +74,10 @@ chdir BASEDIR || die sprintf("Unable to chdir to '%s': %s", BASEDIR, $!);
 my %dir = map { ( $_ => BASEDIR."/$_" ) } qw(bin data etc graphs cgi-bin thumbnails);
 
 # Create an RRD::Simple object
-my $rrd = RRD::Simple->new(rrdtool => "$dir{bin}/rrdtool");
+my $rrd = RRD::Simple->new(
+		rrdtool => "$dir{bin}/rrdtool",
+		allow_empty_sources => 1,
+	);
 
 # Cache results from read_create_data()
 memoize('read_create_data');
@@ -193,14 +196,25 @@ sub create_graphs {
 				# Only draw the sources we've been told to, and only
 				# those that actually exist in the RRD file
 				my @rrd_sources = $rrd->sources($rrdfile);
+
+				# If we have sources defined, then filter the list of sources 
+				# in the RRD file with the list of sources we've been given
+				# from graph.defs
 				if (defined $gdef->{sources}) {
 					my @sources;
 					for my $ds (split(/(?:\s+|\s*,\s*)/,$gdef->{sources})) {
 						push @sources, $ds if grep(/^$ds$/,@rrd_sources);
 					}
 					push @graph_opts, ('sources',\@sources);
+
+				# Otherwise if we weren't given [CV]?DEFs and LINE/AREA/STACK
+				# commands manually, then add a sorted list of all of the sources
+				# that exist in the RRD
 				} elsif (!@def_sources && !@def_sources_draw) {
 					push @graph_opts, ('sources', [ sort @rrd_sources ]);
+
+				# Otherwise don't add any - they're already taken care of in
+				# a [CV]?DEF etc most likely
 				} else {
 					push @graph_opts, ('sources', undef);
 				}

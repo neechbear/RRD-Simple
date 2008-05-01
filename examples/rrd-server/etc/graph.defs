@@ -403,13 +403,34 @@
 	source_colors		"00dd00 0000dd"
 </graph>
 
+#<graph "switch_traffic(?:_([^_]+))?">
+#    extended_legend     Yes
+#    title               "Network Traffic: $1"
+#    vertical_label      "bytes/sec"
+#    sources             "ifOutOctets ifInOctets"
+#    source_drawtypes    "AREA LINE"
+#    source_colors       "00dd00 0000dd"
+#</graph>
+
 <graph "switch_traffic(?:_([^_]+))?">
-    extended_legend     Yes
     title               "Network Traffic: $1"
     vertical_label      "bits/sec"
-    sources             "ifOutOctets ifInOctets"
-    source_drawtypes    "AREA LINE"
-    source_colors       "00dd00 0000dd"
+    CDEF                "Outgoing=ifOutOctets,8,*"
+    AREA                "Outgoing\#00aa00:Outgoing"
+    PRINT               "Outgoing:MIN:Outgoing min %1.2lf"
+    PRINT               "Outgoing:MAX:Outgoing max %1.2lf"
+    PRINT               "Outgoing:LAST:Outgoing last %1.2lf"
+    GPRINT              "Outgoing:MIN:   min\:%10.2lf\g"
+    GPRINT              "Outgoing:MAX:   max\:%10.2lf\g"
+    GPRINT              "Outgoing:LAST:   last\:%10.2lf\l"
+    CDEF                "Incoming=ifInOctets,8,*"
+    LINE1               "Incoming\#0000aa:Incoming"
+    PRINT               "Incoming:MIN:Incoming min %1.2lf"
+    PRINT               "Incoming:MAX:Incoming max %1.2lf"
+    PRINT               "Incoming:LAST:Incoming last %1.2lf"
+    GPRINT              "Incoming:MIN:   min\:%10.2lf\g"
+    GPRINT              "Incoming:MAX:   max\:%10.2lf\g"
+    GPRINT              "Incoming:LAST:   last\:%10.2lf\l"
 </graph>
 
 <graph "net_lvs_ipvsadm_connections_inactive_(\S+)">

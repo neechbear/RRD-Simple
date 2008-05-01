@@ -1,3 +1,11 @@
+Version 1.45 - 15th April 2007
+    + Added "allow_empty_sources" parameter to the new()
+      constructor method.
+
+    + Added support to pass in a printf format to the
+      extended_legend parameter in the graph() method.
+
+
 Version 1.44 - 24th Janurary 2008
     + Fixed some small typos in the POD.
 

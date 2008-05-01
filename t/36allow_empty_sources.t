@@ -10,13 +10,13 @@ BEGIN {
 	eval "use RRDs";
 	plan skip_all => "RRDs.pm *MUST* be installed!" if $@;
 	plan skip_all => "RRDs version less than 1.2" if $RRDs::VERSION < 1.2;
-	plan tests => 203 if !$@;
+	plan tests => 197 if !$@;
 }
 
 use lib qw(./lib ../lib);
-use RRD::Simple 1.44 ();
+use RRD::Simple 1.45 ();
 
-ok(my $rrd = RRD::Simple->new,'new');
+ok(my $rrd = RRD::Simple->new( allow_empty_sources => 1 ),'new');
 
 my $end = time();
 my $start = $end - (60 * 60 * 3);
@@ -53,28 +53,16 @@ for my $sources (('',undef)) {
 	for my $p (qw(daily)) {
 		ok($str->{$p}->[0] eq '36test-daily.png', 'graph without sources: rtn filename');
 		ok(defined $str->{$p}->[1]->[0]
-			&& $str->{$p}->[1]->[0] !~ /mycdef2 min /
-			&& $str->{$p}->[1]->[0] =~ /knickers min /,
+			&& $str->{$p}->[1]->[0] =~ /^mycdef2 min /
+			&& $str->{$p}->[1]->[0] !~ /knickers/,
 			'graph without sources: rtn ds values');
 		ok(defined $str->{$p}->[1]->[1]
-			&& $str->{$p}->[1]->[1] !~ /mycdef2 max /
-			&& $str->{$p}->[1]->[1] =~ /knickers max /,
+			&& $str->{$p}->[1]->[1] =~ /^mycdef2 max /
+			&& $str->{$p}->[1]->[1] !~ /knickers/,
 			'graph without sources: rtn ds values');
 		ok(defined $str->{$p}->[1]->[2]
-			&& $str->{$p}->[1]->[2] !~ /mycdef2 last /
-			&& $str->{$p}->[1]->[2] =~ /knickers last /,
-			'graph without sources: rtn ds values');
-		ok(defined $str->{$p}->[1]->[3]
-			&& $str->{$p}->[1]->[3] =~ /mycdef2 min /
-			&& $str->{$p}->[1]->[3] !~ /knickers min /,
-			'graph without sources: rtn ds values');
-		ok(defined $str->{$p}->[1]->[4]
-			&& $str->{$p}->[1]->[4] =~ /mycdef2 max /
-			&& $str->{$p}->[1]->[4] !~ /knickers max /,
-			'graph without sources: rtn ds values');
-		ok(defined $str->{$p}->[1]->[5]
-			&& $str->{$p}->[1]->[5] =~ /mycdef2 last /
-			&& $str->{$p}->[1]->[5] !~ /knickers last /,
+			&& $str->{$p}->[1]->[2] =~ /^mycdef2 last /
+			&& $str->{$p}->[1]->[2] !~ /knickers/,
 			'graph without sources: rtn ds values');
 		ok($str->{$p}->[2] =~ /^\d+$/ && $str->{$p}->[2] > 100, 'graph without sources: rtn width');
 		ok($str->{$p}->[3] =~ /^\d+$/ && $str->{$p}->[3] > 100, 'graph without sources: rtn height');

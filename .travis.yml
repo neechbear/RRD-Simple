@@ -1,0 +1,27 @@
+language: "perl"
+perl:
+  - "5.18"
+  - "5.16"
+  - "5.14"
+  - "5.12"
+
+before_install:
+    - sudo apt-get install librrds-perl
+    - cpanm Test::Pod # optional dependency
+    - cpanm Test::Pod::Coverage # optional dependency
+    - cpanm Test::Deep # optional dependency
+
+install:
+    - cpanm -v --installdeps --notest --mirror http://cpan.mirrors.travis-ci.org .
+
+script: "perl Build.PL; ./Build test"
+# branches:
+#   only:
+#     - master
+notifications:
+  recipients:
+    - nicolaw@tfb.net
+  email:
+    on_success: change
+    on_failure: always
+#env:

@@ -25,4 +25,4 @@ notifications:
     on_success: change
     on_failure: always
 env:
-    - AUTOMATED_TESTING=1
+    - AUTOMATED_TESTING=1 PERL5LIB=/usr/lib/perl5

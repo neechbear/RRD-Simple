@@ -33,7 +33,7 @@ use File::Basename qw(fileparse dirname basename);
 use vars qw($VERSION $DEBUG $DEFAULT_DSTYPE
 	 @EXPORT @EXPORT_OK %EXPORT_TAGS @ISA);
 
-$VERSION = '1.45' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
+$VERSION = '1.46' || sprintf('%d', q$Revision$ =~ /(\d+)/g);
 
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -2187,12 +2187,14 @@ Nicola Worthington <nicolaw@cpan.org>
 
 L<http://perlgirl.org.uk>
 
+L<http://neech.me.uk>
+
 L<http://www.tfbtechnology.ltd.uk>
 
 If you like this software, why not show your appreciation by sending the
 author something nice from her
-L<Amazon wishlist|http://www.amazon.co.uk/gp/registry/1VZXC59ESWYK0?sort=priority>? 
-( http://www.amazon.co.uk/gp/registry/1VZXC59ESWYK0?sort=priority )
+L<Amazon wishlist|http://www.amazon.co.uk/registry/wishlist/1OC0HESHHY50O>? 
+( http://www.amazon.co.uk/registry/wishlist/1OC0HESHHY50O )
 
 =head1 COPYRIGHT
 

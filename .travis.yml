@@ -6,7 +6,7 @@ perl:
   - "5.12"
 
 before_install:
-    - sudo apt-get install librrds-perl
+    - sudo apt-get install librrds-perl rrdtool
     - cpanm Test::Pod # optional dependency
     - cpanm Test::Pod::Coverage # optional dependency
     - cpanm Test::Deep # optional dependency
